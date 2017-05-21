@@ -6,11 +6,13 @@
 
 #### Features
 
-* Full support for ILI9341 & ILI9488 based TFT modules in 4-wire SPI mode. Support for other controllers will be added later
+* Full support for **ILI9341** & **ILI9488** based TFT modules in 4-wire SPI mode. Support for other controllers will be added later
 * **18-bit (RGB)** color mode (*default*) or **16-bit packed RGB565** color mode (only on ILI9341)
+* SPI displays oriented SPI driver library based on *spi-master* driver
 * Combined **DMA SPI** transfer mode (on some functions) and **direct SPI** to improve speed
 * **Grayscale mode** can be selected
 * SPI speeds u to **40 MHz** are tested and works without problems
+* **Demo application** included which demonstrates most of the library features
 
 
 * **Graphics drawing functions**:
@@ -120,6 +122,11 @@
   * **_width** screen width (smaller dimension) in pixels
   * **_height** screen height (larger dimension) in pixels
   * **tft_disp_type**  current display type (DISP_TYPE_ILI9488 or DISP_TYPE_ILI9341)
+
+
+Full functions **syntax and descriptions** can be found in *tft.h* and *tftspi.h* files.
+
+Full **demo application**, well documented,  is included, please **analyze it** to learn how to use the library functions.
 
 ---
 
