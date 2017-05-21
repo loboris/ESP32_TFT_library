@@ -142,9 +142,9 @@ To run the demo, attach ILI9341 or ILI9488 based display module to ESP32. Defaul
 *  TCS: 25 (touch screen CS)
 
 
-**If you want to use different pins, change them in** *tftfunc.h*
+**If you want to use different pins, change them in** *tftspi.h*
 
-**if you want to use the touch screen functions, set** `#define USE_TOUCH 1` in *tftfunc.h*
+**if you want to use the touch screen functions, set** `#define USE_TOUCH 1` in *tftspi.h*
 
 Using *make menuconfig* **select tick rate 1000** ( → Component config → FreeRTOS → Tick rate (Hz) ) to get more accurate timings
 
@@ -178,13 +178,13 @@ Make and flash the example.
 
 **To flash already prepared image to flash** execute:
 
-`make flashfs`
+`make copyfs`
 
 ---
 
-You can also prepare different SFPIFFS **image** and flashed it to ESP32. *This feature is only tested on Linux.*
+You can also prepare different SFPIFFS **image** and flash it to ESP32. *This feature is only tested on Linux.*
 
-Files to be included on spiffs are already in **components/spiffs_image/image/** directory. You can add or remove the files you vant to include.
+Files to be included on spiffs are already in **components/spiffs_image/image/** directory. You can add or remove the files you want to include.
 
 Then execute:
 
