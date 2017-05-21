@@ -404,13 +404,13 @@ void font_demo()
 			TFT_setFont(f, NULL);
 			x = rand_interval(8, dispWin.x2-8);
 			y = rand_interval(0, (dispWin.y2-dispWin.y1)-TFT_getfontheight()-2);
-			font_ratate = rand_interval(0, 359);
+			font_rotate = rand_interval(0, 359);
 
 			TFT_print("Welcome to ESP32", x, y);
 		}
 		Wait(200);
 	}
-	font_ratate = 0;
+	font_rotate = 0;
 
 	disp_header("7-SEG FONT DEMO");
 
@@ -806,7 +806,7 @@ static void touch_demo()
 //===============
 void tft_demo() {
 
-	font_ratate = 0;
+	font_rotate = 0;
 	text_wrap = 0;
 	font_transparent = 0;
 	font_forceFixed = 0;
@@ -1013,7 +1013,7 @@ void app_main()
 	printf("Graphics demo started\r\n");
 	printf("---------------------\r\n");
 
-	font_ratate = 0;
+	font_rotate = 0;
 	text_wrap = 0;
 	font_transparent = 0;
 	font_forceFixed = 0;

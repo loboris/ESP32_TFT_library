@@ -82,7 +82,7 @@ static uint8_t *userfont = NULL;
 
 // === Set default values for gloval variables ==================
 uint8_t orientation = LANDSCAPE;// screen orientation
-uint16_t font_ratate = 0;		// font rotation
+uint16_t font_rotate = 0;		// font rotation
 uint8_t	font_transparent = 0;
 uint8_t	font_forceFixed = 0;
 uint8_t	text_wrap = 0;			// character wrapping to new line
@@ -1411,7 +1411,7 @@ static int getCharPtr(uint8_t c) {
 //--------------------------------------------------------------
 static int rotatePropChar(int x, int y, int offset) {
   uint8_t ch = 0;
-  double radian = font_ratate * DEG_TO_RAD;
+  double radian = font_rotate * DEG_TO_RAD;
   float cos_radian = cos(radian);
   float sin_radian = sin(radian);
 
@@ -1516,7 +1516,7 @@ static void rotateChar(uint8_t c, int x, int y, int pos) {
   uint8_t i,j,ch,fz,mask;
   uint16_t temp;
   int newx,newy;
-  double radian = font_ratate*0.0175;
+  double radian = font_rotate*0.0175;
   float cos_radian = cos(radian);
   float sin_radian = sin(radian);
   int zz;
@@ -1679,9 +1679,9 @@ void TFT_print(char *st, int x, int y) {
 	if (cfont.bitmap == 0) return; // wrong font selected
 
 	// ** Rotated strings cannot be aligned
-	if ((font_ratate != 0) && ((x <= CENTER) || (y <= CENTER))) return;
+	if ((font_rotate != 0) && ((x <= CENTER) || (y <= CENTER))) return;
 
-	if ((x < LASTX) || (font_ratate == 0)) TFT_OFFSET = 0;
+	if ((x < LASTX) || (font_rotate == 0)) TFT_OFFSET = 0;
 
 	if ((x >= LASTX) && (x < LASTY)) x = TFT_X + (x-LASTX);
 	else if (x > CENTER) x += dispWin.x1;
@@ -1738,7 +1738,7 @@ void TFT_print(char *st, int x, int y) {
 		}
 
 		if (ch == 0x0D) { // === '\r', erase to eol ====
-			if ((!font_transparent) && (font_ratate==0)) _fillRect(TFT_X, TFT_Y,  dispWin.x2+1-TFT_X, tmph, _bg);
+			if ((!font_transparent) && (font_rotate==0)) _fillRect(TFT_X, TFT_Y,  dispWin.x2+1-TFT_X, tmph, _bg);
 		}
 
 		else if (ch == 0x0A) { // ==== '\n', new line ====
@@ -1761,7 +1761,7 @@ void TFT_print(char *st, int x, int y) {
 			// Let's print the character
 			if (cfont.x_size == 0) {
 				// == proportional font
-				if (font_ratate==0) TFT_X += printProportionalChar(TFT_X, TFT_Y)+1;
+				if (font_rotate==0) TFT_X += printProportionalChar(TFT_X, TFT_Y)+1;
 				else {
 					// rotated proportional font
 					offset += rotatePropChar(x, y, offset);
@@ -1772,7 +1772,7 @@ void TFT_print(char *st, int x, int y) {
 			else {
 				if (cfont.bitmap == 1) {
 					if ((ch < cfont.offset) || ((ch-cfont.offset) > cfont.numchars)) ch = cfont.offset;
-					if (font_ratate==0) {
+					if (font_rotate==0) {
 						printChar(ch, TFT_X, TFT_Y);
 						TFT_X += tmpw;
 					}

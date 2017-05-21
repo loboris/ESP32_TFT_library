@@ -32,7 +32,7 @@ typedef struct {
 // ==== Global variables ===================================================================
 //==========================================================================================
 uint8_t   orientation;		// current screen orientation
-uint16_t  font_ratate;   	// current font font_ratate angle (0~395)
+uint16_t  font_rotate;   	// current font font_rotate angle (0~395)
 uint8_t   font_transparent;	// if not 0 draw fonts transparent
 uint8_t   font_forceFixed;  // if not zero force drawing proportional fonts with fixed width
 uint8_t   text_wrap;        // if not 0 wrap long text to the new line, else clip
@@ -452,7 +452,7 @@ int TFT_getfontheight();
 /*
  * Write text to display.
  *
- * Rotation of the displayed text depends on 'font_ratate' variable (0~360)
+ * Rotation of the displayed text depends on 'font_rotate' variable (0~360)
  * if 'font_transparent' variable is set to 1, no background pixels will be printed
  *
  * If the text does not fit the screen width it will be clipped (if text_wrap=0),

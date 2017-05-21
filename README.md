@@ -11,7 +11,7 @@
 * SPI displays oriented SPI driver library based on *spi-master* driver
 * Combined **DMA SPI** transfer mode (on some functions) and **direct SPI** to improve speed
 * **Grayscale mode** can be selected
-* SPI speeds u to **40 MHz** are tested and works without problems
+* SPI speeds up to **40 MHz** are tested and works without problems
 * **Demo application** included which demonstrates most of the library features
 
 
@@ -28,9 +28,9 @@
   * **TFT_drawArc**  Draw circle arc on screen, from ~ to given angles, with given thickness. Can be outlined with different color
   * **TFT_drawPolygon**  Draw poligon on screen with given number of sides (3~60). Can be outlined with different color and rotated by given angle.
 * **Fonts**:
-  * fixed width an proportional fonts are supported; 7 fonts embeded
-  * unlimited number of fonts from file
-  * 7-segment vector font with variable width/height is included (only numbers and few characters)
+  * **fixed** width and proportional fonts are supported; 7 fonts embeded
+  * unlimited number of **fonts from file**
+  * **7-segment vector font** with variable width/height is included (only numbers and few characters)
   * Proportional fonts can be used in fixed width mode.
   * Related functions:
     * **TFT_setFont**  Set current font from one of embeded fonts or font file
@@ -39,7 +39,7 @@
     * **set_7seg_font_atrib**  Set atributes for 7 segment vector font
 * **String write function**:
   * **TFT_print**  Write text to display.
-    * Rotation of the displayed text depends on *font_ratate* variable (0~360)
+    * Strings can be printed at **any angle**. Rotation of the displayed text depends on *font_ratate* variable (0~360)
     * if *font_transparent* variable is set to 1, no background pixels will be printed
     * If the text does not fit the screen/window width it will be clipped ( if *text_wrap=0* ), or continued on next line ( if *text_wrap=1* )
     * Two special characters are allowed in strings: *\r* CR (0x0D), clears the display to EOL, *\n* LF (ox0A), continues to the new line, x=0
@@ -51,23 +51,23 @@
       * *CENTER*  centers the text verticaly
       * *BOTTOM*  bottom justifies the text
       * *LASTY*   continues from last Y position; offset can be used: *LASTY+n*
-  * **TFT_getStringWidth** Returns the string width in pixels. Useful for positions strings on the screen.
+  * **TFT_getStringWidth** Returns the string width in pixels based on current font characteristics. Useful for positioning strings on the screen.
 * **Images**:
-  * **TFT_jpg_image**  Decodes and displays BMP image
+  * **TFT_jpg_image**  Decodes and displays JPG images
     * Limits:
       * Baseline only. Progressive and Lossless JPEG format are not supported.
       * Image size: Up to 65520 x 65520 pixels
       * Color space: YCbCr three components only. Gray scale image is not supported.
       * Sampling factor: 4:4:4, 4:2:2 or 4:2:0.
-    * Can display the image from file or memory buffer
-    * Image can be scaled by factor 0 ~ 3  (1/1, 1/2, 1/4 or 1/8)
+    * Can display the image **from file** or **memory buffer**
+    * Image can be **scaled** by factor 0 ~ 3  (1/1, 1/2, 1/4 or 1/8)
     * Image is displayed from X,Y position on screen/window:
       * X: image left position; constants CENTER & RIGHT can be used; *negative* value is accepted
       * Y: image top position;  constants CENTER & BOTTOM can be used; *negative* value is accepted
-  * **TFT_bmp_image**  Decodes and displays BMP image
+  * **TFT_bmp_image**  Decodes and displays BMP images
     * Only uncompressed RGB 24-bit with no color space information BMP images can be displayed
-    * Can display the image from file or memory buffer
-    * Image can be scaled by factor 0 ~ 7; if scale>0, image is scaled by factor 1/(scale+1)
+    * Can display the image **from file** or **memory buffer**
+    * Image can be **scaled** by factor 0 ~ 7; if scale>0, image is scaled by factor 1/(scale+1)
     * Image is displayed from X,Y position on screen/window:
       * X: image left position; constants CENTER & RIGHT can be used; *negative* value is accepted
       * Y: image top position;  constants CENTER & BOTTOM can be used; *negative* value is accepted
@@ -76,7 +76,7 @@
   * When defined, all graphics, text and image coordinates are translated to *window* coordinates
   * Related functions
     * **TFT_setclipwin**  Sets the *window* area coordinates
-    * **TFT_resetclipwin**  Reset the *window* to full screed dimensions
+    * **TFT_resetclipwin**  Reset the *window* to full screen dimensions
     * **TFT_saveClipWin**  Save current *window* to temporary variable
     * **TFT_restoreClipWin**  Restore current *window* from temporary variable
     * **TFT_fillWindow**  Fill *window* area with color
@@ -91,7 +91,7 @@
   * **TFT_setRotation**  Set screen rotation; PORTRAIT, PORTRAIT_FLIP, LANDSCAPE and LANDSCAPE_FLIP are supported
   * **TFT_invertDisplay**  Set inverted/normal colors
   * **TFT_compare_colors**  Compare two color structures
-  * **set_color_bits**  Set color mode for display controllers which supports 16/24 modes.
+  * **set_color_bits**  Set color mode for display controllers which supports 16/24 bit modes.
   * **disp_select()**  Activate display's CS line
   * **disp_deselect()**  Deactivate display's CS line
   * **find_rd_speed()**  Find maximum spi clock for successful read from display RAM
@@ -102,13 +102,13 @@
 
 * **Global wariables**
   * **orientation**  current screen orientation
-  * **font_ratate**  current font font_ratate angle (0~395)
+  * **font_ratate**  current font rotate angle (0~395)
   * **font_transparent**  if not 0 draw fonts transparent
   * **font_forceFixed**  if not zero force drawing proportional fonts with fixed width
   * **text_wrap**  if not 0 wrap long text to the new line, else clip
   * **_fg**  current foreground color for fonts
   * **_bg**  current background for non transparent fonts
-  * **dispWin** display clip window
+  * **dispWin** current display clip window
   * **_angleOffset**  angle offset for arc, polygon and line by angle functions
   * **image_debug**  print debug messages during image decode if set to 1
   * **cfont**  Currently used font structure
@@ -123,6 +123,7 @@
   * **_height** screen height (larger dimension) in pixels
   * **tft_disp_type**  current display type (DISP_TYPE_ILI9488 or DISP_TYPE_ILI9341)
 
+---
 
 Full functions **syntax and descriptions** can be found in *tft.h* and *tftspi.h* files.
 
