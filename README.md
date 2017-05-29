@@ -93,11 +93,10 @@
   * **TFT_setRotation**  Set screen rotation; PORTRAIT, PORTRAIT_FLIP, LANDSCAPE and LANDSCAPE_FLIP are supported
   * **TFT_invertDisplay**  Set inverted/normal colors
   * **TFT_compare_colors**  Compare two color structures
-  * **set_color_bits**  Set color mode for display controllers which supports 16/24 bit modes.
   * **disp_select()**  Activate display's CS line
   * **disp_deselect()**  Deactivate display's CS line
   * **find_rd_speed()**  Find maximum spi clock for successful read from display RAM
-  * **TFT_display_init()**  Perform display initialization sequence. Sets orientation to landscape; clears the screen. SPI interface must already be setup, *tft_disp_type*, *COLOR_BITS*, *_width*, *_height* variables must be set.
+  * **TFT_display_init()**  Perform display initialization sequence. Sets orientation to landscape; clears the screen. SPI interface must already be setup, *tft_disp_type*, *_width*, *_height* variables must be set.
   * **HSBtoRGB**  Converts the components of a color, as specified by the HSB model to an equivalent set of values for the default RGB model.
 * **compile_font_file**  Function which compiles font c source file to font file which can be used in *TFT_setFont()* function to select external font. Created file have the same name as source file and extension *.fnt*
 
@@ -118,7 +117,6 @@
   * **TFT_Y**  Y position of the next character after TFT_print() function
   * **tp_calx**  touch screen X calibration constant
   * **tp_caly**  touch screen Y calibration constant
-  * **COLOR_BITS**  current color bits ( 24 or 16)
   * **gray_scale**  convert all colors to gray scale if set to 1
   * **max_rdclock**  current spi clock for reading from display RAM
   * **_width** screen width (smaller dimension) in pixels
