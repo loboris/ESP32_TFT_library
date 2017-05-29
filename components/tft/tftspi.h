@@ -8,12 +8,12 @@
 #define _TFTSPI_H_
 
 #include "tftspi.h"
-#include "spi_master_nodma.h"
+#include "spi_master_lobo.h"
 
 #define DISP_TYPE_ILI9341	0
 #define DISP_TYPE_ILI9488	1
 #define DISP_COLOR_BITS_24	0x66
-#define DISP_COLOR_BITS_16	0x55
+//#define DISP_COLOR_BITS_16	0x55
 
 // ##############################################################
 // ### Define ESP32 SPI pins to which the display is attached ###
@@ -39,7 +39,7 @@
 // #######################################################
 // Set this to 1 if you want to use touch screen functions
 // #######################################################
-#define USE_TOUCH	1
+#define USE_TOUCH	0
 // #######################################################
 
 // #######################################################################
@@ -52,9 +52,6 @@
 // ##############################################################
 // #### Global variables                                     ####
 // ##############################################################
-
-// ==== Color mode; 24 or 16 (only for ILI9341 ==================
-uint8_t COLOR_BITS;
 
 // ==== Converts colors to grayscale if 1 =======================
 uint8_t gray_scale;
@@ -70,8 +67,8 @@ int _height;
 uint8_t tft_disp_type;
 
 // ==== Spi device handles for display and touch screen =========
-spi_nodma_device_handle_t disp_spi;
-spi_nodma_device_handle_t ts_spi;
+spi_lobo_device_handle_t disp_spi;
+spi_lobo_device_handle_t ts_spi;
 
 // ##############################################################
 
@@ -175,9 +172,9 @@ static const uint8_t ILI9341_init[] = {
   TFT_CMD_VMCTR1, 2, 0x3e, 0x28,					//VCM control
   TFT_CMD_VMCTR2, 1, 0x86,							//VCM control2
   TFT_MADCTL, 1,									// Memory Access Control (orientation)
-  (MADCTL_MV | MADCTL_BGR),
+  (MADCTL_MX | MADCTL_BGR),
   // *** INTERFACE PIXEL FORMAT: 0x66 -> 18 bit; 0x55 -> 16 bit
-  TFT_CMD_PIXFMT, 1, 0x55,
+  TFT_CMD_PIXFMT, 1, DISP_COLOR_BITS_24,
   TFT_INVOFF, 0,
   TFT_CMD_FRMCTR1, 2, 0x00, 0x18,
   TFT_CMD_DFUNCTR, 3, 0x08, 0x82, 0x27,				// Display Function Control
@@ -215,10 +212,10 @@ static const uint8_t ILI9488_init[] = {
 	0x80,
 
   TFT_MADCTL, 1,									// Memory Access Control (orientation)
-    (MADCTL_MV | MADCTL_BGR),
+    (MADCTL_MX | MADCTL_BGR),
 
   // *** INTERFACE PIXEL FORMAT: 0x66 -> 18 bit;
-  TFT_CMD_PIXFMT, 1, 0x66,
+  TFT_CMD_PIXFMT, 1, DISP_COLOR_BITS_24,
 
   0xB0, 1,   // Interface Mode Control
 	0x00,    // 0x80: SDO NOT USE; 0x00 USE SDO
@@ -259,20 +256,16 @@ static const uint8_t ILI9488_init[] = {
 // ==== Public functions =========================================================
 
 // == Low level functions; usually not used directly ==
-esp_err_t wait_trans_finish();
+esp_err_t wait_trans_finish(uint8_t free_line);
 void disp_spi_transfer_cmd(int8_t cmd);
 void disp_spi_transfer_cmd_data(int8_t cmd, uint8_t *data, uint32_t len);
 void drawPixel(int16_t x, int16_t y, color_t color, uint8_t sel);
 void send_data(int x1, int y1, int x2, int y2, uint32_t len, color_t *buf);
 void TFT_pushColorRep(int x1, int y1, int x2, int y2, color_t data, uint32_t len);
-int read_data(int x1, int y1, int x2, int y2, int len, uint8_t *buf);
+int read_data(int x1, int y1, int x2, int y2, int len, uint8_t *buf, uint8_t set_sp);
 color_t readPixel(int16_t x, int16_t y);
 int touch_get_data(uint8_t type);
 
-
-// Set color mode for display controllers which supports 16/24 mode
-// The 'bits' parameter must be 24 or 16
-void set_color_bits(uint8_t bits);
 
 // Deactivate display's CS line
 //========================

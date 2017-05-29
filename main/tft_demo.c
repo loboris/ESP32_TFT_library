@@ -51,13 +51,13 @@ static uint8_t doprint = 1;
 static struct tm* tm_info;
 static char tmp_buff[64];
 static time_t time_now, time_last = 0;
+static const char *file_fonts[3] = {"/spiffs/fonts/DotMatrix_M.fon", "/spiffs/fonts/Ubuntu.fon", "/spiffs/fonts/Grotesk24x48.fon"};
 
-#if USE_TOUCH
-#define GDEMO_TIME 10000
-#else
 #define GDEMO_TIME 4000
-#endif
+#define GDEMO_INFO_TIME 4000
 
+
+//==================================================================================
 #ifdef CONFIG_EXAMPLE_USE_WIFI
 
 static const char tag[] = "[TFT Demo]";
@@ -69,7 +69,6 @@ static EventGroupHandle_t wifi_event_group;
    but we only care about one event - are we connected
    to the AP with an IP? */
 const int CONNECTED_BIT = 0x00000001;
-
 
 //------------------------------------------------------------
 static esp_err_t event_handler(void *ctx, system_event_t *event)
@@ -133,17 +132,21 @@ static int obtain_time(void)
     initialize_sntp();
 
     // wait for time to be set
-    time_t now = 0;
-    struct tm timeinfo = { 0 };
     int retry = 0;
-    const int retry_count = 10;
-    while(timeinfo.tm_year < (2016 - 1900) && ++retry < retry_count) {
-        ESP_LOGI(tag, "Waiting for system time to be set... (%d/%d)", retry, retry_count);
-        vTaskDelay(2000 / portTICK_PERIOD_MS);
-        time(&now);
-        localtime_r(&now, &timeinfo);
+    const int retry_count = 20;
+
+    time(&time_now);
+	tm_info = localtime(&time_now);
+
+    while(tm_info->tm_year < (2016 - 1900) && ++retry < retry_count) {
+        //ESP_LOGI(tag, "Waiting for system time to be set... (%d/%d)", retry, retry_count);
+		sprintf(tmp_buff, "Wait %0d/%d", retry, retry_count);
+    	TFT_print(tmp_buff, CENTER, LASTY);
+		vTaskDelay(500 / portTICK_RATE_MS);
+        time(&time_now);
+    	tm_info = localtime(&time_now);
     }
-    if (timeinfo.tm_year < (2016 - 1900)) {
+    if (tm_info->tm_year < (2016 - 1900)) {
     	ESP_LOGI(tag, "System time NOT set.");
     	res = 0;
     }
@@ -155,38 +158,9 @@ static int obtain_time(void)
     return res;
 }
 
-#endif
+#endif  //CONFIG_EXAMPLE_USE_WIFI
+//==================================================================================
 
-
-//------------------------------------------------------------
-unsigned int rand_interval(unsigned int min, unsigned int max)
-{
-    int r;
-    const unsigned int range = 1 + max - min;
-    const unsigned int buckets = RAND_MAX / range;
-    const unsigned int limit = buckets * range;
-
-    /* Create equal size buckets all in a row, then fire randomly towards
-     * the buckets until you land in one of them. All buckets are equally
-     * likely. If you land off the end of the line of buckets, try again. */
-    do
-    {
-        r = rand();
-    } while (r >= limit);
-
-    return min + (r / buckets);
-}
-
-// Generate random color
-//-----------------------------
-static color_t random_color() {
-
-	color_t color;
-	color.r  = (uint8_t)rand_interval(0,255);
-	color.g  = (uint8_t)rand_interval(0,255);
-	color.b  = (uint8_t)rand_interval(0,255);
-	return color;
-}
 
 //----------------------
 static void _checkTime()
@@ -219,35 +193,85 @@ static void _checkTime()
 	}
 }
 
-//---------------------
-static int Wait(int ms)
+/*
+//----------------------
+static int _checkTouch()
 {
-	int n, tx, ty;
-	if (ms < 50) {
-		_checkTime();
-		if (TFT_read_touch(&tx, &ty, 0)) {
-			while (TFT_read_touch(&tx, &ty, 0)) {
-				vTaskDelay(20 / portTICK_RATE_MS);
-			}
-			return 0;
+	int tx, ty;
+	if (TFT_read_touch(&tx, &ty, 0)) {
+		while (TFT_read_touch(&tx, &ty, 1)) {
+			vTaskDelay(20 / portTICK_RATE_MS);
 		}
 		return 1;
 	}
-	for (n=0; n<ms; n += 50) {
-		vTaskDelay(50 / portTICK_RATE_MS);
-		_checkTime();
-		if (TFT_read_touch(&tx, &ty, 0)) {
-			while (TFT_read_touch(&tx, &ty, 0)) {
-				vTaskDelay(20 / portTICK_RATE_MS);
-			}
-			return 0;
+	return 0;
+}
+*/
+
+//---------------------
+static int Wait(int ms)
+{
+	uint8_t tm = 1;
+	if (ms < 0) {
+		tm = 0;
+		ms *= -1;
+	}
+	if (ms <= 50) {
+		vTaskDelay(ms / portTICK_RATE_MS);
+		//if (_checkTouch()) return 0;
+	}
+	else {
+		for (int n=0; n<ms; n += 50) {
+			vTaskDelay(50 / portTICK_RATE_MS);
+			if (tm) _checkTime();
+			//if (_checkTouch()) return 0;
 		}
 	}
 	return 1;
 }
 
-//--------------------------
-void disp_header(char *info)
+//-------------------------------------------------------------------
+static unsigned int rand_interval(unsigned int min, unsigned int max)
+{
+    int r;
+    const unsigned int range = 1 + max - min;
+    const unsigned int buckets = RAND_MAX / range;
+    const unsigned int limit = buckets * range;
+
+    /* Create equal size buckets all in a row, then fire randomly towards
+     * the buckets until you land in one of them. All buckets are equally
+     * likely. If you land off the end of the line of buckets, try again. */
+    do
+    {
+        r = rand();
+    } while (r >= limit);
+
+    return min + (r / buckets);
+}
+
+// Generate random color
+//-----------------------------
+static color_t random_color() {
+
+	color_t color;
+	color.r  = (uint8_t)rand_interval(8,255);
+	color.g  = (uint8_t)rand_interval(8,255);
+	color.b  = (uint8_t)rand_interval(8,255);
+	return color;
+}
+
+//---------------------
+static void _dispTime()
+{
+	time(&time_now);
+	time_last = time_now;
+	tm_info = localtime(&time_now);
+	sprintf(tmp_buff, "%02d:%02d:%02d", tm_info->tm_hour, tm_info->tm_min, tm_info->tm_sec);
+	TFT_print(tmp_buff, CENTER, _height-TFT_getfontheight()-5);
+}
+
+//---------------------------------
+static void disp_header(char *info)
 {
 	TFT_fillScreen(TFT_BLACK);
 	TFT_resetclipwin();
@@ -263,55 +287,95 @@ void disp_header(char *info)
 	TFT_drawRect(0, _height-TFT_getfontheight()-9, _width-1, TFT_getfontheight()+8, TFT_CYAN);
 
 	TFT_print(info, CENTER, 4);
-
-	time(&time_now);
-	time_last = time_now;
-	tm_info = localtime(&time_now);
-	sprintf(tmp_buff, "%02d:%02d:%02d", tm_info->tm_hour, tm_info->tm_min, tm_info->tm_sec);
-	TFT_print(tmp_buff, CENTER, _height-TFT_getfontheight()-5);
+	_dispTime();
 
 	_bg = TFT_BLACK;
 	TFT_setclipwin(0,TFT_getfontheight()+9, _width-1, _height-TFT_getfontheight()-10);
 }
 
-// Image demo
-//------------------
-void disp_images() {
-    uint32_t tstart;
+//---------------------------------------------
+static void update_header(char *hdr, char *ftr)
+{
+	color_t last_fg, last_bg;
 
-    // ==== SHOW IMAGES ====
+	TFT_saveClipWin();
+	TFT_resetclipwin();
 
-	disp_header("IMAGE DEMO");
+	Font curr_font = cfont;
+	last_bg = _bg;
+	last_fg = _fg;
+	_fg = TFT_YELLOW;
+	_bg = (color_t){ 64, 64, 64 };
+	TFT_setFont(DEFAULT_FONT, NULL);
+
+	if (hdr) {
+		TFT_fillRect(1, 1, _width-3, TFT_getfontheight()+6, _bg);
+		TFT_print(hdr, CENTER, 4);
+	}
+
+	if (ftr) {
+		TFT_fillRect(1, _height-TFT_getfontheight()-8, _width-3, TFT_getfontheight()+6, _bg);
+		if (strlen(ftr) == 0) _dispTime();
+		else TFT_print(ftr, CENTER, _height-TFT_getfontheight()-5);
+	}
+
+	cfont = curr_font;
+	_fg = last_fg;
+	_bg = last_bg;
+
+	TFT_restoreClipWin();
+}
+
+//------------------------
+static void test_times() {
 
 	if (doprint) {
+	    uint32_t tstart, t1, t2;
+		disp_header("TIMINGS");
 		// ** Show Fill screen and send_line timings
-		color_t *color_line = pvPortMallocCaps((_width*3) + 1, MALLOC_CAP_DMA);
+		tstart = clock();
+		TFT_fillWindow(TFT_BLACK);
+		t1 = clock() - tstart;
+		printf("     Clear screen time: %u ms\r\n", t1);
+		TFT_setFont(SMALL_FONT, NULL);
+		sprintf(tmp_buff, "Clear screen: %u ms", t1);
+		TFT_print(tmp_buff, 0, 140);
+
+		color_t *color_line = pvPortMallocCaps((_width*3), MALLOC_CAP_DMA);
+		color_t *gsline = NULL;
+		if (gray_scale) gsline = malloc(_width*3);
 		if (color_line) {
 			float hue_inc = (float)((10.0 / (float)(_height-1) * 360.0));
 			for (int x=0; x<_width; x++) {
 				color_line[x] = HSBtoRGB(hue_inc, 1.0, (float)x / (float)_width);
+				if (gsline) gsline[x] = color_line[x];
 			}
-
-			tstart = clock();
-			TFT_fillWindow(TFT_NAVY);
-			tstart = clock() - tstart;
-			printf("     Clear screen time: %u ms\r\n", tstart);
-
 			disp_select();
 			tstart = clock();
 			for (int n=0; n<1000; n++) {
+				if (gsline) memcpy(color_line, gsline, _width*3);
 				send_data(0, 40+(n&63), dispWin.x2-dispWin.x1, 40+(n&63), (uint32_t)(dispWin.x2-dispWin.x1+1), color_line);
-				wait_trans_finish();
+				wait_trans_finish(1);
 			}
-			tstart = clock() - tstart;
+			t2 = clock() - tstart;
 			disp_deselect();
 
-			printf("Send color buffer time: %u us (%d pixels)\r\n", tstart, dispWin.x2-dispWin.x1+1);
+			printf("Send color buffer time: %u us (%d pixels)\r\n", t2, dispWin.x2-dispWin.x1+1);
 			free(color_line);
-			Wait(1000);
+
+			sprintf(tmp_buff, "   Send line: %u us", t2);
+			TFT_print(tmp_buff, 0, 144+TFT_getfontheight());
 		}
+		Wait(GDEMO_INFO_TIME);
     }
-	TFT_fillWindow(TFT_BLACK);
+}
+
+// Image demo
+//-------------------------
+static void disp_images() {
+    uint32_t tstart;
+
+	disp_header("JPEG IMAGES");
 
 	if (spiffs_is_mounted) {
 		// ** Show scaled (1/8, 1/4, 1/2 size) JPG images
@@ -329,75 +393,82 @@ void disp_images() {
 		TFT_jpg_image(CENTER, CENTER, 0, SPIFFS_BASE_PATH"/images/test3.jpg", NULL, 0);
 		tstart = clock() - tstart;
 		if (doprint) printf("       JPG Decode time: %u ms\r\n", tstart);
-		Wait(500);
+		sprintf(tmp_buff, "Decode time: %u ms", tstart);
+		update_header(NULL, tmp_buff);
+		Wait(-GDEMO_INFO_TIME);
 
 		// ** Show BMP image
+		update_header("BMP IMAGE", "");
 		for (int scale=5; scale >= 0; scale--) {
 			tstart = clock();
 			TFT_bmp_image(CENTER, CENTER, scale, SPIFFS_BASE_PATH"/images/tiger.bmp", NULL, 0);
 			tstart = clock() - tstart;
 			if (doprint) printf("    BMP time, scale: %d: %u ms\r\n", scale, tstart);
-			Wait(500);
+			sprintf(tmp_buff, "Decode time: %u ms", tstart);
+			update_header(NULL, tmp_buff);
+			Wait(-500);
 		}
+		Wait(-GDEMO_INFO_TIME);
 	}
 	else if (doprint) printf("  No file system found.\r\n");
-
-	Wait(1000);
 }
 
-//--------------
-void font_demo()
+//---------------------
+static void font_demo()
 {
-	int x, y;
-	int n;
+	int x, y, n;
 	uint32_t end_time;
 
 	disp_header("FONT DEMO");
 
 	end_time = clock() + GDEMO_TIME;
+	n = 0;
 	while ((clock() < end_time) && (Wait(0))) {
 		y = 4;
 		for (int f=DEFAULT_FONT; f<FONT_7SEG; f++) {
 			_fg = random_color();
 			TFT_setFont(f, NULL);
-			TFT_print("Welcome to ESP32", 0, y);
+			TFT_print("Welcome to ESP32", 4, y);
 			y += TFT_getfontheight() + 4;
+			n++;
 		}
-		Wait(50);
 	}
+	sprintf(tmp_buff, "%d STRINGS", n);
+	update_header(NULL, tmp_buff);
+	Wait(-GDEMO_INFO_TIME);
 
 	if (spiffs_is_mounted) {
 		disp_header("FONT FROM FILE DEMO");
 
-		end_time = clock() + GDEMO_TIME;
-		while ((clock() < end_time) && (Wait(0))) {
-			y = 8;
-			_fg = random_color();
-			TFT_setFont(USER_FONT, "/spiffs/fonts/DotMatrix_M.fon");
-			TFT_print("Welcome to ESP32", 0, y);
-			y += TFT_getfontheight() + 10;
+		text_wrap = 1;
+		for (int f=0; f<3; f++) {
+			TFT_fillWindow(TFT_BLACK);
+			TFT_setFont(DEFAULT_FONT, NULL);
+			_fg = TFT_YELLOW;
+			TFT_print((char *)file_fonts[f], 0, (dispWin.y2-dispWin.y1)-TFT_getfontheight()-4);
+			update_header(NULL, "");
 
-			_fg = random_color();
-			TFT_setFont(USER_FONT, "/spiffs/fonts/SmallFont.fon");
-			TFT_print("Small proportional font", 0, y);
-			y += TFT_getfontheight() + 10;
-
-			_fg = random_color();
-			TFT_setFont(USER_FONT, "/spiffs/fonts/Ubuntu.fon");
-			TFT_print("Ubuntu font", 0, y);
-			y += TFT_getfontheight() + 4;
-
-			_fg = random_color();
-			TFT_setFont(USER_FONT, "/spiffs/fonts/Grotesk24x48.fon");
-			TFT_print("Grotesk 24x48", 0, y);
-			y += TFT_getfontheight() + 4;
-			Wait(50);
+			TFT_setFont(USER_FONT, file_fonts[f]);
+			if (f == 0) font_line_space = 4;
+			end_time = clock() + GDEMO_TIME;
+			n = 0;
+			while ((clock() < end_time) && (Wait(0))) {
+				_fg = random_color();
+				TFT_print("Welcome to ESP32\nThis is user font.", 0, 8);
+				n++;
+			}
+			font_line_space = 0;
+			sprintf(tmp_buff, "%d STRINGS", n);
+			update_header(NULL, tmp_buff);
+			Wait(-GDEMO_INFO_TIME);
 		}
+		text_wrap = 0;
 	}
 
 	disp_header("ROTATED FONT DEMO");
 
 	end_time = clock() + GDEMO_TIME;
+	n = 0;
 	while ((clock() < end_time) && (Wait(0))) {
 		for (int f=DEFAULT_FONT; f<FONT_7SEG; f++) {
 			_fg = random_color();
@@ -407,10 +478,13 @@ void font_demo()
 			font_rotate = rand_interval(0, 359);
 
 			TFT_print("Welcome to ESP32", x, y);
+			n++;
 		}
-		Wait(200);
 	}
 	font_rotate = 0;
+	sprintf(tmp_buff, "%d STRINGS", n);
+	update_header(NULL, tmp_buff);
+	Wait(-GDEMO_INFO_TIME);
 
 	disp_header("7-SEG FONT DEMO");
 
@@ -418,8 +492,9 @@ void font_demo()
 	int last_sec = 0;
 	uint32_t ctime = clock();
 	end_time = clock() + GDEMO_TIME*2;
+	n = 0;
 	while ((clock() < end_time) && (Wait(0))) {
-		y = 40;
+		y = 12;
 		ms = clock() - ctime;
 		time(&time_now);
 		tm_info = localtime(&time_now);
@@ -428,20 +503,34 @@ void font_demo()
 			ms = 0;
 			ctime = clock();
 		}
+
+		_fg = TFT_ORANGE;
 		sprintf(tmp_buff, "%02d:%02d:%03d", tm_info->tm_min, tm_info->tm_sec, ms);
-		_fg = random_color();
-
 		TFT_setFont(FONT_7SEG, NULL);
-		set_7seg_font_atrib(8, 2, 1, TFT_DARKGREY);
-		TFT_print(tmp_buff, 0, y);
-		y += TFT_getfontheight() *2;
+		set_7seg_font_atrib(12, 2, 1, TFT_DARKGREY);
+		//TFT_clearStringRect(12, y, tmp_buff);
+		TFT_print(tmp_buff, CENTER, y);
+		n++;
 
+		_fg = TFT_GREEN;
+		y += TFT_getfontheight() + 12;
 		set_7seg_font_atrib(14, 3, 1, TFT_DARKGREY);
 		sprintf(tmp_buff, "%02d:%02d", tm_info->tm_sec, ms / 10);
-		TFT_print(tmp_buff, 0, y);
+		//TFT_clearStringRect(12, y, tmp_buff);
+		TFT_print(tmp_buff, CENTER, y);
+		n++;
 
-		Wait(50);
+		_fg = random_color();
+		y += TFT_getfontheight() + 8;
+		set_7seg_font_atrib(6, 1, 1, TFT_DARKGREY);
+		getFontCharacters((uint8_t *)tmp_buff);
+		//TFT_clearStringRect(12, y, tmp_buff);
+		TFT_print(tmp_buff, CENTER, y);
+		n++;
 	}
+	sprintf(tmp_buff, "%d STRINGS", n);
+	update_header(NULL, tmp_buff);
+	Wait(-GDEMO_INFO_TIME);
 
 	disp_header("WINDOW DEMO");
 
@@ -453,12 +542,16 @@ void font_demo()
 	TFT_setFont(UBUNTU16_FONT, NULL);
 	text_wrap = 1;
 	end_time = clock() + GDEMO_TIME;
+	n = 0;
 	while ((clock() < end_time) && (Wait(0))) {
 		_fg = random_color();
-		TFT_print("This text is printed inside the window. Long line can be wrapped to next line. Welcome to ESP32", 0, 0);
-		Wait(200);
+		TFT_print("This text is printed inside the window.\nLong line can be wrapped to the next line.\nWelcome to ESP32", 0, 0);
+		n++;
 	}
 	text_wrap = 0;
+	sprintf(tmp_buff, "%d STRINGS", n);
+	update_header(NULL, tmp_buff);
+	Wait(-GDEMO_INFO_TIME);
 
 	TFT_restoreClipWin();
 }
@@ -466,22 +559,28 @@ void font_demo()
 //---------------------
 static void rect_demo()
 {
-	int x, y, w, h;
+	int x, y, w, h, n;
 
 	disp_header("RECTANGLE DEMO");
 
 	uint32_t end_time = clock() + GDEMO_TIME;
+	n = 0;
 	while ((clock() < end_time) && (Wait(0))) {
 		x = rand_interval(4, dispWin.x2-4);
 		y = rand_interval(4, dispWin.y2-2);
 		w = rand_interval(2, dispWin.x2-x);
 		h = rand_interval(2, dispWin.y2-y);
 		TFT_drawRect(x,y,w,h,random_color());
+		n++;
 	}
-	Wait(1000);
+	sprintf(tmp_buff, "%d RECTANGLES", n);
+	update_header(NULL, tmp_buff);
+	Wait(-GDEMO_INFO_TIME);
 
+	update_header("FILLED RECTANGLE", "");
 	TFT_fillWindow(TFT_BLACK);
 	end_time = clock() + GDEMO_TIME;
+	n = 0;
 	while ((clock() < end_time) && (Wait(0))) {
 		x = rand_interval(4, dispWin.x2-4);
 		y = rand_interval(4, dispWin.y2-2);
@@ -489,48 +588,59 @@ static void rect_demo()
 		h = rand_interval(2, dispWin.y2-y);
 		TFT_fillRect(x,y,w,h,random_color());
 		TFT_drawRect(x,y,w,h,random_color());
+		n++;
 	}
-	Wait(1000);
+	sprintf(tmp_buff, "%d RECTANGLES", n);
+	update_header(NULL, tmp_buff);
+	Wait(-GDEMO_INFO_TIME);
 }
 
 //----------------------
 static void pixel_demo()
 {
-	int x, y;
+	int x, y, n;
 
 	disp_header("DRAW PIXEL DEMO");
 
 	uint32_t end_time = clock() + GDEMO_TIME;
+	n = 0;
 	while ((clock() < end_time) && (Wait(0))) {
 		x = rand_interval(0, dispWin.x2);
 		y = rand_interval(0, dispWin.y2);
 		TFT_drawPixel(x,y,random_color(),1);
+		n++;
 	}
-	Wait(1000);
+	sprintf(tmp_buff, "%d PIXELS", n);
+	update_header(NULL, tmp_buff);
+	Wait(-GDEMO_INFO_TIME);
 }
 
 //---------------------
 static void line_demo()
 {
-	int x1, y1, x2, y2;
+	int x1, y1, x2, y2, n;
 
 	disp_header("LINE DEMO");
 
 	uint32_t end_time = clock() + GDEMO_TIME;
+	n = 0;
 	while ((clock() < end_time) && (Wait(0))) {
 		x1 = rand_interval(0, dispWin.x2);
 		y1 = rand_interval(0, dispWin.y2);
 		x2 = rand_interval(0, dispWin.x2);
 		y2 = rand_interval(0, dispWin.y2);
 		TFT_drawLine(x1,y1,x2,y2,random_color());
+		n++;
 	}
-	Wait(1000);
+	sprintf(tmp_buff, "%d LINES", n);
+	update_header(NULL, tmp_buff);
+	Wait(-GDEMO_INFO_TIME);
 }
 
 //----------------------
 static void aline_demo()
 {
-	int x, y, len, angle;
+	int x, y, len, angle, n;
 
 	disp_header("LINE BY ANGLE DEMO");
 
@@ -540,30 +650,35 @@ static void aline_demo()
 	else len = y -8;
 
 	uint32_t end_time = clock() + GDEMO_TIME;
+	n = 0;
 	while ((clock() < end_time) && (Wait(0))) {
 		for (angle=0; angle < 360; angle++) {
 			TFT_drawLineByAngle(x,y, 0, len, angle, random_color());
+			n++;
 		}
 	}
-	Wait(1000);
 
 	TFT_fillWindow(TFT_BLACK);
 	end_time = clock() + GDEMO_TIME;
 	while ((clock() < end_time) && (Wait(0))) {
 		for (angle=0; angle < 360; angle++) {
 			TFT_drawLineByAngle(x, y, len/4, len/4,angle, random_color());
+			n++;
 		}
 		for (angle=0; angle < 360; angle++) {
 			TFT_drawLineByAngle(x, y, len*3/4, len/4,angle, random_color());
+			n++;
 		}
 	}
-	Wait(1000);
+	sprintf(tmp_buff, "%d LINES", n);
+	update_header(NULL, tmp_buff);
+	Wait(-GDEMO_INFO_TIME);
 }
 
 //--------------------
 static void arc_demo()
 {
-	uint16_t x, y, r, th, n;
+	uint16_t x, y, r, th, n, i;
 	float start, end;
 	color_t color, fillcolor;
 
@@ -574,6 +689,7 @@ static void arc_demo()
 
 	th = 6;
 	uint32_t end_time = clock() + GDEMO_TIME;
+	i = 0;
 	while ((clock() < end_time) && (Wait(0))) {
 		if (x < y) r = x - 4;
 		else r = y - 4;
@@ -587,13 +703,18 @@ static void arc_demo()
 			n++;
 			start += 30;
 			end = start + (n*20);
+			i++;
 		}
 	}
-	Wait(1000);
+	sprintf(tmp_buff, "%d ARCS", i);
+	update_header(NULL, tmp_buff);
+	Wait(-GDEMO_INFO_TIME);
 
+	update_header("OUTLINED ARC", "");
 	TFT_fillWindow(TFT_BLACK);
 	th = 8;
 	end_time = clock() + GDEMO_TIME;
+	i = 0;
 	while ((clock() < end_time) && (Wait(0))) {
 		if (x < y) r = x - 4;
 		else r = y - 4;
@@ -608,30 +729,39 @@ static void arc_demo()
 			n++;
 			start += 20;
 			end -= n*10;
+			i++;
 		}
 	}
-	Wait(1000);
+	sprintf(tmp_buff, "%d ARCS", i);
+	update_header(NULL, tmp_buff);
+	Wait(-GDEMO_INFO_TIME);
 }
 
 //-----------------------
 static void circle_demo()
 {
-	int x, y, r;
+	int x, y, r, n;
 
 	disp_header("CIRCLE DEMO");
 
 	uint32_t end_time = clock() + GDEMO_TIME;
+	n = 0;
 	while ((clock() < end_time) && (Wait(0))) {
 		x = rand_interval(8, dispWin.x2-8);
 		y = rand_interval(8, dispWin.y2-8);
 		if (x < y) r = rand_interval(2, x/2);
 		else r = rand_interval(2, y/2);
 		TFT_drawCircle(x,y,r,random_color());
+		n++;
 	}
-	Wait(1000);
+	sprintf(tmp_buff, "%d CIRCLES", n);
+	update_header(NULL, tmp_buff);
+	Wait(-GDEMO_INFO_TIME);
 
+	update_header("FILLED CIRCLE", "");
 	TFT_fillWindow(TFT_BLACK);
 	end_time = clock() + GDEMO_TIME;
+	n = 0;
 	while ((clock() < end_time) && (Wait(0))) {
 		x = rand_interval(8, dispWin.x2-8);
 		y = rand_interval(8, dispWin.y2-8);
@@ -639,18 +769,22 @@ static void circle_demo()
 		else r = rand_interval(2, y/2);
 		TFT_fillCircle(x,y,r,random_color());
 		TFT_drawCircle(x,y,r,random_color());
+		n++;
 	}
-	Wait(1000);
+	sprintf(tmp_buff, "%d CIRCLES", n);
+	update_header(NULL, tmp_buff);
+	Wait(-GDEMO_INFO_TIME);
 }
 
 //------------------------
 static void ellipse_demo()
 {
-	int x, y, rx, ry;
+	int x, y, rx, ry, n;
 
 	disp_header("ELLIPSE DEMO");
 
 	uint32_t end_time = clock() + GDEMO_TIME;
+	n = 0;
 	while ((clock() < end_time) && (Wait(0))) {
 		x = rand_interval(8, dispWin.x2-8);
 		y = rand_interval(8, dispWin.y2-8);
@@ -659,11 +793,16 @@ static void ellipse_demo()
 		if (x < y) ry = rand_interval(2, x/4);
 		else ry = rand_interval(2, y/4);
 		TFT_drawEllipse(x,y,rx,ry,random_color(),15);
+		n++;
 	}
-	Wait(1000);
+	sprintf(tmp_buff, "%d ELLIPSES", n);
+	update_header(NULL, tmp_buff);
+	Wait(-GDEMO_INFO_TIME);
 
+	update_header("FILLED ELLIPSE", "");
 	TFT_fillWindow(TFT_BLACK);
 	end_time = clock() + GDEMO_TIME;
+	n = 0;
 	while ((clock() < end_time) && (Wait(0))) {
 		x = rand_interval(8, dispWin.x2-8);
 		y = rand_interval(8, dispWin.y2-8);
@@ -673,12 +812,17 @@ static void ellipse_demo()
 		else ry = rand_interval(2, y/4);
 		TFT_fillEllipse(x,y,rx,ry,random_color(),15);
 		TFT_drawEllipse(x,y,rx,ry,random_color(),15);
+		n++;
 	}
-	Wait(1000);
+	sprintf(tmp_buff, "%d ELLIPSES", n);
+	update_header(NULL, tmp_buff);
+	Wait(-GDEMO_INFO_TIME);
 
+	update_header("ELLIPSE SEGMENTS", "");
 	TFT_fillWindow(TFT_BLACK);
 	end_time = clock() + GDEMO_TIME;
-	int n = 1;
+	n = 0;
+	int k = 1;
 	while ((clock() < end_time) && (Wait(0))) {
 		x = rand_interval(8, dispWin.x2-8);
 		y = rand_interval(8, dispWin.y2-8);
@@ -686,21 +830,25 @@ static void ellipse_demo()
 		else rx = rand_interval(2, y/4);
 		if (x < y) ry = rand_interval(2, x/4);
 		else ry = rand_interval(2, y/4);
-		TFT_fillEllipse(x,y,rx,ry,random_color(), (1<<n));
-		TFT_drawEllipse(x,y,rx,ry,random_color(), (1<<n));
-		n = (n+1) & 3;
+		TFT_fillEllipse(x,y,rx,ry,random_color(), (1<<k));
+		TFT_drawEllipse(x,y,rx,ry,random_color(), (1<<k));
+		k = (k+1) & 3;
+		n++;
 	}
-	Wait(1000);
+	sprintf(tmp_buff, "%d SEGMENTS", n);
+	update_header(NULL, tmp_buff);
+	Wait(-GDEMO_INFO_TIME);
 }
 
 //-------------------------
 static void triangle_demo()
 {
-	int x1, y1, x2, y2, x3, y3;
+	int x1, y1, x2, y2, x3, y3, n;
 
 	disp_header("TRIANGLE DEMO");
 
 	uint32_t end_time = clock() + GDEMO_TIME;
+	n = 0;
 	while ((clock() < end_time) && (Wait(0))) {
 		x1 = rand_interval(4, dispWin.x2-4);
 		y1 = rand_interval(4, dispWin.y2-2);
@@ -709,11 +857,16 @@ static void triangle_demo()
 		x3 = rand_interval(4, dispWin.x2-4);
 		y3 = rand_interval(4, dispWin.y2-2);
 		TFT_drawTriangle(x1,y1,x2,y2,x3,y3,random_color());
+		n++;
 	}
-	Wait(1000);
+	sprintf(tmp_buff, "%d TRIANGLES", n);
+	update_header(NULL, tmp_buff);
+	Wait(-GDEMO_INFO_TIME);
 
+	update_header("FILLED TRIANGLE", "");
 	TFT_fillWindow(TFT_BLACK);
 	end_time = clock() + GDEMO_TIME;
+	n = 0;
 	while ((clock() < end_time) && (Wait(0))) {
 		x1 = rand_interval(4, dispWin.x2-4);
 		y1 = rand_interval(4, dispWin.y2-2);
@@ -723,15 +876,18 @@ static void triangle_demo()
 		y3 = rand_interval(4, dispWin.y2-2);
 		TFT_fillTriangle(x1,y1,x2,y2,x3,y3,random_color());
 		TFT_drawTriangle(x1,y1,x2,y2,x3,y3,random_color());
+		n++;
 	}
-	Wait(1000);
+	sprintf(tmp_buff, "%d TRIANGLES", n);
+	update_header(NULL, tmp_buff);
+	Wait(-GDEMO_INFO_TIME);
 }
 
 //---------------------
 static void poly_demo()
 {
 	uint16_t x, y, r, rot, oldrot;
-	int i;
+	int i, n;
 	uint8_t sides[6] = {3, 4, 5, 6, 8, 10};
 	color_t color[6] = {TFT_WHITE, TFT_CYAN, TFT_RED,       TFT_BLUE,     TFT_YELLOW,     TFT_ORANGE};
 	color_t fill[6]  = {TFT_BLUE,  TFT_NAVY,   TFT_DARKGREEN, TFT_DARKGREY, TFT_LIGHTGREY, TFT_OLIVE};
@@ -744,6 +900,7 @@ static void poly_demo()
 	rot = 0;
 	oldrot = 0;
 	uint32_t end_time = clock() + GDEMO_TIME;
+	n = 0;
 	while ((clock() < end_time) && (Wait(0))) {
 		if (x < y) r = x - 4;
 		else r = y - 4;
@@ -751,53 +908,81 @@ static void poly_demo()
 			TFT_drawPolygon(x, y, sides[i], r, TFT_BLACK, TFT_BLACK, oldrot, 1);
 			TFT_drawPolygon(x, y, sides[i], r, color[i], color[i], rot, 1);
 			r -= 16;
+			n += 2;
 		}
 		Wait(100);
 		oldrot = rot;
 		rot = (rot + 15) % 360;
 	}
-	Wait(1000);
+	sprintf(tmp_buff, "%d POLYGONS", n);
+	update_header(NULL, tmp_buff);
+	Wait(-GDEMO_INFO_TIME);
 
-	TFT_fillWindow(TFT_BLACK);
+	update_header("FILLED POLYGON", "");
 	rot = 0;
-	if (x < y) r = x - 4;
-	else r = y - 4;
-	for (i=5; i>=0; i--) {
-		TFT_drawPolygon(x, y, sides[i], r, color[i], fill[i], rot, 2);
-		r -= 16;
+	end_time = clock() + GDEMO_TIME;
+	n = 0;
+	while ((clock() < end_time) && (Wait(0))) {
+		if (x < y) r = x - 4;
+		else r = y - 4;
+		TFT_fillWindow(TFT_BLACK);
+		for (i=5; i>=0; i--) {
+			TFT_drawPolygon(x, y, sides[i], r, color[i], fill[i], rot, 2);
+			r -= 16;
+			n += 2;
+		}
+		Wait(500);
+		rot = (rot + 15) % 360;
 	}
-	Wait(1000);
+	sprintf(tmp_buff, "%d POLYGONS", n);
+	update_header(NULL, tmp_buff);
+	Wait(-GDEMO_INFO_TIME);
 }
 
 //----------------------
 static void touch_demo()
 {
 #if USE_TOUCH
-	int tx, ty, doexit = 0;
+	int tx, ty, ltx, lty, doexit = 0;
 
 	disp_header("TOUCH DEMO");
 	TFT_setFont(DEFAULT_FONT, NULL);
 	_fg = TFT_YELLOW;
-	TFT_print("Touch to draw", CENTER, CENTER);
+	TFT_print("Touch to draw", CENTER, 40);
+	TFT_print("Touch footer to clear", CENTER, 60);
 
-	uint32_t end_time = clock() + GDEMO_TIME;
-	while (clock() < end_time) {
+	ltx = -9999;
+	lty = -999;
+	while (1) {
 		if (TFT_read_touch(&tx, &ty, 0)) {
 			// Touched
 			if (((tx >= dispWin.x1) && (tx <= dispWin.x2)) &&
 				((ty >= dispWin.y1) && (ty <= dispWin.y2))) {
-
-				TFT_fillCircle(tx-dispWin.x1, ty-dispWin.y1, 4,random_color());
+				if ((doexit > 2) || ((abs(tx-ltx) < 5) && (abs(ty-lty) < 5))) {
+					if (((abs(tx-ltx) > 0) || (abs(ty-lty) > 0))) {
+						TFT_fillCircle(tx-dispWin.x1, ty-dispWin.y1, 4,random_color());
+						sprintf(tmp_buff, "%d,%d", tx, ty);
+						update_header(NULL, tmp_buff);
+					}
+					ltx = tx;
+					lty = ty;
+				}
 				doexit = 0;
-				end_time = clock() + GDEMO_TIME;
 			}
+			else if (ty > (dispWin.y2+5)) TFT_fillWindow(TFT_BLACK);
 			else {
 				doexit++;
-				if (doexit > 3) return;
-				vTaskDelay(500 / portTICK_RATE_MS);
+				if (doexit == 2) update_header(NULL, "---");
+				if (doexit > 50) return;
+				vTaskDelay(100 / portTICK_RATE_MS);
 			}
 		}
-		_checkTime();
+		else {
+			doexit++;
+			if (doexit == 2) update_header(NULL, "---");
+			if (doexit > 50) return;
+			vTaskDelay(100 / portTICK_RATE_MS);
+		}
 	}
 #endif
 }
@@ -812,11 +997,11 @@ void tft_demo() {
 	font_forceFixed = 0;
 	TFT_resetclipwin();
 
+	image_debug = 0;
 
 	uint8_t disp_rot = PORTRAIT;
 	_demo_pass = 0;
 	gray_scale = 0;
-	set_color_bits(24);
 	doprint = 1;
 
 	TFT_setRotation(disp_rot);
@@ -834,19 +1019,16 @@ void tft_demo() {
 	sprintf(tmp_buff, "Read speed: %5.2f MHz", (float)max_rdclock/1000000.0);
 	TFT_print(tmp_buff, CENTER, LASTY+tempy);
 
-	vTaskDelay(4000 / portTICK_RATE_MS);
+	Wait(4000);
 
 	while (1) {
-		if (_demo_pass == 17) doprint = 0;
-
-		// Toggle color mode
-		if (_demo_pass & 2) set_color_bits(((COLOR_BITS == 16) ? 24 : 16));
+		if (_demo_pass == 9) doprint = 0;
 
 		// Change gray scale mode on every 2nd pass
 		gray_scale = _demo_pass & 1;
 
 		// change display rotation
-		if ((_demo_pass % 4) == 0) {
+		if ((_demo_pass % 2) == 0) {
 			_bg = TFT_BLACK;
 			TFT_setRotation(disp_rot);
 			disp_rot++;
@@ -854,8 +1036,8 @@ void tft_demo() {
 		}
 
 		if (doprint) {
-			printf("\r\n====================================================\r\n Display: %s (%d,%d) Color mode: %d-bit %s\r\n",
-					((tft_disp_type == DISP_TYPE_ILI9341) ? "ILI9341" : "ILI9488"), _width, _height, COLOR_BITS, ((gray_scale) ? "Gray" : "Color"));
+			printf("\r\n====================================================\r\n Display: %s (%d,%d) %s\r\n",
+					((tft_disp_type == DISP_TYPE_ILI9341) ? "ILI9341" : "ILI9488"), _width, _height, ((gray_scale) ? "Gray" : "Color"));
 			printf("Rotation: ");
 			if (disp_rot == 1) printf("PORTRAIT");
 			if (disp_rot == 2) printf("LANDSCAPE");
@@ -866,6 +1048,7 @@ void tft_demo() {
 
 		disp_header("Welcome to ESP32");
 
+		test_times();
 		font_demo();
 		line_demo();
 		aline_demo();
@@ -884,7 +1067,6 @@ void tft_demo() {
 }
 
 
-
 //=============
 void app_main()
 {
@@ -897,20 +1079,15 @@ void app_main()
 
     // ===================================================
     // ==== Set display type                         =====
-	tft_disp_type = DISP_TYPE_ILI9341;
-	//tft_disp_type = DISP_TYPE_ILI9488;
+	//tft_disp_type = DISP_TYPE_ILI9341;
+	tft_disp_type = DISP_TYPE_ILI9488;
     // ===================================================
 
 	// ===================================================
-	// ==== Set color format                         =====
-	// ==== COLOR_BITS = 24 valid only for ILI9341   =====
-	COLOR_BITS = 16;
-	// ===================================================
-
-	// ===================================================
-	// === Set display resolution if not using default ===
-	_width = 240;
-	_height = 320;
+	// === Set display resolution if NOT using default ===
+	// === TFT_DISPLAY_WIDTH & TFT_DISPLAY_HEIGHT      ===
+	_width = 320;
+	_height = 480;
 	// ===================================================
 
 	// ===================================================
@@ -926,33 +1103,33 @@ void app_main()
 	gpio_set_direction(PIN_NUM_MISO, GPIO_MODE_INPUT);
     gpio_set_pull_mode(PIN_NUM_MISO, GPIO_PULLUP_ONLY);
 
-    spi_nodma_device_handle_t spi;
-    spi_nodma_device_handle_t tsspi = NULL;
+    spi_lobo_device_handle_t spi;
 	
-    spi_nodma_bus_config_t buscfg={
+    spi_lobo_bus_config_t buscfg={
         .miso_io_num=PIN_NUM_MISO,				// set SPI MISO pin
         .mosi_io_num=PIN_NUM_MOSI,				// set SPI MOSI pin
         .sclk_io_num=PIN_NUM_CLK,				// set SPI CLK pin
         .quadwp_io_num=-1,
-        .quadhd_io_num=-1
+        .quadhd_io_num=-1,
+		.max_transfer_sz = 6*1024,
     };
-    spi_nodma_device_interface_config_t devcfg={
+    spi_lobo_device_interface_config_t devcfg={
         .clock_speed_hz=8000000,                // Initial clock out at 8 MHz
         .mode=0,                                // SPI mode 0
         .spics_io_num=-1,                       // we will use external CS pin
 		.spics_ext_io_num=PIN_NUM_CS,           // external CS pin
 		.flags=SPI_DEVICE_HALFDUPLEX,           // ALWAYS SET  to HALF DUPLEX MODE!! for display spi
-		.queue_size = 1,						// in some tft functions we are using DMA mode, so we need queues!
     };
 
 #if USE_TOUCH
-	spi_nodma_device_interface_config_t tsdevcfg={
+    spi_lobo_device_handle_t tsspi = NULL;
+
+    spi_lobo_device_interface_config_t tsdevcfg={
         .clock_speed_hz=2500000,                //Clock out at 2.5 MHz
         .mode=0,                                //SPI mode 2
         .spics_io_num=PIN_NUM_TCS,              //Touch CS pin
 		.spics_ext_io_num=-1,                   //Not using the external CS
 		.command_bits=8,                        //1 byte command
-		.queue_size = 1,
     };
 #endif
     // ====================================================================================================================
@@ -967,36 +1144,36 @@ void app_main()
 	// ==================================================================
 	// ==== Initialize the SPI bus and attach the LCD to the SPI bus ====
 
-	ret=spi_nodma_bus_add_device(SPI_BUS, &buscfg, &devcfg, &spi);
+	ret=spi_lobo_bus_add_device(SPI_BUS, &buscfg, &devcfg, &spi);
     assert(ret==ESP_OK);
 	printf("SPI: display device added to spi bus\r\n");
 	disp_spi = spi;
 
 	// ==== Test select/deselect ====
-	ret = spi_nodma_device_select(spi, 1);
+	ret = spi_lobo_device_select(spi, 1);
     assert(ret==ESP_OK);
-	ret = spi_nodma_device_deselect(spi);
+	ret = spi_lobo_device_deselect(spi);
     assert(ret==ESP_OK);
 
-	printf("SPI: attached display device, speed=%u\r\n", spi_nodma_get_speed(spi));
-	printf("SPI: bus uses native pins: %s\r\n", spi_nodma_uses_native_pins(spi) ? "true" : "false");
+	printf("SPI: attached display device, speed=%u\r\n", spi_lobo_get_speed(spi));
+	printf("SPI: bus uses native pins: %s\r\n", spi_lobo_uses_native_pins(spi) ? "true" : "false");
 
 #if USE_TOUCH
 	// =====================================================
     // ==== Attach the touch screen to the same SPI bus ====
 
-	ret=spi_nodma_bus_add_device(SPI_BUS, &buscfg, &tsdevcfg, &tsspi);
+	ret=spi_lobo_bus_add_device(SPI_BUS, &buscfg, &tsdevcfg, &tsspi);
     assert(ret==ESP_OK);
 	printf("SPI: touch screen device added to spi bus\r\n");
 	ts_spi = tsspi;
 
 	// ==== Test select/deselect ====
-	ret = spi_nodma_device_select(tsspi, 1);
+	ret = spi_lobo_device_select(tsspi, 1);
     assert(ret==ESP_OK);
-	ret = spi_nodma_device_deselect(tsspi);
+	ret = spi_lobo_device_deselect(tsspi);
     assert(ret==ESP_OK);
 
-	printf("SPI: attached TS device, speed=%u\r\n", spi_nodma_get_speed(tsspi));
+	printf("SPI: attached TS device, speed=%u\r\n", spi_lobo_get_speed(tsspi));
 #endif
 
 	// ================================
@@ -1007,7 +1184,7 @@ void app_main()
     printf("OK\r\n");
 	
 	// ==== Set SPI clock used for display operations ====
-	spi_nodma_set_speed(spi, 40000000);
+	spi_lobo_set_speed(spi, 40000000);
 
 	printf("\r\n---------------------\r\n");
 	printf("Graphics demo started\r\n");
@@ -1019,36 +1196,41 @@ void app_main()
 	font_forceFixed = 0;
 	TFT_resetclipwin();
 	gray_scale = 0;
-	set_color_bits(24);
 	TFT_setRotation(PORTRAIT);
 	TFT_setFont(DEFAULT_FONT, NULL);
 
 #ifdef CONFIG_EXAMPLE_USE_WIFI
+
+	// ===== Set time zone ======
+	setenv("TZ", "CET-1CEST", 0);
+	tzset();
+	// ==========================
+
 	disp_header("GET NTP TIME");
 
-	time_t now;
-    struct tm timeinfo;
-    time(&now);
-    localtime_r(&now, &timeinfo);
-    // Is time set? If not, tm_year will be (1970 - 1900).
-    if (timeinfo.tm_year < (2016 - 1900)) {
+    time(&time_now);
+	tm_info = localtime(&time_now);
+
+	// Is time set? If not, tm_year will be (1970 - 1900).
+    if (tm_info->tm_year < (2016 - 1900)) {
         ESP_LOGI(tag, "Time is not set yet. Connecting to WiFi and getting time over NTP.");
         _fg = TFT_CYAN;
     	TFT_print("Time is not set yet", CENTER, CENTER);
     	TFT_print("Connecting to WiFi", CENTER, LASTY+TFT_getfontheight()+2);
     	TFT_print("Getting time over NTP", CENTER, LASTY+TFT_getfontheight()+2);
+    	_fg = TFT_YELLOW;
+    	TFT_print("Wait", CENTER, LASTY+TFT_getfontheight()+2);
         if (obtain_time()) {
         	_fg = TFT_GREEN;
-        	TFT_print("System time is set.", CENTER, LASTY+TFT_getfontheight()+2);
-        	vTaskDelay(1000 / portTICK_RATE_MS);
+        	TFT_print("System time is set.", CENTER, LASTY);
         }
         else {
         	_fg = TFT_RED;
-        	TFT_print("ERROR.", CENTER, LASTY+TFT_getfontheight()+2);
-        	vTaskDelay(2000 / portTICK_RATE_MS);
+        	TFT_print("ERROR.", CENTER, LASTY);
         }
-        // update 'now' variable with current time
-        time(&now);
+        time(&time_now);
+    	update_header(NULL, "");
+    	Wait(-2000);
     }
 #endif
 
@@ -1061,13 +1243,12 @@ void app_main()
     if (!spiffs_is_mounted) {
     	_fg = TFT_RED;
     	TFT_print("SPIFFS not mounted !", CENTER, LASTY+TFT_getfontheight()+2);
-    	vTaskDelay(2000 / portTICK_RATE_MS);
     }
     else {
     	_fg = TFT_GREEN;
     	TFT_print("SPIFFS Mounted.", CENTER, LASTY+TFT_getfontheight()+2);
-    	vTaskDelay(1000 / portTICK_RATE_MS);
     }
+	Wait(-2000);
 
 	// ---- Detect maximum read speed ----
 	max_rdclock = find_rd_speed();

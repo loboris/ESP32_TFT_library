@@ -36,7 +36,7 @@
 
 #include <esp_spi_flash.h>
 
-s32_t esp32_spi_flash_read(u32_t addr, u32_t size, u8_t *dst) {
+s32_t IRAM_ATTR esp32_spi_flash_read(u32_t addr, u32_t size, u8_t *dst) {
 	u32_t aaddr;
 	u8_t *buff = NULL;
 	u8_t *abuff = NULL;
@@ -80,7 +80,7 @@ s32_t esp32_spi_flash_read(u32_t addr, u32_t size, u8_t *dst) {
     return SPIFFS_OK;
 }
 
-s32_t esp32_spi_flash_write(u32_t addr, u32_t size, const u8_t *src) {
+s32_t IRAM_ATTR esp32_spi_flash_write(u32_t addr, u32_t size, const u8_t *src) {
 	u32_t aaddr;
 	u8_t *buff = NULL;
 	u8_t *abuff = NULL;

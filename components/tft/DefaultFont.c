@@ -20,11 +20,11 @@
 // Individual Character Format:
 // ----------------------------
 // Character Code
-// Adjusted Y Offset
-// Width
-// Height
-// xOffset
-// xDelta (the distance to move the cursor. Effective width of the character.)
+// Adjusted Y Offset	(start Y of visible pixels)
+// Width				(width of the visible pixels)
+// Height				(height of the visible pixels)
+// xOffset				(start X of visible pixels)
+// xDelta				(the distance to move the cursor. Effective width of the character.)
 // Data[n]
 
 // NOTE: You can remove any of these characters if they are not needed in
@@ -40,7 +40,7 @@
 
 const unsigned char tft_DefaultFont[] =
 {
-0x00, 0x0B, 0x00, 0x00,
+0x00, 0x0B, 0x86, 0x04,
 
 // ' '
 0x20,0x0A,0x00,0x00,0x00,0x04,

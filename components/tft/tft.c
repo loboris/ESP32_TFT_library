@@ -68,6 +68,7 @@ typedef struct {
 
 static dispWin_t dispWinTemp;
 
+extern uint8_t tft_SmallFont[];
 extern uint8_t tft_DefaultFont[];
 extern uint8_t tft_Dejavu18[];
 extern uint8_t tft_Dejavu24[];
@@ -112,6 +113,9 @@ Font cfont = {
 	.numchars = 95,
 	.bitmap = 1,
 };
+
+uint8_t font_buffered_char = 1;
+uint8_t font_line_space = 0;
 // ==============================================================
 
 static int TFT_OFFSET = 0;
@@ -130,14 +134,12 @@ static float _arcAngleMax = DEFAULT_ARC_ANGLE_MAX;
 
 
 // Compare two colors; return 0 if equal
-//==============================================
-int TFT_compare_colors(color_t c1, color_t c2) {
-    uint8_t mask = ((COLOR_BITS == 24) ? 0xFC : 0xF8);
-
+//============================================
+int TFT_compare_colors(color_t c1, color_t c2)
+{
+	if ((c1.r & 0xFC) != (c2.r & 0xFC)) return 1;
 	if ((c1.g & 0xFC) != (c2.g & 0xFC)) return 1;
-
-	if ((c1.r & mask) != (c2.r & mask)) return 1;
-	if ((c1.b & mask) != (c2.b & mask)) return 1;
+	if ((c1.b & 0xFC) != (c2.b & 0xFC)) return 1;
 
 	return 0;
 }
@@ -1313,29 +1315,171 @@ exit:
 }
 
 
-// return max width of the proportional font
-//--------------------------------
-static uint8_t getMaxWidth(void) {
-  uint16_t tempPtr = 4; // point at first char data
-  uint8_t cc,cw,ch,w = 0;
-  do
-  {
+// -----------------------------------------------------------------------------------------
+// Individual Proportional Font Character Format:
+// -----------------------------------------------------------------------------------------
+// Character Code
+// yOffset				(start Y of visible pixels)
+// Width				(width of the visible pixels)
+// Height				(height of the visible pixels)
+// xOffset				(start X of visible pixels)
+// xDelta				(the distance to move the cursor. Effective width of the character.)
+// Data[n]
+// -----------------------------------------------------------------------------------------
+
+//---------------------------------------------------------------------------------------------
+// Character drawing rectangle is (0, 0) (xDelta-1, cfont.y_size-1)
+// Character visible pixels rectangle is (xOffset, yOffset) (xOffset+Width-1, yOffset+Height-1)
+//---------------------------------------------------------------------------------------------
+
+//----------------------------------
+void getFontCharacters(uint8_t *buf)
+{
+    if (cfont.bitmap == 2) {
+    	//For 7 segment font only characters 0,1,2,3,4,5,6,7,8,9, . , - , : , / are available.
+		for (uint8_t n=0; n < 11; n++) {
+			buf[n] = n + 0x30;
+		}
+		buf[11] = '.';
+		buf[12] = '-';
+		buf[13] = '/';
+		buf[14] = '\0';
+    	return;
+    }
+
+    if (cfont.x_size > 0) {
+		for (uint8_t n=0; n < cfont.numchars; n++) {
+			buf[n] = cfont.offset + n;
+		}
+		buf[cfont.numchars] = '\0';
+		return;
+	}
+
+	uint16_t tempPtr = 4; // point at first char data
+	uint8_t cc, cw, ch, n;
+
+	n = 0;
     cc = cfont.font[tempPtr++];
-    tempPtr++;
-    cw = cfont.font[tempPtr++];
-    ch = cfont.font[tempPtr++];
-    tempPtr += 2;
-    if (cc != 0xFF) {
-      if (cw != 0) {
-        if (cw > w) w = cw;
+    while (cc != 0xFF)  {
+    	cfont.numchars++;
+        tempPtr++;
+        cw = cfont.font[tempPtr++];
+        ch = cfont.font[tempPtr++];
+        tempPtr++;
+        tempPtr++;
+		if (cw != 0) {
+			// packed bits
+			tempPtr += (((cw * ch)-1) / 8) + 1;
+		}
+		buf[n++] = cc;
+	    cc = cfont.font[tempPtr++];
+	}
+	buf[n] = '\0';
+}
+
+// Set max width & height of the proportional font
+//-----------------------------
+static void getMaxWidthHeight()
+{
+	uint16_t tempPtr = 4; // point at first char data
+	uint8_t cc, cw, ch, cd, cy;
+
+	cfont.numchars = 0;
+	cfont.max_x_size = 0;
+
+    cc = cfont.font[tempPtr++];
+    while (cc != 0xFF)  {
+    	cfont.numchars++;
+        cy = cfont.font[tempPtr++];
+        cw = cfont.font[tempPtr++];
+        ch = cfont.font[tempPtr++];
+        tempPtr++;
+        cd = cfont.font[tempPtr++];
+        cy += ch;
+		if (cw > cfont.max_x_size) cfont.max_x_size = cw;
+		if (cd > cfont.max_x_size) cfont.max_x_size = cd;
+		if (ch > cfont.y_size) cfont.y_size = ch;
+		if (cy > cfont.y_size) cfont.y_size = cy;
+		if (cw != 0) {
+			// packed bits
+			tempPtr += (((cw * ch)-1) / 8) + 1;
+		}
+	    cc = cfont.font[tempPtr++];
+	}
+    cfont.size = tempPtr;
+}
+
+// Return the Glyph data for an individual character in the proportional font
+//------------------------------------
+static uint8_t getCharPtr(uint8_t c) {
+  uint16_t tempPtr = 4; // point at first char data
+
+  do {
+	fontChar.charCode = cfont.font[tempPtr++];
+    if (fontChar.charCode == 0xFF) return 0;
+
+    fontChar.adjYOffset = cfont.font[tempPtr++];
+    fontChar.width = cfont.font[tempPtr++];
+    fontChar.height = cfont.font[tempPtr++];
+    fontChar.xOffset = cfont.font[tempPtr++];
+    fontChar.xOffset = fontChar.xOffset < 0x80 ? fontChar.xOffset : -(0xFF - fontChar.xOffset);
+    fontChar.xDelta = cfont.font[tempPtr++];
+
+    if (c != fontChar.charCode && fontChar.charCode != 0xFF) {
+      if (fontChar.width != 0) {
         // packed bits
-        tempPtr += (((cw * ch)-1) / 8) + 1;
+        tempPtr += (((fontChar.width * fontChar.height)-1) / 8) + 1;
       }
     }
-  } while (cc != 0xFF);
+  } while ((c != fontChar.charCode) && (fontChar.charCode != 0xFF));
 
-  return w;
+  fontChar.dataPtr = tempPtr;
+  if (c == fontChar.charCode) {
+    if (font_forceFixed > 0) {
+      // fix width & offset for forced fixed width
+      fontChar.xDelta = cfont.max_x_size;
+      fontChar.xOffset = (fontChar.xDelta - fontChar.width) / 2;
+    }
+  }
+  else return 0;
+
+  return 1;
 }
+
+/*
+//-----------------------
+static void _testFont() {
+  if (cfont.x_size) {
+	  printf("FONT TEST: fixed font\r\n");
+	  return;
+  }
+  uint16_t tempPtr = 4; // point at first char data
+  uint8_t c = 0x20;
+  for (c=0x20; c <0xFF; c++) {
+	fontChar.charCode = cfont.font[tempPtr++];
+    if (fontChar.charCode == 0xFF) break;
+    if (fontChar.charCode != c) {
+    	printf("FONT TEST: last sequential char: %d, expected %d\r\n", fontChar.charCode, c);
+    	break;
+    }
+    c = fontChar.charCode;
+    fontChar.adjYOffset = cfont.font[tempPtr++];
+    fontChar.width = cfont.font[tempPtr++];
+    fontChar.height = cfont.font[tempPtr++];
+    fontChar.xOffset = cfont.font[tempPtr++];
+    fontChar.xOffset = fontChar.xOffset < 0x80 ? fontChar.xOffset : -(0xFF - fontChar.xOffset);
+    fontChar.xDelta = cfont.font[tempPtr++];
+
+    if (fontChar.charCode != 0xFF) {
+      if (fontChar.width != 0) {
+        // packed bits
+        tempPtr += (((fontChar.width * fontChar.height)-1) / 8) + 1;
+      }
+    }
+  }
+  printf("FONT TEST: W=%d  H=%d last char: %d [%c]; length: %d\r\n", cfont.max_x_size, cfont.y_size, c, c, tempPtr);
+}
+*/
 
 //===================================================
 void TFT_setFont(uint8_t font, const char *font_file)
@@ -1360,55 +1504,193 @@ void TFT_setFont(uint8_t font, const char *font_file)
 	  else if (font == COMIC24_FONT) cfont.font = tft_Comic24;
 	  else if (font == MINYA24_FONT) cfont.font = tft_minya24;
 	  else if (font == TOONEY32_FONT) cfont.font = tft_tooney32;
+	  else if (font == SMALL_FONT) cfont.font = tft_SmallFont;
 	  else cfont.font = tft_DefaultFont;
 
 	  cfont.bitmap = 1;
 	  cfont.x_size = cfont.font[0];
 	  cfont.y_size = cfont.font[1];
-	  cfont.offset = cfont.font[2];
-	  if (cfont.x_size != 0) cfont.numchars = cfont.font[3];
-	  else cfont.numchars = getMaxWidth();
+	  if (cfont.x_size > 0) {
+		  cfont.offset = cfont.font[2];
+		  cfont.numchars = cfont.font[3];
+		  cfont.size = cfont.x_size * cfont.y_size * cfont.numchars;
+	  }
+	  else {
+		  cfont.offset = 4;
+		  getMaxWidthHeight();
+	  }
+	  //_testFont();
   }
 }
 
-// private method to return the Glyph data for an individual character in the proportional font
-//--------------------------------
-static int getCharPtr(uint8_t c) {
-  uint16_t tempPtr = 4; // point at first char data
+// -----------------------------------------------------------------------------------------
+// Individual Proportional Font Character Format:
+// -----------------------------------------------------------------------------------------
+// Character Code
+// yOffset				(start Y of visible pixels)
+// Width				(width of the visible pixels)
+// Height				(height of the visible pixels)
+// xOffset				(start X of visible pixels)
+// xDelta				(the distance to move the cursor. Effective width of the character.)
+// Data[n]
+// -----------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------
+// Character drawing rectangle is (0, 0) (xDelta-1, cfont.y_size-1)
+// Character visible pixels rectangle is (xOffset, yOffset) (xOffset+Width-1, yOffset+Height-1)
+//---------------------------------------------------------------------------------------------
 
-  do {
-    fontChar.charCode = cfont.font[tempPtr++];
-    fontChar.adjYOffset = cfont.font[tempPtr++];
-    fontChar.width = cfont.font[tempPtr++];
-    fontChar.height = cfont.font[tempPtr++];
-    fontChar.xOffset = cfont.font[tempPtr++];
-    fontChar.xOffset = fontChar.xOffset < 0x80 ? fontChar.xOffset : (0x100 - fontChar.xOffset);
-    fontChar.xDelta = cfont.font[tempPtr++];
+// print non-rotated proportional character
+// character is already in fontChar
+//----------------------------------------------
+static int printProportionalChar(int x, int y) {
+	uint8_t ch = 0;
+	int i, j, char_width;
 
-    if (c != fontChar.charCode && fontChar.charCode != 0xFF) {
-      if (fontChar.width != 0) {
-        // packed bits
-        tempPtr += (((fontChar.width * fontChar.height)-1) / 8) + 1;
-      }
-    }
-  } while (c != fontChar.charCode && fontChar.charCode != 0xFF);
+	char_width = ((fontChar.width > fontChar.xDelta) ? fontChar.width : fontChar.xDelta);
 
-  fontChar.dataPtr = tempPtr;
-  if (c == fontChar.charCode) {
-    if (font_forceFixed > 0) {
-      // fix width & offset for forced fixed width
-      fontChar.xDelta = cfont.numchars;
-      fontChar.xOffset = (fontChar.xDelta - fontChar.width) / 2;
-    }
-  }
+	if ((font_buffered_char) && (!font_transparent)) {
+		int len, bufPos;
 
-  if (fontChar.charCode != 0xFF) return 1;
-  else return 0;
+		// === buffer Glyph data for faster sending ===
+		len = char_width * cfont.y_size;
+		color_t *color_line = pvPortMallocCaps(len*3, MALLOC_CAP_DMA);
+		if (color_line) {
+			// fill with background color
+			for (int n = 0; n < len; n++) {
+				color_line[n] = _bg;
+			}
+			// set character pixels to foreground color
+			uint8_t mask = 0x80;
+			for (j=0; j < fontChar.height; j++) {
+				for (i=0; i < fontChar.width; i++) {
+					if (((i + (j*fontChar.width)) % 8) == 0) {
+						mask = 0x80;
+						ch = cfont.font[fontChar.dataPtr++];
+					}
+					if ((ch & mask) != 0) {
+						// visible pixel
+						bufPos = ((j + fontChar.adjYOffset) * char_width) + (fontChar.xOffset + i);  // bufY + bufX
+						color_line[bufPos] = _fg;
+						/*
+						bufY = (j + fontChar.adjYOffset) * char_width;
+						bufX = fontChar.xOffset + i;
+						if ((bufX < 0) || (bufX > char_width)) {
+							printf("[%c] X ERR: %d\r\n", fontChar.charCode, bufX);
+						}
+						bufPos = bufY + bufX;
+						if ((bufPos < len) && (bufPos > 0)) color_line[bufPos] = _fg;
+						else printf("[%c] ERR: %d > %d  W=%d  H=%d  bufX=%d  bufY=%d  X=%d  Y=%d\r\n",
+								fontChar.charCode, bufPos, len, char_width, cfont.y_size, bufX, bufY, fontChar.xOffset + i, j + fontChar.adjYOffset);
+						*/
+					}
+					mask >>= 1;
+				}
+			}
+			// send to display in one transaction
+			disp_select();
+			send_data(x, y, x+char_width-1, y+cfont.y_size-1, len, color_line);
+			disp_deselect();
+			free(color_line);
+
+			return char_width;
+		}
+	}
+
+	int cx, cy;
+
+	if (!font_transparent) _fillRect(x, y, char_width+1, cfont.y_size, _bg);
+
+	// draw Glyph
+	uint8_t mask = 0x80;
+	disp_select();
+	for (j=0; j < fontChar.height; j++) {
+		for (i=0; i < fontChar.width; i++) {
+			if (((i + (j*fontChar.width)) % 8) == 0) {
+				mask = 0x80;
+				ch = cfont.font[fontChar.dataPtr++];
+			}
+
+			if ((ch & mask) !=0) {
+				cx = (uint16_t)(x+fontChar.xOffset+i);
+				cy = (uint16_t)(y+j+fontChar.adjYOffset);
+				_drawPixel(cx, cy, _fg, 0);
+			}
+			mask >>= 1;
+		}
+	}
+	disp_deselect();
+
+	return char_width;
+}
+
+// non-rotated fixed width character
+//----------------------------------------------
+static void printChar(uint8_t c, int x, int y) {
+	uint8_t i, j, ch, fz, mask;
+	uint16_t k, temp, cx, cy, len;
+
+	// fz = bytes per char row
+	fz = cfont.x_size/8;
+	if (cfont.x_size % 8) fz++;
+
+	// get character position in buffer
+	temp = ((c-cfont.offset)*((fz)*cfont.y_size))+4;
+
+	if ((font_buffered_char) && (!font_transparent)) {
+		// === buffer Glyph data for faster sending ===
+		len = cfont.x_size * cfont.y_size;
+		color_t *color_line = pvPortMallocCaps(len*3, MALLOC_CAP_DMA);
+		if (color_line) {
+			// fill with background color
+			for (int n = 0; n < len; n++) {
+				color_line[n] = _bg;
+			}
+			// set character pixels to foreground color
+			for (j=0; j<cfont.y_size; j++) {
+				for (k=0; k < fz; k++) {
+					ch = cfont.font[temp+k];
+					mask=0x80;
+					for (i=0; i<8; i++) {
+						if ((ch & mask) !=0) color_line[(j*cfont.x_size) + (i+(k*8))] = _fg;
+						mask >>= 1;
+					}
+				}
+				temp += (fz);
+			}
+			// send to display in one transaction
+			disp_select();
+			send_data(x, y, x+cfont.x_size-1, y+cfont.y_size-1, len, color_line);
+			disp_deselect();
+			free(color_line);
+
+			return;
+		}
+	}
+
+	if (!font_transparent) _fillRect(x, y, cfont.x_size, cfont.y_size, _bg);
+
+	disp_select();
+	for (j=0; j<cfont.y_size; j++) {
+		for (k=0; k < fz; k++) {
+			ch = cfont.font[temp+k];
+			mask=0x80;
+			for (i=0; i<8; i++) {
+				if ((ch & mask) !=0) {
+					cx = (uint16_t)(x+i+(k*8));
+					cy = (uint16_t)(y+j);
+					_drawPixel(cx, cy, _fg, 0);
+				}
+				mask >>= 1;
+			}
+		}
+		temp += (fz);
+	}
+	disp_deselect();
 }
 
 // print rotated proportional character
 // character is already in fontChar
-//--------------------------------------------------------------
+//---------------------------------------------------
 static int rotatePropChar(int x, int y, int offset) {
   uint8_t ch = 0;
   double radian = font_rotate * DEG_TO_RAD;
@@ -1436,78 +1718,6 @@ static int rotatePropChar(int x, int y, int offset) {
   disp_deselect();
 
   return fontChar.xDelta+1;
-}
-
-// print non-rotated proportional character
-// character is already in fontChar
-//---------------------------------------------------------
-static int printProportionalChar(int x, int y) {
-  uint8_t i,j,ch=0;
-  uint16_t cx,cy;
-
-  // fill background if not transparent background
-  if (!font_transparent) {
-    _fillRect(x, y, fontChar.xDelta+1, cfont.y_size, _bg);
-  }
-
-  // draw Glyph
-  uint8_t mask = 0x80;
-  disp_select();
-  for (j=0; j < fontChar.height; j++) {
-    for (i=0; i < fontChar.width; i++) {
-      if (((i + (j*fontChar.width)) % 8) == 0) {
-        mask = 0x80;
-        ch = cfont.font[fontChar.dataPtr++];
-      }
-
-      if ((ch & mask) !=0) {
-        cx = (uint16_t)(x+fontChar.xOffset+i);
-        cy = (uint16_t)(y+j+fontChar.adjYOffset);
-        _drawPixel(cx, cy, _fg, 0);
-      }
-      mask >>= 1;
-    }
-  }
-  disp_deselect();
-
-  return fontChar.xDelta;
-}
-
-// non-rotated fixed width character
-//----------------------------------------------
-static void printChar(uint8_t c, int x, int y) {
-  uint8_t i,j,ch,fz,mask;
-  uint16_t k,temp,cx,cy;
-
-  // fz = bytes per char row
-  fz = cfont.x_size/8;
-  if (cfont.x_size % 8) fz++;
-
-  // get char address
-  temp = ((c-cfont.offset)*((fz)*cfont.y_size))+4;
-
-  // fill background if not transparent background
-  if (!font_transparent) {
-    _fillRect(x, y, cfont.x_size, cfont.y_size, _bg);
-  }
-
-  disp_select();
-  for (j=0; j<cfont.y_size; j++) {
-    for (k=0; k < fz; k++) {
-      ch = cfont.font[temp+k];
-      mask=0x80;
-      for (i=0; i<8; i++) {
-        if ((ch & mask) !=0) {
-          cx = (uint16_t)(x+i+(k*8));
-          cy = (uint16_t)(y+j);
-          _drawPixel(cx, cy, _fg, 0);
-        }
-        mask >>= 1;
-      }
-    }
-    temp += (fz);
-  }
-  disp_deselect();
 }
 
 // rotated fixed width character
@@ -1547,31 +1757,53 @@ static void rotateChar(uint8_t c, int x, int y, int pos) {
   TFT_Y = (int)(y + ((pos+1) * cfont.x_size * sin_radian));
 }
 
-// returns the string width in pixels. Useful for positions strings on the screen.
-//=================================
-int TFT_getStringWidth(char* str) {
+//----------------------
+static int _7seg_width()
+{
+	return (2 * (2 * cfont.y_size + 1)) + cfont.x_size;
+}
 
-  // is it 7-segment font?
-  if (cfont.bitmap == 2) return ((2 * (2 * cfont.y_size + 1)) + cfont.x_size) * strlen(str);
+//-----------------------
+static int _7seg_height()
+{
+	return (3 * (2 * cfont.y_size + 1)) + (2 * cfont.x_size);
+}
 
-  // is it a fixed width font?
-  if (cfont.x_size != 0) return strlen(str) * cfont.x_size;
-  else {
-    // calculate the string width
-    char* tempStrptr = str;
+// Returns the string width in pixels.
+// Useful for positions strings on the screen.
+//===============================
+int TFT_getStringWidth(char* str)
+{
     int strWidth = 0;
-    while (*tempStrptr != 0) {
-      if (getCharPtr(*tempStrptr++)) strWidth += (fontChar.xDelta + 1);
-    }
-    return strWidth;
-  }
+
+	if (cfont.bitmap == 2) strWidth = ((_7seg_width()+2) * strlen(str)) - 2;	// 7-segment font
+	else if (cfont.x_size != 0) strWidth = strlen(str) * cfont.x_size;			// fixed width font
+	else {
+		// calculate the width of the string of proportional characters
+		char* tempStrptr = str;
+		while (*tempStrptr != 0) {
+			if (getCharPtr(*tempStrptr++)) {
+				strWidth += (((fontChar.width > fontChar.xDelta) ? fontChar.width : fontChar.xDelta) + 1);
+			}
+		}
+		strWidth--;
+	}
+	return strWidth;
+}
+
+//===============================================
+void TFT_clearStringRect(int x, int y, char *str)
+{
+	int w = TFT_getStringWidth(str);
+	int h = TFT_getfontheight();
+	TFT_fillRect(x+dispWin.x1, y+dispWin.y1, w, h, _bg);
 }
 
 //==============================================================================
 /**
  * bit-encoded bar position of all digits' bcd segments
  *
- *                   6
+ *           6
  * 		  +-----+
  * 		3 |  .	| 2
  * 		  +--5--+
@@ -1596,27 +1828,27 @@ static const uint16_t font_bcd[] = {
   0x900  // 1001 0000 0000  // :
 };
 
-//-------------------------------------------------------------------------------
-static void barVert(int16_t x, int16_t y, int16_t w, int16_t l, color_t color) {
+//-----------------------------------------------------------------------------------------------
+static void barVert(int16_t x, int16_t y, int16_t w, int16_t l, color_t color, color_t outline) {
   _fillTriangle(x+1, y+2*w, x+w, y+w+1, x+2*w-1, y+2*w, color);
   _fillTriangle(x+1, y+2*w+l+1, x+w, y+3*w+l, x+2*w-1, y+2*w+l+1, color);
   _fillRect(x, y+2*w+1, 2*w+1, l, color);
-  if ((cfont.offset) && TFT_compare_colors(color, _bg)) {
-    _drawTriangle(x+1, y+2*w, x+w, y+w+1, x+2*w-1, y+2*w, cfont.color);
-    _drawTriangle(x+1, y+2*w+l+1, x+w, y+3*w+l, x+2*w-1, y+2*w+l+1, cfont.color);
-    _drawRect(x, y+2*w+1, 2*w+1, l, cfont.color);
+  if (cfont.offset) {
+    _drawTriangle(x+1, y+2*w, x+w, y+w+1, x+2*w-1, y+2*w, outline);
+    _drawTriangle(x+1, y+2*w+l+1, x+w, y+3*w+l, x+2*w-1, y+2*w+l+1, outline);
+    _drawRect(x, y+2*w+1, 2*w+1, l, outline);
   }
 }
 
-//------------------------------------------------------------------------------
-static void barHor(int16_t x, int16_t y, int16_t w, int16_t l, color_t color) {
+//----------------------------------------------------------------------------------------------
+static void barHor(int16_t x, int16_t y, int16_t w, int16_t l, color_t color, color_t outline) {
   _fillTriangle(x+2*w, y+2*w-1, x+w+1, y+w, x+2*w, y+1, color);
   _fillTriangle(x+2*w+l+1, y+2*w-1, x+3*w+l, y+w, x+2*w+l+1, y+1, color);
   _fillRect(x+2*w+1, y, l, 2*w+1, color);
-  if ((cfont.offset) && TFT_compare_colors(color, _bg)) {
-    _drawTriangle(x+2*w, y+2*w-1, x+w+1, y+w, x+2*w, y+1, cfont.color);
-    _drawTriangle(x+2*w+l+1, y+2*w-1, x+3*w+l, y+w, x+2*w+l+1, y+1, cfont.color);
-    _drawRect(x+2*w+1, y, l, 2*w+1, cfont.color);
+  if (cfont.offset) {
+    _drawTriangle(x+2*w, y+2*w-1, x+w+1, y+w, x+2*w, y+1, outline);
+    _drawTriangle(x+2*w+l+1, y+2*w-1, x+3*w+l, y+w, x+2*w+l+1, y+1, outline);
+    _drawRect(x+2*w+1, y, l, 2*w+1, outline);
   }
 }
 
@@ -1628,48 +1860,67 @@ static void _draw7seg(int16_t x, int16_t y, int8_t num, int16_t w, int16_t l, co
   int16_t c = font_bcd[num-0x2D];
   int16_t d = 2*w+l+1;
 
-  //if (!font_transparent) _fillRect(x, y, (2 * (2 * w + 1)) + l, (3 * (2 * w + 1)) + (2 * l), _bg);
+  // === Clear unused segments ===
+  if (!(c & 0x001)) barVert(x+d, y+d, w, l, _bg, _bg);
+  if (!(c & 0x002)) barVert(x,   y+d, w, l, _bg, _bg);
+  if (!(c & 0x004)) barVert(x+d, y, w, l, _bg, _bg);
+  if (!(c & 0x008)) barVert(x,   y, w, l, _bg, _bg);
+  if (!(c & 0x010)) barHor(x, y+2*d, w, l, _bg, _bg);
+  if (!(c & 0x020)) barHor(x, y+d, w, l, _bg, _bg);
+  if (!(c & 0x040)) barHor(x, y, w, l, _bg, _bg);
 
-  if (!(c & 0x001)) barVert(x+d, y+d, w, l, _bg);
-  if (!(c & 0x002)) barVert(x,   y+d, w, l, _bg);
-  if (!(c & 0x004)) barVert(x+d, y, w, l, _bg);
-  if (!(c & 0x008)) barVert(x,   y, w, l, _bg);
-  if (!(c & 0x010)) barHor(x, y+2*d, w, l, _bg);
-  if (!(c & 0x020)) barHor(x, y+d, w, l, _bg);
-  if (!(c & 0x040)) barHor(x, y, w, l, _bg);
+  if (!(c & 0x080)) {
+    // low point
+    _fillRect(x+(d/2), y+2*d, 2*w+1, 2*w+1, _bg);
+    if (cfont.offset) _drawRect(x+(d/2), y+2*d, 2*w+1, 2*w+1, _bg);
+  }
+  if (!(c & 0x100)) {
+    // down middle point
+    _fillRect(x+(d/2), y+d+2*w+1, 2*w+1, l/2, _bg);
+    if (cfont.offset) _drawRect(x+(d/2), y+d+2*w+1, 2*w+1, l/2, _bg);
+  }
+  if (!(c & 0x800)) {
+	// up middle point
+    _fillRect(x+(d/2), y+(2*w)+1+(l/2), 2*w+1, l/2, _bg);
+    if (cfont.offset) _drawRect(x+(d/2), y+(2*w)+1+(l/2), 2*w+1, l/2, _bg);
+  }
+  if (!(c & 0x200)) {
+    // middle, minus
+    _fillRect(x+2*w+1, y+d, l, 2*w+1, _bg);
+    if (cfont.offset) _drawRect(x+2*w+1, y+d, l, 2*w+1, _bg);
+  }
 
-  //if (!(c & 0x080)) _fillRect(x+(d/2), y+2*d, 2*w+1, 2*w+1, _bg);
-  if (!(c & 0x100)) _fillRect(x+(d/2), y+d+2*w+1, 2*w+1, l/2, _bg);
-  if (!(c & 0x800)) _fillRect(x+(d/2), y+(2*w)+1+(l/2), 2*w+1, l/2, _bg);
-  //if (!(c & 0x200)) _fillRect(x+2*w+1, y+d, l, 2*w+1, _bg);
-
-  if (c & 0x001) barVert(x+d, y+d, w, l, color);               // down right
-  if (c & 0x002) barVert(x,   y+d, w, l, color);               // down left
-  if (c & 0x004) barVert(x+d, y, w, l, color);                 // up right
-  if (c & 0x008) barVert(x,   y, w, l, color);                 // up left
-  if (c & 0x010) barHor(x, y+2*d, w, l, color);                // down
-  if (c & 0x020) barHor(x, y+d, w, l, color);                  // middle
-  if (c & 0x040) barHor(x, y, w, l, color);                    // up
+  // === Draw used segments ===
+  if (c & 0x001) barVert(x+d, y+d, w, l, color, cfont.color);	// down right
+  if (c & 0x002) barVert(x,   y+d, w, l, color, cfont.color);	// down left
+  if (c & 0x004) barVert(x+d, y, w, l, color, cfont.color);		// up right
+  if (c & 0x008) barVert(x,   y, w, l, color, cfont.color);		// up left
+  if (c & 0x010) barHor(x, y+2*d, w, l, color, cfont.color);	// down
+  if (c & 0x020) barHor(x, y+d, w, l, color, cfont.color);		// middle
+  if (c & 0x040) barHor(x, y, w, l, color, cfont.color);		// up
 
   if (c & 0x080) {
-    _fillRect(x+(d/2), y+2*d, 2*w+1, 2*w+1, color);         // low point
+    // low point
+    _fillRect(x+(d/2), y+2*d, 2*w+1, 2*w+1, color);
     if (cfont.offset) _drawRect(x+(d/2), y+2*d, 2*w+1, 2*w+1, cfont.color);
   }
   if (c & 0x100) {
-    _fillRect(x+(d/2), y+d+2*w+1, 2*w+1, l/2, color);       // down middle point
+    // down middle point
+    _fillRect(x+(d/2), y+d+2*w+1, 2*w+1, l/2, color);
     if (cfont.offset) _drawRect(x+(d/2), y+d+2*w+1, 2*w+1, l/2, cfont.color);
   }
   if (c & 0x800) {
-    _fillRect(x+(d/2), y+(2*w)+1+(l/2), 2*w+1, l/2, color); // up middle point
+	// up middle point
+    _fillRect(x+(d/2), y+(2*w)+1+(l/2), 2*w+1, l/2, color);
     if (cfont.offset) _drawRect(x+(d/2), y+(2*w)+1+(l/2), 2*w+1, l/2, cfont.color);
   }
   if (c & 0x200) {
-    _fillRect(x+2*w+1, y+d, l, 2*w+1, color);               // middle, minus
+    // middle, minus
+    _fillRect(x+2*w+1, y+d, l, 2*w+1, color);
     if (cfont.offset) _drawRect(x+2*w+1, y+d, l, 2*w+1, cfont.color);
   }
 }
 //==============================================================================
-
 
 //======================================
 void TFT_print(char *st, int x, int y) {
@@ -1716,12 +1967,12 @@ void TFT_print(char *st, int x, int y) {
 	// ** Adjust y position
 	tmph = cfont.y_size; // font height
 	// for non-proportional fonts, char width is the same for all chars
+	tmpw = cfont.x_size;
 	if (cfont.x_size != 0) {
-		if (cfont.bitmap == 2) { // 7-segment font
-			tmpw = (2 * (2 * cfont.y_size + 1)) + cfont.x_size;        // character width
-			tmph = (3 * (2 * cfont.y_size + 1)) + (2 * cfont.x_size);  // character height
+		if (cfont.bitmap == 2) {	// 7-segment font
+			tmpw = _7seg_width();	// character width
+			tmph = _7seg_height();	// character height
 		}
-		else tmpw = cfont.x_size;
 	}
 	else TFT_OFFSET = 0;	// fixed font; offset not needed
 
@@ -1730,12 +1981,7 @@ void TFT_print(char *st, int x, int y) {
 	int offset = TFT_OFFSET;
 
 	for (i=0; i<stl; i++) {
-		ch = *st++; // get char
-
-		if (cfont.x_size == 0) {
-			// for proportional font get char width
-			if (getCharPtr(ch)) tmpw = fontChar.xDelta;
-		}
+		ch = st[i]; // get string character
 
 		if (ch == 0x0D) { // === '\r', erase to eol ====
 			if ((!font_transparent) && (font_rotate==0)) _fillRect(TFT_X, TFT_Y,  dispWin.x2+1-TFT_X, tmph, _bg);
@@ -1743,17 +1989,23 @@ void TFT_print(char *st, int x, int y) {
 
 		else if (ch == 0x0A) { // ==== '\n', new line ====
 			if (cfont.bitmap == 1) {
-				TFT_Y += tmph;
+				TFT_Y += tmph + font_line_space;
 				if (TFT_Y > (dispWin.y2-tmph)) break;
 				TFT_X = dispWin.x1;
 			}
 		}
 
 		else { // ==== other characters ====
+			if (cfont.x_size == 0) {
+				// for proportional font get character data to 'fontChar'
+				if (getCharPtr(ch)) tmpw = fontChar.xDelta;
+				else continue;
+			}
+
 			// check if character can be displayed in the current line
-			if ((TFT_X+tmpw) > (dispWin.x2+1)) {
+			if ((TFT_X+tmpw) > (dispWin.x2)) {
 				if (text_wrap == 0) break;
-				TFT_Y += tmph;
+				TFT_Y += tmph + font_line_space;
 				if (TFT_Y > (dispWin.y2-tmph)) break;
 				TFT_X = dispWin.x1;
 			}
@@ -1761,24 +2013,25 @@ void TFT_print(char *st, int x, int y) {
 			// Let's print the character
 			if (cfont.x_size == 0) {
 				// == proportional font
-				if (font_rotate==0) TFT_X += printProportionalChar(TFT_X, TFT_Y)+1;
+				if (font_rotate == 0) TFT_X += printProportionalChar(TFT_X, TFT_Y) + 1;
 				else {
 					// rotated proportional font
 					offset += rotatePropChar(x, y, offset);
 					TFT_OFFSET = offset;
 				}
 			}
-			// == fixed font
 			else {
 				if (cfont.bitmap == 1) {
+					// == fixed font
 					if ((ch < cfont.offset) || ((ch-cfont.offset) > cfont.numchars)) ch = cfont.offset;
-					if (font_rotate==0) {
+					if (font_rotate == 0) {
 						printChar(ch, TFT_X, TFT_Y);
 						TFT_X += tmpw;
 					}
 					else rotateChar(ch, x, y, i);
 				}
-				else if (cfont.bitmap == 2) { // 7-seg font
+				else if (cfont.bitmap == 2) {
+					// == 7-segment font ==
 					_draw7seg(TFT_X, TFT_Y, ch, cfont.y_size, cfont.x_size, _fg);
 					TFT_X += (tmpw + 2);
 				}
@@ -1797,17 +2050,26 @@ void TFT_setRotation(uint8_t rot) {
 	uint8_t rotation = rot & 3; // can't be higher than 3
 	uint8_t send = 1;
 	uint8_t madctl = 0;
+	uint16_t tmp;
 
 	if (rot > 3) madctl = (rot & 0xF8); // for testing, manually set MADCTL register
 	else {
 		orientation = rot;
 		if ((rotation & 1)) {
-			_width  = TFT_DISPLAY_HEIGHT;
-			_height = TFT_DISPLAY_WIDTH;
+			// in landscape modes width > height
+			if (_width < _height) {
+				tmp = _width;
+				_width  = _height;
+				_height = tmp;
+			}
 		}
 		else {
-			_width  = TFT_DISPLAY_WIDTH;
-			_height = TFT_DISPLAY_HEIGHT;
+			// in portrait modes width < height
+			if (_width > _height) {
+				tmp = _width;
+				_width  = _height;
+				_height = tmp;
+			}
 		}
 		switch (rotation) {
 		  case PORTRAIT:
@@ -1958,13 +2220,14 @@ void set_7seg_font_atrib(uint8_t l, uint8_t w, int outline, color_t color) {
 int TFT_getfontsize(int *width, int* height)
 {
   if (cfont.bitmap == 1) {
-    if (cfont.x_size != 0) *width = cfont.x_size;
-    else *width = getMaxWidth();
+    if (cfont.x_size != 0) *width = cfont.x_size;	// fixed width font
+    else *width = cfont.max_x_size;					// proportional font
     *height = cfont.y_size;
   }
   else if (cfont.bitmap == 2) {
-    *width = (2 * (2 * cfont.y_size + 1)) + cfont.x_size;
-    *height = (3 * (2 * cfont.y_size + 1)) + (2 * cfont.x_size);
+	// 7-segment font
+    *width = _7seg_width();
+    *height = _7seg_height();
   }
   else {
     *width = 0;
@@ -1977,14 +2240,8 @@ int TFT_getfontsize(int *width, int* height)
 //=====================
 int TFT_getfontheight()
 {
-  if (cfont.bitmap == 1) {
-	// Bitmap font
-    return cfont.y_size;
-  }
-  else if (cfont.bitmap == 2) {
-	// 7-segment font
-    return (3 * (2 * cfont.y_size + 1)) + (2 * cfont.x_size);
-  }
+  if (cfont.bitmap == 1) return cfont.y_size;			// Bitmap font
+  else if (cfont.bitmap == 2) return _7seg_height();	// 7-segment font
   return 0;
 }
 
@@ -2126,14 +2383,14 @@ static UINT tjd_output (
 		    }
 	    }
 
-		if (wait_trans_finish() != ESP_OK) return 0;
+		wait_trans_finish(1);
 
 		send_data(dleft, dtop, dright, dbottom, len, (color_t *)(dev->linbuf[dev->linbuf_idx]));
 
 		dev->linbuf_idx = ((dev->linbuf_idx + 1) & 1);
 	}
 	else {
-		wait_trans_finish();
+		wait_trans_finish(1);
 		printf("Data size error: %d jpg: (%d,%d,%d,%d) disp: (%d,%d,%d,%d)\r\n", len, left,top,right,bottom, dleft,dtop,dright,dbottom);
 		return 0;  // stop decompression
 	}
@@ -2153,13 +2410,11 @@ void TFT_jpg_image(int x, int y, uint8_t scale, char *fname, uint8_t *buf, int s
 	JDEC jd;				// Decompression object (70 bytes)
 	JRESULT rc;
 
-    //dev.linbuf[0] = malloc(JPG_IMAGE_LINE_BUF_SIZE*3);
     dev.linbuf[0] = pvPortMallocCaps(JPG_IMAGE_LINE_BUF_SIZE*3, MALLOC_CAP_DMA);;
     if (dev.linbuf[0] == NULL) {
     	if (image_debug) printf("Error allocating line buffer\r\n");
         goto exit;
     }
-    //dev.linbuf[1] = malloc(JPG_IMAGE_LINE_BUF_SIZE*3);
     dev.linbuf[1] = pvPortMallocCaps(JPG_IMAGE_LINE_BUF_SIZE*3, MALLOC_CAP_DMA);;
     if (dev.linbuf[0] == NULL) {
     	if (image_debug) printf("Error allocating line buffer\r\n");
@@ -2246,9 +2501,8 @@ int TFT_bmp_image(int x, int y, uint8_t scale, char *fname, uint8_t *imgbuf, int
 	FILE *fhndl = NULL;
 	struct stat sb;
 	int i, err=0;
-	int img_xsize, img_ysize, img_xstart, img_xlen, img_offset, img_ystart, img_ylen;
-	int img_pos, img_line_pos, img_pix_pos;
-	int scan_end, scan_pos, scan_lines, rd_len;
+	int img_xsize, img_ysize, img_xstart, img_xlen, img_ystart, img_ylen;
+	int img_pos, img_pix_pos, scan_lines, rd_len;
 	uint8_t tmpc;
 	uint16_t wtemp;
 	uint32_t temp;
@@ -2263,7 +2517,7 @@ int TFT_bmp_image(int x, int y, uint8_t scale, char *fname, uint8_t *imgbuf, int
 	uint8_t npix;
 
 	if (scale > 7) scale = 7;
-	scale_pix = scale+1;	// size of scale rectangle
+	scale_pix = scale+1;	// scale factor ( 1~8 )
 
     if (fname) {
     	// * File name is given, reading image from file
@@ -2295,12 +2549,12 @@ int TFT_bmp_image(int x, int y, uint8_t scale, char *fname, uint8_t *imgbuf, int
 	if (i != 54) {err = -3;	goto exit;}
 
 	// ** Check image header and get image properties
-	if ((buf[0] != 'B') || (buf[1] != 'M')) {err=-41; goto exit;} // accept only images with 'BM' id
+	if ((buf[0] != 'B') || (buf[1] != 'M')) {err=-4; goto exit;} // accept only images with 'BM' id
 
 	memcpy(&temp, buf+2, 4);				// file size
 	if (temp != size) {err=-5; goto exit;}
 
-	memcpy(&img_offset, buf+10, 4);			// start of pixel data
+	memcpy(&img_pos, buf+10, 4);			// start of pixel data
 
 	memcpy(&temp, buf+14, 4);				// BMP header size
 	if (temp != 40) {err=-6; goto exit;}
@@ -2320,8 +2574,8 @@ int TFT_bmp_image(int x, int y, uint8_t scale, char *fname, uint8_t *imgbuf, int
 
 	// * scale image dimensions
 
-	img_xlen = img_xsize / scale_pix;
-	img_ylen = img_ysize / scale_pix;
+	img_xlen = img_xsize / scale_pix;		// image display horizontal size
+	img_ylen = img_ysize / scale_pix;		// image display vertical size
 
 	if (x == CENTER) x = ((dispWin.x2 - dispWin.x1 + 1 - img_xlen) / 2) + dispWin.x1;
 	else if (x == RIGHT) x = dispWin.x2 + 1 - img_xlen;
@@ -2331,10 +2585,9 @@ int TFT_bmp_image(int x, int y, uint8_t scale, char *fname, uint8_t *imgbuf, int
 
 	if ((x < ((dispWin.x2 + 1) * -1)) || (x > (dispWin.x2 + 1)) || (y < ((dispWin.y2 + 1) * -1)) || (y > (dispWin.y2 + 1))) {
 		sprintf(err_buf, "out of display area (%d,%d", x, y);
-		err = -1;
+		err = -10;
 		goto exit;
 	}
-	if (image_debug) printf("BMP: X,Y = (%d,%d)\r\n", x, y);
 
 	// ** set display and image areas
 	if (x < dispWin.x1) {
@@ -2366,112 +2619,122 @@ int TFT_bmp_image(int x, int y, uint8_t scale, char *fname, uint8_t *imgbuf, int
 		img_ylen = disp_yend - disp_ystart + 1;
 	}
 
-	scan_pos = img_ysize - img_ystart;
-	scan_end = img_ysize - (img_ylen*scale_pix) - img_ystart;
-
-	if ((img_xlen < 8) || (img_ylen < 8) || (img_xstart >= (img_xsize-2)) || (scan_pos < 2)) {
+	if ((img_xlen < 8) || (img_ylen < 8) || (img_xstart >= (img_xsize-2)) || ((img_ysize - img_ystart) < 2)) {
 		sprintf(err_buf, "image too small");
 		err = -11;
 		goto exit;
 	}
 
 	// ** Allocate memory for 2 lines of image pixels
-	line_buf[0] = pvPortMallocCaps(img_xlen*3, MALLOC_CAP_DMA);
+	line_buf[0] = pvPortMallocCaps(img_xsize*3, MALLOC_CAP_DMA);
 	if (line_buf[0] == NULL) {
 	    sprintf(err_buf, "allocating line buffer #1");
-		err=-10;
+		err=-12;
 		goto exit;
 	}
 
-	line_buf[1] = pvPortMallocCaps(img_xlen*3, MALLOC_CAP_DMA);
+	line_buf[1] = pvPortMallocCaps(img_xsize*3, MALLOC_CAP_DMA);
 	if (line_buf[1] == NULL) {
 	    sprintf(err_buf, "allocating line buffer #2");
-		err=-10;
+		err=-13;
 		goto exit;
 	}
 
 	if (scale) {
+		// Allocate memory for scale buffer
 		rd_len = img_xlen * 3 * scale_pix;
 		scale_buf = malloc(rd_len*scale_pix);
 		if (scale_buf == NULL) {
 			sprintf(err_buf, "allocating scale buffer");
-			err=-10;
+			err=-14;
 			goto exit;
 		}
-		rd_len = img_xlen * 3 * scale_pix;
 	}
 	else rd_len = img_xlen * 3;
 
-	// ** BMP images are stored in file from LAST to FIRST line
-	//    so we are reading lines from the end line first **
+	// ** ***************************************************** **
+	// ** BMP images are stored in file from LAST to FIRST line **
+	// ** ***************************************************** **
+
+	/* Used variables:
+		img_xsize		horizontal image size in pixels
+		img_ysize		number of image lines
+		img_xlen 		image display horizontal scaled size in pixels
+		img_ylen		image display vertical scaled size in pixels
+		img_xstart		first pixel in line to be displayed
+		img_ystart		first image line to be displayed
+		img_xlen		number of pixels in image line to be displayed, starting with 'img_xstart'
+		img_ylen		number of lines in image to be displayed, starting with 'img_ystart'
+		rd_len			length of color data which are read from image line in bytes
+	 */
+
+	// Set position in image to the first color data (beginning of the LAST line)
+	img_pos += (img_ystart * (img_xsize*3));
+	if (fhndl) {
+		if (fseek(fhndl, img_pos, SEEK_SET) != 0) {
+			sprintf(err_buf, "file seek at %d", img_pos);
+			err = -15;
+			goto exit;
+		}
+	}
+
+	if (image_debug) printf("BMP: image size: (%d,%d) scale: %d disp size: (%d,%d) img xofs: %d img yofs: %d at: %d,%d; line buf: 2* %d scale buf: %d\r\n",
+			img_xsize, img_ysize, scale_pix, img_xlen, img_ylen, img_xstart, img_ystart, disp_xstart, disp_ystart, img_xsize*3, ((scale) ? (rd_len*scale_pix) : 0));
 
 	// * Select the display
 	disp_select();
 
-	if (image_debug) printf("BMP: image size: (%d,%d) disp size: (%d,%d) xofs: %d yofs: %d at: %d,%d; buf: %d, %d\r\n",
-			img_xsize, img_ysize, img_xlen, img_ylen, img_xstart, img_ystart, disp_xstart, disp_ystart, img_xlen*3, rd_len*scale_pix);
-
-	while (scan_pos > scan_end) {
-		// calculate the position of the first color pixel in current line: offset + (current_line * line_length)
-		img_pos = img_offset + ((scan_pos-1) * (img_xsize*3)) + (img_xstart*3);
-
+	while ((disp_yend >= disp_ystart) && ((img_pos + (img_xsize*3)) <= size)) {
+		if (img_pos > size) {
+			sprintf(err_buf, "EOF reached: %d > %d", img_pos, size);
+			err = -16;
+			goto exit1;
+		}
 		if (scale == 0) {
+			// Read the line of color data into color buffer
 			if (fhndl) {
-				if (fseek(fhndl, img_pos, SEEK_SET) != 0) {
-					sprintf(err_buf, "file seek at %d", img_pos);
-					err = -12;
-					goto exit;
-				}
-				i = fread(line_buf[lb_idx], 1, rd_len, fhndl);  // read line from file
-				if (i != rd_len) {
-					sprintf(err_buf, "file read at %d (%d<>%d)", img_pos, i, rd_len);
-					err = -13;
-					goto exit;
+				i = fread(line_buf[lb_idx], 1, img_xsize*3, fhndl);  // read line from file
+				if (i != (img_xsize*3)) {
+					sprintf(err_buf, "file read at %d (%d<>%d)", img_pos, i, img_xsize*3);
+					err = -16;
+					goto exit1;
 				}
 			}
-			else {
-				if ((img_pos + rd_len + (img_xstart*3)) > size) {
-					sprintf(err_buf, "image buffer read at %d", img_pos);
-					err = -14;
-					goto exit;
-				}
-				memcpy(line_buf[lb_idx], imgbuf+img_pos, rd_len);
+			else memcpy(line_buf[lb_idx], imgbuf+img_pos, img_xsize*3);
+
+			if (img_xstart > 0)	memmove(line_buf[lb_idx], line_buf[lb_idx]+(img_xstart*3), rd_len);
+			// Convert colors BGR-888 (BMP) -> RGB-888 (DISPLAY) ===
+			for (i=0; i < rd_len; i += 3) {
+				tmpc = line_buf[lb_idx][i+2] & 0xfc;				// save R
+				line_buf[lb_idx][i+2] = line_buf[lb_idx][i] & 0xfc;	// B -> R
+				line_buf[lb_idx][i] = tmpc;							// R -> B
+				line_buf[lb_idx][i+1] &= 0xfc;						// G
 			}
-			scan_pos--;
+			img_pos += (img_xsize*3);
 		}
 		else {
-			// scale image
+			// scale image, read 'scale_pix' lines and find the average color
 			for (scan_lines=0; scan_lines<scale_pix; scan_lines++) {
-				if ((scan_pos-1-scan_lines) < 0) break;
-
-				img_line_pos = img_pos - ((img_xsize*3) * scan_lines);
+				if (img_pos > size) break;
 				if (fhndl) {
-					if (fseek(fhndl, img_line_pos, SEEK_SET) != 0) {
-						sprintf(err_buf, "file seek at %d", img_pos);
-						err = -12;
-						goto exit;
-					}
-					i = fread(scale_buf + (rd_len * scan_lines), 1, img_xlen*3*scale_pix, fhndl);  // read line from file
-					if (i != rd_len) {
-						sprintf(err_buf, "file read at %d (%d<>%d)", img_pos, i, rd_len);
-						err = -13;
-						goto exit;
+					i = fread(line_buf[lb_idx], 1, img_xsize*3, fhndl);  // read line from file
+					if (i != (img_xsize*3)) {
+						sprintf(err_buf, "file read at %d (%d<>%d)", img_pos, i, img_xsize*3);
+						err = -17;
+						goto exit1;
 					}
 				}
-				else {
-					if ((img_line_pos + rd_len + (img_xstart*3)) > size) {
-						sprintf(err_buf, "image buffer read at %d", img_pos);
-						err = -14;
-						goto exit;
-					}
-					memcpy(scale_buf + (rd_len * scan_lines), imgbuf+img_line_pos, rd_len);
-				}
+				else memcpy(line_buf[lb_idx], imgbuf+img_pos, img_xsize*3);
+				img_pos += (img_xsize*3);
+
+				// copy only data which are displayed to scale buffer
+				memcpy(scale_buf + (rd_len * scan_lines), line_buf[lb_idx]+img_xstart, rd_len);
 			}
 
 			// Populate display line buffer
 			for (int n=0;n<(img_xlen*3);n += 3) {
-				memset(co, 0, sizeof(co)); // init color sum
-				npix = 0;  // init number of pixels in scale rectangle
+				memset(co, 0, sizeof(co));	// initialize color sum
+				npix = 0;					// initialize number of pixels in scale rectangle
 
 				// sum all pixels in scale rectangle
 				for (int sc_line=0; sc_line<scan_lines; sc_line++) {
@@ -2485,37 +2748,22 @@ int TFT_bmp_image(int x, int y, uint8_t scale, char *fname, uint8_t *imgbuf, int
 						npix++;
 					}
 				}
-				// Place the average in display buffer
-				line_buf[lb_idx][n] = (uint8_t)(co[0] / npix);
-				line_buf[lb_idx][n+1] = (uint8_t)(co[1] / npix);
-				line_buf[lb_idx][n+2] = (uint8_t)(co[2] / npix);
+				// Place the average in display buffer, convert BGR-888 (BMP) -> RGB-888 (DISPLAY)
+				line_buf[lb_idx][n+2] = (uint8_t)(co[0] / npix);	// B
+				line_buf[lb_idx][n+1] = (uint8_t)(co[1] / npix);	// G
+				line_buf[lb_idx][n] = (uint8_t)(co[2] / npix);		// R
 			}
-			scan_pos -= scan_lines;
 		}
 
-		// === Pixel data are in 'line_buf', convert colors BGR-888 (BMP) -> RGB-888 (DISPLAY) ===
-		for (i=0;i < (img_xlen*3);i += 3) {
-			tmpc = line_buf[lb_idx][i+2] & 0xfc;				// save R
-			line_buf[lb_idx][i+2] = line_buf[lb_idx][i] & 0xfc;	// B -> R
-			line_buf[lb_idx][i] = tmpc;							// R -> B
-			line_buf[lb_idx][i+1] &= 0xfc;						// G
-		}
+		wait_trans_finish(1);
+		send_data(disp_xstart, disp_yend, disp_xend, disp_yend, img_xlen, (color_t *)line_buf[lb_idx]);
+		lb_idx = (lb_idx + 1) & 1;  // change buffer
 
-		if (wait_trans_finish() != ESP_OK) {
-			sprintf(err_buf, "transaciton");
-			err = -19;
-			goto exit;
-		}
-	    send_data(disp_xstart, disp_ystart, disp_xend, disp_ystart, img_xlen, (color_t *)line_buf[lb_idx]);
-	    lb_idx = (lb_idx + 1) & 1;
-		// next image line
-		disp_ystart++;
-		if (disp_ystart >= _height) break;
+		disp_yend--;
 	}
-
-	disp_deselect();
 	err = 0;
-
+exit1:
+	disp_deselect();
 exit:
 	if (scale_buf) free(scale_buf);
 	if (line_buf[0]) free(line_buf[0]);
@@ -2600,7 +2848,7 @@ int TFT_read_touch(int *x, int* y, uint8_t raw)
     *x = 0;
     *y = 0;
 
-	if (spi_nodma_device_select(ts_spi, 0) != ESP_OK) return 0;
+	if (spi_lobo_device_select(ts_spi, 0) != ESP_OK) return 0;
 
     result = tp_get_data(0xB0, 3);  // Z; pressure; touch detect
 	if (result > 50)  {
@@ -2630,8 +2878,8 @@ int TFT_read_touch(int *x, int* y, uint8_t raw)
 	int ytop    = (tp_caly >> 16) & 0x3FFF;
 	int ybottom = tp_caly & 0x3FFF;
 
-	int width = TFT_DISPLAY_WIDTH;
-	int height = TFT_DISPLAY_HEIGHT;
+	int width = _width;
+	int height = _height;
 
 	if (((xright - xleft) != 0) && ((ybottom - ytop) != 0)) {
 		X = ((X - xleft) * height) / (xright - xleft);
@@ -2668,7 +2916,7 @@ int TFT_read_touch(int *x, int* y, uint8_t raw)
 	*y = Y;
 
 exit:
-	spi_nodma_device_deselect(ts_spi);
+	spi_lobo_device_deselect(ts_spi);
 	return result;
 #else
     *x = 0;

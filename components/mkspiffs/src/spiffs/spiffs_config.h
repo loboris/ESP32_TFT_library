@@ -168,7 +168,7 @@ typedef unsigned char u8_t;
 // Lower value generates more read/writes. No meaning having it bigger
 // than logical page size.
 #ifndef SPIFFS_COPY_BUFFER_STACK
-#define SPIFFS_COPY_BUFFER_STACK        (64)
+#define SPIFFS_COPY_BUFFER_STACK        (256)
 #endif
 
 // Enable this to have an identifiable spiffs filesystem. This will look for
@@ -291,7 +291,7 @@ typedef unsigned char u8_t;
 // value for the specific access patterns of the application. However, it must
 // be between 1 (no gain for hitting a cached entry often) and 255.
 #ifndef SPIFFS_TEMPORAL_CACHE_HIT_SCORE
-#define SPIFFS_TEMPORAL_CACHE_HIT_SCORE       4
+#define SPIFFS_TEMPORAL_CACHE_HIT_SCORE       8
 #endif
 
 // Enable to be able to map object indices to memory.

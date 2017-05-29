@@ -41,7 +41,6 @@
 #define PATH_MAX MAXNAMLEN+8
 
 #define SPIFFS_ERASE_SIZE 4096
-#define SPIFFS_LOG_PAGE_SIZE 256
 
 int spiffs_is_registered = 0;
 int spiffs_is_mounted = 0;
@@ -341,7 +340,7 @@ static int IRAM_ATTR vfs_spiffs_fstat(int fd, struct stat * st) {
     }
 
     // Set block size for this file system
-    st->st_blksize = SPIFFS_LOG_PAGE_SIZE;
+    st->st_blksize = CONFIG_SPIFFS_LOG_PAGE_SIZE;
 
     // Get file/directory statistics
     res = vfs_spiffs_getstat(file->spiffs_file, &stat, &meta);
@@ -730,22 +729,20 @@ int spiffs_mount() {
     cfg.phys_addr 		 = CONFIG_SPIFFS_BASE_ADDR;
     cfg.phys_size 		 = CONFIG_SPIFFS_SIZE;
     cfg.phys_erase_block = SPIFFS_ERASE_SIZE;
-    cfg.log_page_size    = SPIFFS_LOG_PAGE_SIZE;
+    cfg.log_page_size    = CONFIG_SPIFFS_LOG_PAGE_SIZE;
     cfg.log_block_size   = CONFIG_SPIFFS_LOG_BLOCK_SIZE;
-
-    ESP_LOGI(tag, "Start address: 0x%x; Size %d KB", cfg.phys_addr, cfg.phys_size / 1024);
 
 	cfg.hal_read_f  = (spiffs_read)low_spiffs_read;
 	cfg.hal_write_f = (spiffs_write)low_spiffs_write;
 	cfg.hal_erase_f = (spiffs_erase)low_spiffs_erase;
 
-    my_spiffs_work_buf = malloc(cfg.log_page_size * 2);
+    my_spiffs_work_buf = malloc(cfg.log_page_size * 8);
     if (!my_spiffs_work_buf) {
     	err = 1;
     	goto err_exit;
     }
 
-    int fds_len = sizeof(spiffs_fd) * 5;
+    int fds_len = sizeof(spiffs_fd) * SPIFFS_TEMPORAL_CACHE_HIT_SCORE;
     my_spiffs_fds = malloc(fds_len);
     if (!my_spiffs_fds) {
         free(my_spiffs_work_buf);
@@ -753,7 +750,7 @@ int spiffs_mount() {
     	goto err_exit;
     }
 
-    int cache_len = cfg.log_page_size * 5;
+    int cache_len = cfg.log_page_size * SPIFFS_TEMPORAL_CACHE_HIT_SCORE;
     my_spiffs_cache = malloc(cache_len);
     if (!my_spiffs_cache) {
         free(my_spiffs_work_buf);
@@ -762,6 +759,10 @@ int spiffs_mount() {
     	goto err_exit;
     }
 
+    ESP_LOGI(tag, "Start address: 0x%x; Size %d KB", cfg.phys_addr, cfg.phys_size / 1024);
+    ESP_LOGI(tag, "  Work buffer: %d B", cfg.log_page_size * 8);
+    ESP_LOGI(tag, "   FDS buffer: %d B", sizeof(spiffs_fd) * SPIFFS_TEMPORAL_CACHE_HIT_SCORE);
+    ESP_LOGI(tag, "   Cache size: %d B", cfg.log_page_size * SPIFFS_TEMPORAL_CACHE_HIT_SCORE);
     while (retries < 2) {
 		res = SPIFFS_mount(
 				&fs, &cfg, my_spiffs_work_buf, my_spiffs_fds,

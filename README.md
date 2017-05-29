@@ -7,10 +7,10 @@
 #### Features
 
 * Full support for **ILI9341** & **ILI9488** based TFT modules in 4-wire SPI mode. Support for other controllers will be added later
-* **18-bit (RGB)** color mode (*default*) or **16-bit packed RGB565** color mode (only on ILI9341)
-* SPI displays oriented SPI driver library based on *spi-master* driver
-* Combined **DMA SPI** transfer mode (on some functions) and **direct SPI** to improve speed
-* **Grayscale mode** can be selected
+* **18-bit (RGB)** color mode used
+* **SPI displays oriented SPI driver library** based on *spi-master* driver
+* Combined **DMA SPI** transfer mode and **direct SPI** for maximal speed
+* **Grayscale mode** can be selected during runtime which converts all colors to gray scale
 * SPI speeds up to **40 MHz** are tested and works without problems
 * **Demo application** included which demonstrates most of the library features
 
@@ -28,7 +28,7 @@
   * **TFT_drawArc**  Draw circle arc on screen, from ~ to given angles, with given thickness. Can be outlined with different color
   * **TFT_drawPolygon**  Draw poligon on screen with given number of sides (3~60). Can be outlined with different color and rotated by given angle.
 * **Fonts**:
-  * **fixed** width and proportional fonts are supported; 7 fonts embeded
+  * **fixed** width and proportional fonts are supported; 8 fonts embeded
   * unlimited number of **fonts from file**
   * **7-segment vector font** with variable width/height is included (only numbers and few characters)
   * Proportional fonts can be used in fixed width mode.
@@ -37,6 +37,7 @@
     * **TFT_getfontsize**  Returns current font height & width in pixels.
     * **TFT_getfontheight**  Returns current font height in pixels.
     * **set_7seg_font_atrib**  Set atributes for 7 segment vector font
+    * **getFontCharacters**  Get all font's characters to buffer
 * **String write function**:
   * **TFT_print**  Write text to display.
     * Strings can be printed at **any angle**. Rotation of the displayed text depends on *font_ratate* variable (0~360)
@@ -52,6 +53,7 @@
       * *BOTTOM*  bottom justifies the text
       * *LASTY*   continues from last Y position; offset can be used: *LASTY+n*
   * **TFT_getStringWidth** Returns the string width in pixels based on current font characteristics. Useful for positioning strings on the screen.
+  * **TFT_clearStringRect** Fills the rectangle occupied by string with current background color
 * **Images**:
   * **TFT_jpg_image**  Decodes and displays JPG images
     * Limits:
@@ -127,7 +129,7 @@
 
 Full functions **syntax and descriptions** can be found in *tft.h* and *tftspi.h* files.
 
-Full **demo application**, well documented,  is included, please **analyze it** to learn how to use the library functions.
+Full **demo application**, well documented, is included, please **analyze it** to learn how to use the library functions.
 
 ---
 

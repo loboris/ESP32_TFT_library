@@ -5,5 +5,7 @@
 
 PROJECT_NAME := tft_demo
 
+EXTRA_CFLAGS += --save-temps
+
 include $(IDF_PATH)/make/project.mk
 

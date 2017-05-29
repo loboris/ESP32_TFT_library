@@ -108,7 +108,7 @@ typedef unsigned char u8_t;
 // Always check header of each accessed page to ensure consistent state.
 // If enabled it will increase number of reads, will increase flash.
 #ifndef SPIFFS_PAGE_CHECK
-#define SPIFFS_PAGE_CHECK               1
+#define SPIFFS_PAGE_CHECK               0
 #endif
 
 // Define maximum number of gc runs to perform to reach desired free pages.
@@ -291,7 +291,7 @@ typedef unsigned char u8_t;
 // value for the specific access patterns of the application. However, it must
 // be between 1 (no gain for hitting a cached entry often) and 255.
 #ifndef SPIFFS_TEMPORAL_CACHE_HIT_SCORE
-#define SPIFFS_TEMPORAL_CACHE_HIT_SCORE       4
+#define SPIFFS_TEMPORAL_CACHE_HIT_SCORE       8
 #endif
 
 // Enable to be able to map object indices to memory.

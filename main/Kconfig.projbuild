@@ -1,10 +1,5 @@
 menu "TFT Display DEMO Configuration"
 
-config SPIFFS_LOG_BLOCK_SIZE
-    int "SPIFFS Logical block size"
-    range 4098 65536
-    default 8192
-
 config SPIFFS_BASE_ADDR
     hex "SPIFFS Base address"
     range 100000 1FFE000
@@ -16,6 +11,18 @@ config SPIFFS_SIZE
     int "SPIFFS Size in bytes"
     range 262144 2097152
     default 1048576
+
+config SPIFFS_LOG_BLOCK_SIZE
+    int "SPIFFS Logical block size"
+    range 4098 65536
+    default 8192
+
+config SPIFFS_LOG_PAGE_SIZE
+    int "SPIFFS Logical page size"
+    range 256 2048
+    default 256
+    help
+	Set it to the phisycal page size og the used SPI Flash chip.
 
 config EXAMPLE_USE_WIFI
     bool "Use wifi in TFT Demo"

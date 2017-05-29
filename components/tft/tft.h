@@ -23,6 +23,8 @@ typedef struct {
 	uint8_t 	y_size;
 	uint8_t	    offset;
 	uint16_t	numchars;
+    uint16_t	size;
+	uint8_t 	max_x_size;
     uint8_t     bitmap;
 	color_t     color;
 } Font;
@@ -35,6 +37,8 @@ uint8_t   orientation;		// current screen orientation
 uint16_t  font_rotate;   	// current font font_rotate angle (0~395)
 uint8_t   font_transparent;	// if not 0 draw fonts transparent
 uint8_t   font_forceFixed;  // if not zero force drawing proportional fonts with fixed width
+uint8_t   font_buffered_char;
+uint8_t   font_line_space;	// additional spacing between text lines; added to font height
 uint8_t   text_wrap;        // if not 0 wrap long text to the new line, else clip
 color_t   _fg;            	// current foreground color for fonts
 color_t   _bg;            	// current background for non transparent fonts
@@ -52,7 +56,10 @@ uint32_t tp_caly;			// touch screen Y calibration constant
 // =========================================================================================
 
 
-#define JPG_IMAGE_LINE_BUF_SIZE 520
+// Buffer is created during jpeg decode for sending data
+// Total size of the buffer is  2 * (JPG_IMAGE_LINE_BUF_SIZE * 3)
+// The size must be multiple of 256 bytes !!
+#define JPG_IMAGE_LINE_BUF_SIZE 512
 
 // --- Constants for ellipse function ---
 #define TFT_ELLIPSE_UPPER_RIGHT 0x01
@@ -120,8 +127,9 @@ const color_t TFT_PINK;
 #define COMIC24_FONT	4
 #define MINYA24_FONT	5
 #define TOONEY32_FONT	6
-#define FONT_7SEG		7
-#define USER_FONT		8  // font will be read from file
+#define SMALL_FONT		7
+#define FONT_7SEG		8
+#define USER_FONT		9  // font will be read from file
 
 
 
@@ -419,10 +427,10 @@ void TFT_drawPolygon(int cx, int cy, int sides, int diameter, color_t color, col
 /*
  * Set the font used for writing the text to display.
  *
- * ----------------------------------------------------------------------------------
- * For 7 segment font only characters 0,1,2,3,4,5,6,7,8, . , - , : , / are available.
+ * ------------------------------------------------------------------------------------
+ * For 7 segment font only characters 0,1,2,3,4,5,6,7,8,9, . , - , : , / are available.
  *   Character ‘/‘ draws the degree sign.
- * ----------------------------------------------------------------------------------
+ * ------------------------------------------------------------------------------------
  *
  * Params:
  *			 font: font number; use defined font names
@@ -566,6 +574,12 @@ int TFT_compare_colors(color_t c1, color_t c2);
 //--------------------------------
 int TFT_getStringWidth(char* str);
 
+
+/*
+ * Fills the rectangle occupied by string with current background color
+ */
+void TFT_clearStringRect(int x, int y, char *str);
+
 /*
  * Converts the components of a color, as specified by the HSB model,
  * to an equivalent set of values for the default RGB model.
@@ -653,5 +667,10 @@ int TFT_read_touch(int *x, int* y, uint8_t raw);
  */
 //------------------------------------------------
 int compile_font_file(char *fontfile, uint8_t dbg);
+
+/*
+ * Get all font's characters to buffer
+ */
+void getFontCharacters(uint8_t *buf);
 
 #endif
