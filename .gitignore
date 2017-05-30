@@ -22,6 +22,7 @@ sdkconfig.old
 sdkconfig.lobo
 .cproject
 .project
+.settings
 BUILD
 build/
 temp/

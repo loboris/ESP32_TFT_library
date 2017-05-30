@@ -119,7 +119,7 @@ const color_t TFT_PINK;
 #define LASTX	7000
 #define LASTY	8000
 
-// === Embeded fonts constants ===
+// === Embedded fonts constants ===
 #define DEFAULT_FONT	0
 #define DEJAVU18_FONT	1
 #define DEJAVU24_FONT	2

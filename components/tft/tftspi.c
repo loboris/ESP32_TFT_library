@@ -15,20 +15,16 @@
 #include "esp_heap_alloc_caps.h"
 #include "soc/spi_reg.h"
 
-// RGB to GRAYSCALE constants
-// 0.2989  0.5870  0.1140
-#define GS_FACT_R 0.2989
-#define GS_FACT_G 0.4870
-#define GS_FACT_B 0.2140
 
+// ====================================================
 // ==== Global variables, default values ==============
 
-// Converts colors to grayscale if 1
+// Converts colors to grayscale if set to 1
 uint8_t gray_scale = 0;
-// Spi clock for reading data prom display memory in Hz
+// Spi clock for reading data from display memory in Hz
 uint32_t max_rdclock = 16000000;
 
-// Display dimensions
+// Default display dimensions
 int _width = TFT_DISPLAY_WIDTH;
 int _height = TFT_DISPLAY_HEIGHT;
 
@@ -41,12 +37,20 @@ spi_lobo_device_handle_t ts_spi = NULL;
 
 // ====================================================
 
+
 static color_t *trans_cline = NULL;
 static uint8_t _dma_sending = 0;
 
 #define DC_VAL (1 << PIN_NUM_DC)
 #define DC_CMD	GPIO.out_w1tc = (DC_VAL)
 #define DC_DATA	GPIO.out_w1ts = (DC_VAL)
+
+// RGB to GRAYSCALE constants
+// 0.2989  0.5870  0.1140
+#define GS_FACT_R 0.2989
+#define GS_FACT_G 0.4870
+#define GS_FACT_B 0.2140
+
 
 
 // ==== Functions =====================

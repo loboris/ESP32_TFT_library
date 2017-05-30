@@ -200,3 +200,128 @@ to create **spiffs image** in *build* directory and **flash** it to ESP32
 
 ---
 
+
+---
+
+**Example output:**
+
+```
+
+I (1133) cpu_start: Pro cpu up.
+I (1145) cpu_start: Starting app cpu, entry point is 0x40080f5c
+I (0) cpu_start: App cpu up.
+I (1177) heap_alloc_caps: Initializing. RAM available for dynamic allocation:
+I (1200) heap_alloc_caps: At 3FFAE2A0 len 00001D60 (7 KiB): DRAM
+I (1220) heap_alloc_caps: At 3FFBA708 len 000258F8 (150 KiB): DRAM
+I (1241) heap_alloc_caps: At 3FFE0440 len 00003BC0 (14 KiB): D/IRAM
+I (1263) heap_alloc_caps: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM
+I (1284) heap_alloc_caps: At 40095894 len 0000A76C (41 KiB): IRAM
+I (1305) cpu_start: Pro cpu start user code
+I (1359) cpu_start: Starting scheduler on PRO CPU.
+I (196) cpu_start: Starting scheduler on APP CPU.
+
+==============================
+TFT display DEMO, LoBo 05/2017
+==============================
+
+SPI: display device added to spi bus
+SPI: attached display device, speed=8000000
+SPI: bus uses native pins: true
+SPI: display init...
+OK
+
+---------------------
+Graphics demo started
+---------------------
+I (1686) [TFT Demo]: Time is not set yet. Connecting to WiFi and getting time over NTP.
+I (1726) wifi: wifi firmware version: 8a1ad86
+I (1726) wifi: config NVS flash: enabled
+I (1726) wifi: config nano formating: disabled
+I (1726) system_api: Base MAC address is not set, read default base MAC address from BLK0 of EFUSE
+I (1736) system_api: Base MAC address is not set, read default base MAC address from BLK0 of EFUSE
+I (1776) wifi: Init dynamic tx buffer num: 32
+I (1776) wifi: Init dynamic rx buffer num: 64
+I (1776) wifi: wifi driver task: 3ffc1cd4, prio:23, stack:4096
+I (1776) wifi: Init static rx buffer num: 10
+I (1776) wifi: Init dynamic rx buffer num: 64
+I (1786) wifi: Init rx ampdu len mblock:7
+I (1786) wifi: Init lldesc rx ampdu entry mblock:4
+I (1786) wifi: wifi power manager task: 0x3ffc709c prio: 21 stack: 2560
+I (1796) [TFT Demo]: Setting WiFi configuration SSID LoBoInternet...
+I (1806) wifi: wifi timer task: 3ffc811c, prio:22, stack:3584
+I (1836) phy: phy_version: 354.0, b2dba61, May 16 2017, 21:41:06, 1, 0
+I (1836) wifi: mode : sta (24:0a:c4:00:97:c0)
+I (2556) wifi: n:6 0, o:1 0, ap:255 255, sta:6 0, prof:1
+I (3546) wifi: state: init -> auth (b0)
+I (3546) wifi: state: auth -> assoc (0)
+I (3546) wifi: state: assoc -> run (10)
+I (3586) wifi: connected with LoBoInternet, channel 6
+I (5686) event: ip: 192.168.0.16, mask: 255.255.255.0, gw: 192.168.0.1
+I (5686) [TFT Demo]: Initializing SNTP
+I (6186) [TFT Demo]: System time is set.
+I (6186) wifi: state: run -> init (0)
+I (6186) wifi: n:6 0, o:6 0, ap:255 255, sta:6 0, prof:1
+E (6186) wifi: esp_wifi_connect 816 wifi not start
+
+
+I (9296) [SPIFFS]: Registering SPIFFS file system
+I (9296) [SPIFFS]: Mounting SPIFFS files system
+I (9296) [SPIFFS]: Start address: 0x180000; Size 1024 KB
+I (9296) [SPIFFS]:   Work buffer: 2048 B
+I (9306) [SPIFFS]:    FDS buffer: 384 B
+I (9306) [SPIFFS]:    Cache size: 2048 B
+I (9366) [SPIFFS]: Mounted
+
+==========================================
+Display: ILI9488: PORTRAIT 320,480 Color
+
+     Clear screen time: 90 ms
+Send color buffer time: 200 us (320 pixels)
+       JPG Decode time: 420 ms
+    BMP time, scale: 5: 530 ms
+    BMP time, scale: 4: 540 ms
+    BMP time, scale: 3: 550 ms
+    BMP time, scale: 2: 550 ms
+    BMP time, scale: 1: 560 ms
+    BMP time, scale: 0: 550 ms
+
+==========================================
+Display: ILI9488: LANDSCAPE 480,320 Color
+
+     Clear screen time: 80 ms
+Send color buffer time: 300 us (480 pixels)
+       JPG Decode time: 440 ms
+    BMP time, scale: 5: 530 ms
+    BMP time, scale: 4: 540 ms
+    BMP time, scale: 3: 540 ms
+    BMP time, scale: 2: 550 ms
+    BMP time, scale: 1: 550 ms
+    BMP time, scale: 0: 430 ms
+
+==========================================
+Display: ILI9488: PORTRAIT FLIP 320,480 Color
+
+     Clear screen time: 90 ms
+Send color buffer time: 200 us (320 pixels)
+       JPG Decode time: 410 ms
+    BMP time, scale: 5: 520 ms
+    BMP time, scale: 4: 540 ms
+    BMP time, scale: 3: 540 ms
+    BMP time, scale: 2: 550 ms
+    BMP time, scale: 1: 560 ms
+    BMP time, scale: 0: 540 ms
+
+==========================================
+Display: ILI9488: LANDSCAPE FLIP 480,320 Color
+
+     Clear screen time: 80 ms
+Send color buffer time: 300 us (480 pixels)
+       JPG Decode time: 440 ms
+    BMP time, scale: 5: 530 ms
+    BMP time, scale: 4: 530 ms
+    BMP time, scale: 3: 550 ms
+    BMP time, scale: 2: 550 ms
+    BMP time, scale: 1: 560 ms
+    BMP time, scale: 0: 430 ms
+
+```

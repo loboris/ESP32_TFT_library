@@ -23,7 +23,7 @@
 #define DEG_TO_RAD 0.01745329252
 #define RAD_TO_DEG 57.295779513
 #define deg_to_rad 0.01745329252 + 3.14159265359
-
+#define swap(a, b) { int16_t t = a; a = b; b = t; }
 #define constrain(amt,low,high) ((amt)<(low)?(low):((amt)>(high)?(high):(amt)))
 #if !defined(max)
 #define max(A,B) ( (A) > (B) ? (A):(B))
@@ -32,7 +32,18 @@
 #define min(A,B) ( (A) < (B) ? (A):(B))
 #endif
 
-// Color definitions constants
+// Embedded fonts
+extern uint8_t tft_SmallFont[];
+extern uint8_t tft_DefaultFont[];
+extern uint8_t tft_Dejavu18[];
+extern uint8_t tft_Dejavu24[];
+extern uint8_t tft_Ubuntu16[];
+extern uint8_t tft_Comic24[];
+extern uint8_t tft_minya24[];
+extern uint8_t tft_tooney32[];
+
+
+// ==== Color definitions constants ==============
 const color_t TFT_BLACK       = {   0,   0,   0 };
 const color_t TFT_NAVY        = {   0,   0, 128 };
 const color_t TFT_DARKGREEN   = {   0, 128,   0 };
@@ -52,36 +63,10 @@ const color_t TFT_WHITE       = { 255, 255, 255 };
 const color_t TFT_ORANGE      = { 255, 165,   0 };
 const color_t TFT_GREENYELLOW = { 173, 255,  47 };
 const color_t TFT_PINK        = { 255, 192, 203 };
+// ===============================================
 
-//#define tft_color(color) ( (uint16_t)((color >> 8) | (color << 8)) )
-#define swap(a, b) { int16_t t = a; a = b; b = t; }
-
-typedef struct {
-      uint8_t charCode;
-      int adjYOffset;
-      int width;
-      int height;
-      int xOffset;
-      int xDelta;
-      uint16_t dataPtr;
-} propFont;
-
-static dispWin_t dispWinTemp;
-
-extern uint8_t tft_SmallFont[];
-extern uint8_t tft_DefaultFont[];
-extern uint8_t tft_Dejavu18[];
-extern uint8_t tft_Dejavu24[];
-extern uint8_t tft_Ubuntu16[];
-extern uint8_t tft_Comic24[];
-extern uint8_t tft_minya24[];
-extern uint8_t tft_tooney32[];
-
-//static uint8_t tp_initialized = 0;	// touch panel initialized flag
-
-static uint8_t *userfont = NULL;
-
-// === Set default values for gloval variables ==================
+// ==============================================================
+// ==== Set default values of global variables ==================
 uint8_t orientation = LANDSCAPE;// screen orientation
 uint16_t font_rotate = 0;		// font rotation
 uint8_t	font_transparent = 0;
@@ -90,6 +75,7 @@ uint8_t	text_wrap = 0;			// character wrapping to new line
 color_t	_fg = {  0, 255,   0};
 color_t _bg = {  0,   0,   0};
 uint8_t image_debug = 0;
+
 float _angleOffset = DEFAULT_ANGLE_OFFSET;
 
 int	TFT_X = 0;
@@ -101,8 +87,8 @@ uint32_t tp_caly = 122224794;
 dispWin_t dispWin = {
   .x1 = 0,
   .y1 = 0,
-  .x2 = 320,
-  .y2 = 240,
+  .x2 = TFT_DISPLAY_WIDTH,
+  .y2 = TFT_DISPLAY_HEIGHT,
 };
 
 Font cfont = {
@@ -118,10 +104,22 @@ uint8_t font_buffered_char = 1;
 uint8_t font_line_space = 0;
 // ==============================================================
 
+
+typedef struct {
+      uint8_t charCode;
+      int adjYOffset;
+      int width;
+      int height;
+      int xOffset;
+      int xDelta;
+      uint16_t dataPtr;
+} propFont;
+
+static dispWin_t dispWinTemp;
+
+static uint8_t *userfont = NULL;
 static int TFT_OFFSET = 0;
-
 static propFont	fontChar;
-
 static float _arcAngleMax = DEFAULT_ARC_ANGLE_MAX;
 
 
@@ -2267,15 +2265,14 @@ void TFT_restoreClipWin()
 // ================ JPG SUPPORT ================================================
 // User defined device identifier
 typedef struct {
-	FILE *fhndl;		// File handler for input function
-    int x;				// image top left point X position
-    int y;				// image top left point Y position
-    uint8_t *membuff;	// memory buffer containing the image
-    uint32_t bufsize;	// size of the memory buffer
-    uint32_t bufptr;	// memory buffer current possition
-    uint8_t *linbuf[2];	// memory buffer used for disp output
-    uint8_t linbuf_idx;
-    int max_chunk_size;
+	FILE		*fhndl;			// File handler for input function
+    int			x;				// image top left point X position
+    int			y;				// image top left point Y position
+    uint8_t		*membuff;		// memory buffer containing the image
+    uint32_t	bufsize;		// size of the memory buffer
+    uint32_t	bufptr;			// memory buffer current position
+    color_t		*linbuf[2];		// memory buffer used for display output
+    uint8_t		linbuf_idx;
 } JPGIODEV;
 
 
@@ -2368,25 +2365,21 @@ static UINT tjd_output (
 
 
 	if ((len > 0) && (len <= JPG_IMAGE_LINE_BUF_SIZE)) {
-		if (dev->max_chunk_size < len) dev->max_chunk_size = len;
-		uint8_t *dest = dev->linbuf[dev->linbuf_idx];
+		uint8_t *dest = (uint8_t *)(dev->linbuf[dev->linbuf_idx]);
 
 		for (y = top; y <= bottom; y++) {
-		    for (x = left; x <= right; x++) {
-		    	// Clip to display area
-		    	if ((x >= dleft) && (y >= dtop) && (x <= dright) && (y <= dbottom)) {
-		    		*dest++ = *src++;
-		    		*dest++ = *src++;
-		    		*dest++ = *src++;
-		    	}
-		    	else src += 3; // skip
-		    }
-	    }
-
+			for (x = left; x <= right; x++) {
+				// Clip to display area
+				if ((x >= dleft) && (y >= dtop) && (x <= dright) && (y <= dbottom)) {
+					*dest++ = *src++;
+					*dest++ = *src++;
+					*dest++ = *src++;
+				}
+				else src += 3; // skip
+			}
+		}
 		wait_trans_finish(1);
-
-		send_data(dleft, dtop, dright, dbottom, len, (color_t *)(dev->linbuf[dev->linbuf_idx]));
-
+		send_data(dleft, dtop, dright, dbottom, len, dev->linbuf[dev->linbuf_idx]);
 		dev->linbuf_idx = ((dev->linbuf_idx + 1) & 1);
 	}
 	else {
@@ -2410,16 +2403,8 @@ void TFT_jpg_image(int x, int y, uint8_t scale, char *fname, uint8_t *buf, int s
 	JDEC jd;				// Decompression object (70 bytes)
 	JRESULT rc;
 
-    dev.linbuf[0] = pvPortMallocCaps(JPG_IMAGE_LINE_BUF_SIZE*3, MALLOC_CAP_DMA);;
-    if (dev.linbuf[0] == NULL) {
-    	if (image_debug) printf("Error allocating line buffer\r\n");
-        goto exit;
-    }
-    dev.linbuf[1] = pvPortMallocCaps(JPG_IMAGE_LINE_BUF_SIZE*3, MALLOC_CAP_DMA);;
-    if (dev.linbuf[0] == NULL) {
-    	if (image_debug) printf("Error allocating line buffer\r\n");
-        goto exit;
-    }
+	dev.linbuf[0] = NULL;
+	dev.linbuf[1] = NULL;
     dev.linbuf_idx = 0;
 
     if (fname == NULL) {
@@ -2428,14 +2413,12 @@ void TFT_jpg_image(int x, int y, uint8_t scale, char *fname, uint8_t *buf, int s
         dev.membuff = buf;
         dev.bufsize = size;
         dev.bufptr = 0;
-        dev.max_chunk_size = 0;
     }
     else {
     	// image from file
         dev.membuff = NULL;
         dev.bufsize = 0;
         dev.bufptr = 0;
-        dev.max_chunk_size = 0;
 
         if (stat(fname, &sb) != 0) {
         	if (image_debug) printf("File error: %ss\r\n", strerror(errno));
@@ -2470,14 +2453,26 @@ void TFT_jpg_image(int x, int y, uint8_t scale, char *fname, uint8_t *buf, int s
 			dev.x = x;
 			dev.y = y;
 
+			dev.linbuf[0] = pvPortMallocCaps(JPG_IMAGE_LINE_BUF_SIZE*3, MALLOC_CAP_DMA);;
+			if (dev.linbuf[0] == NULL) {
+				if (image_debug) printf("Error allocating line buffer\r\n");
+				goto exit;
+			}
+			dev.linbuf[1] = pvPortMallocCaps(JPG_IMAGE_LINE_BUF_SIZE*3, MALLOC_CAP_DMA);;
+			if (dev.linbuf[0] == NULL) {
+				if (image_debug) printf("Error allocating line buffer\r\n");
+				goto exit;
+			}
+
 			// Start to decode the JPEG file
 			disp_select();
 			rc = jd_decomp(&jd, tjd_output, scale);
 			disp_deselect();
+
 			if (rc != JDR_OK) {
 				if (image_debug) printf("jpg decompression error %d\r\n", rc);
 			}
-			if (image_debug) printf("Jpg size: %dx%d, position; %d,%d, scale: %d, bytes used: %d, max chunk: %d\r\n", jd.width, jd.height, x, y, scale, jd.sz_pool, dev.max_chunk_size);
+			if (image_debug) printf("Jpg size: %dx%d, position; %d,%d, scale: %d, bytes used: %d\r\n", jd.width, jd.height, x, y, scale, jd.sz_pool);
 		}
 		else {
 			if (image_debug) printf("jpg prepare error %d\r\n", rc);

@@ -48,6 +48,7 @@
 
 static int _demo_pass = 0;
 static uint8_t doprint = 1;
+static uint8_t run_gs_demo = 0;
 static struct tm* tm_info;
 static char tmp_buff[64];
 static time_t time_now, time_last = 0;
@@ -55,7 +56,6 @@ static const char *file_fonts[3] = {"/spiffs/fonts/DotMatrix_M.fon", "/spiffs/fo
 
 #define GDEMO_TIME 4000
 #define GDEMO_INFO_TIME 4000
-
 
 //==================================================================================
 #ifdef CONFIG_EXAMPLE_USE_WIFI
@@ -1022,13 +1022,21 @@ void tft_demo() {
 	Wait(4000);
 
 	while (1) {
-		if (_demo_pass == 9) doprint = 0;
-
-		// Change gray scale mode on every 2nd pass
-		gray_scale = _demo_pass & 1;
-
-		// change display rotation
-		if ((_demo_pass % 2) == 0) {
+		if (run_gs_demo) {
+			if (_demo_pass == 8) doprint = 0;
+			// Change gray scale mode on every 2nd pass
+			gray_scale = _demo_pass & 1;
+			// change display rotation
+			if ((_demo_pass % 2) == 0) {
+				_bg = TFT_BLACK;
+				TFT_setRotation(disp_rot);
+				disp_rot++;
+				disp_rot &= 3;
+			}
+		}
+		else {
+			if (_demo_pass == 4) doprint = 0;
+			// change display rotation
 			_bg = TFT_BLACK;
 			TFT_setRotation(disp_rot);
 			disp_rot++;
@@ -1036,14 +1044,12 @@ void tft_demo() {
 		}
 
 		if (doprint) {
-			printf("\r\n====================================================\r\n Display: %s (%d,%d) %s\r\n",
-					((tft_disp_type == DISP_TYPE_ILI9341) ? "ILI9341" : "ILI9488"), _width, _height, ((gray_scale) ? "Gray" : "Color"));
-			printf("Rotation: ");
-			if (disp_rot == 1) printf("PORTRAIT");
-			if (disp_rot == 2) printf("LANDSCAPE");
-			if (disp_rot == 3) printf("PORTRAIT FLIP");
-			if (disp_rot == 0) printf("LANDSCAPE FLIP");
-			printf("\r\n\r\n");
+			if (disp_rot == 1) sprintf(tmp_buff, "PORTRAIT");
+			if (disp_rot == 2) sprintf(tmp_buff, "LANDSCAPE");
+			if (disp_rot == 3) sprintf(tmp_buff, "PORTRAIT FLIP");
+			if (disp_rot == 0) sprintf(tmp_buff, "LANDSCAPE FLIP");
+			printf("\r\n==========================================\r\nDisplay: %s: %s %d,%d %s\r\n\r\n",
+					((tft_disp_type == DISP_TYPE_ILI9341) ? "ILI9341" : "ILI9488"), tmp_buff, _width, _height, ((gray_scale) ? "Gray" : "Color"));
 		}
 
 		disp_header("Welcome to ESP32");
@@ -1194,10 +1200,10 @@ void app_main()
 	text_wrap = 0;
 	font_transparent = 0;
 	font_forceFixed = 0;
-	TFT_resetclipwin();
 	gray_scale = 0;
 	TFT_setRotation(PORTRAIT);
 	TFT_setFont(DEFAULT_FONT, NULL);
+	TFT_resetclipwin();
 
 #ifdef CONFIG_EXAMPLE_USE_WIFI
 
