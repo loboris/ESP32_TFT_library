@@ -1957,7 +1957,7 @@ void TFT_print(char *st, int x, int y) {
 
 	if (x < dispWin.x1) x = dispWin.x1;
 	if (y < dispWin.y1) y = dispWin.y1;
-	if ((x > dispWin.x2) || (x > dispWin.y2)) return;
+	if ((x > dispWin.x2) || (y > dispWin.y2)) return;
 
 	TFT_X = x;
 	TFT_Y = y;
