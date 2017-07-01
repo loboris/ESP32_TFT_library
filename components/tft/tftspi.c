@@ -545,7 +545,7 @@ uint32_t find_rd_speed()
 {
 	esp_err_t ret;
 	color_t color;
-	uint32_t max_speed = 8000000;
+	uint32_t max_speed = 1000000;
     uint32_t change_speed, cur_speed;
     int line_check;
     color_t *color_line = NULL;
@@ -570,7 +570,7 @@ uint32_t find_rd_speed()
 	}
 
 	// Find maximum read spi clock
-	for (uint32_t speed=8000000; speed<=40000000; speed += 2000000) {
+	for (uint32_t speed=2000000; speed<=cur_speed; speed += 1000000) {
 		change_speed = spi_lobo_set_speed(disp_spi, speed);
 		if (change_speed == 0) goto exit;
 
@@ -638,6 +638,70 @@ static void commandList(spi_lobo_device_handle_t spi, const uint8_t *addr) {
   }
 }
 
+//==================================
+void _tft_setRotation(uint8_t rot) {
+	uint8_t rotation = rot & 3; // can't be higher than 3
+	uint8_t send = 1;
+	uint8_t madctl = 0;
+	uint16_t tmp;
+
+    if ((rotation & 1)) {
+        // in landscape modes width > height
+        if (_width < _height) {
+            tmp = _width;
+            _width  = _height;
+            _height = tmp;
+        }
+    }
+    else {
+        // in portrait modes width < height
+        if (_width > _height) {
+            tmp = _width;
+            _width  = _height;
+            _height = tmp;
+        }
+    }
+    #if TFT_INVERT_ROTATION
+    switch (rotation) {
+        case PORTRAIT:
+        madctl = (MADCTL_MV | TFT_RGB_BGR);
+        break;
+        case LANDSCAPE:
+        madctl = (MADCTL_MX | TFT_RGB_BGR);
+        break;
+        case PORTRAIT_FLIP:
+        madctl = (MADCTL_MX | MADCTL_MY | MADCTL_MV | TFT_RGB_BGR);
+        break;
+        case LANDSCAPE_FLIP:
+        madctl = (MADCTL_MY | TFT_RGB_BGR);
+        break;
+    }
+    #else
+    switch (rotation) {
+        case PORTRAIT:
+        madctl = (MADCTL_MX | TFT_RGB_BGR);
+        break;
+        case LANDSCAPE:
+        madctl = (MADCTL_MV | TFT_RGB_BGR);
+        break;
+        case PORTRAIT_FLIP:
+        madctl = (MADCTL_MY | TFT_RGB_BGR);
+        break;
+        case LANDSCAPE_FLIP:
+        madctl = (MADCTL_MX | MADCTL_MY | MADCTL_MV | TFT_RGB_BGR);
+        break;
+    }
+    #endif
+	if (send) {
+		if (disp_select() == ESP_OK) {
+			disp_spi_transfer_cmd_data(TFT_MADCTL, &madctl, 1);
+			disp_deselect();
+		}
+	}
+
+}
+
+
 // Initialize the display
 // ====================
 void TFT_display_init()
@@ -678,6 +742,7 @@ void TFT_display_init()
 	assert(ret==ESP_OK);
 
 	// Clear screen
+    _tft_setRotation(PORTRAIT);
 	TFT_pushColorRep(0, 0, _width-1, _height-1, (color_t){0,0,0}, (uint32_t)(_height*_width));
 
 	///Enable backlight

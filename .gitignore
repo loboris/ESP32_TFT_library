@@ -24,6 +24,7 @@ sdkconfig.lobo
 .project
 .settings
 BUILD
+PBUILD
 build/
 temp/
 local/

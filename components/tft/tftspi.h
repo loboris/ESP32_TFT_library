@@ -10,29 +10,59 @@
 #include "tftspi.h"
 #include "spi_master_lobo.h"
 
+// === Screen orientation constants ===
+#define PORTRAIT	0
+#define LANDSCAPE	1
+#define PORTRAIT_FLIP	2
+#define LANDSCAPE_FLIP	3
+
+
 #define DISP_TYPE_ILI9341	0
 #define DISP_TYPE_ILI9488	1
 #define DISP_COLOR_BITS_24	0x66
 //#define DISP_COLOR_BITS_16	0x55
 
+// #############################################
+// ### Set to 1 for some displays,           ###
+//     for example tho one on ESP-WROWER-KIT ###
+// #############################################
+#define TFT_INVERT_ROTATION 0
+
+// ################################################
+// ### SET TO 0X00 FOR DISPLAYS WITH RGB MATRIX ###
+// ### SET TO 0X08 FOR DISPLAYS WITH BGR MATRIX ###
+// ### For ESP-WROWER-KIT set to 0x00           ###
+// ################################################
+#define TFT_RGB_BGR 0x00
+
 // ##############################################################
 // ### Define ESP32 SPI pins to which the display is attached ###
 // ##############################################################
+/*
 #define PIN_NUM_MISO 19		// SPI MISO
 #define PIN_NUM_MOSI 23		// SPI MOSI
 #define PIN_NUM_CLK  18		// SPI CLOCK pin
 #define PIN_NUM_CS   5		// Display CS pin
 #define PIN_NUM_DC   26		// Display command/data pin
 #define PIN_NUM_TCS  25		// Touch screen CS pin
+*/
+
+// ESP-WROWER-KIT display:
+#define PIN_NUM_MISO 25		// SPI MISO
+#define PIN_NUM_MOSI 23		// SPI MOSI
+#define PIN_NUM_CLK  19		// SPI CLOCK pin
+#define PIN_NUM_CS   22		// Display CS pin
+#define PIN_NUM_DC   21		// Display command/data pin
+#define PIN_NUM_TCS   0		// Touch screen CS pin
 
 // --------------------------------------------------------------
 // ** Set Reset and Backlight pins to 0 if not used
 // ** If you want to use them, set them to some valid GPIO number
-#define PIN_NUM_RST  0	// GPIO used for RESET control
+#define PIN_NUM_RST 18	// GPIO used for RESET control
 
-#define PIN_NUM_BCKL 0	// GPIO used for backlight control
-#define PIN_BCKL_ON 1	// GPIO value for backlight ON
-#define PIN_BCKL_OFF 0	// GPIO value for backlight OFF
+#define PIN_NUM_BCKL 5	// GPIO used for backlight control
+#define PIN_BCKL_ON 0	// GPIO value for backlight ON
+#define PIN_BCKL_OFF 1	// GPIO value for backlight OFF
 // --------------------------------------------------------------
 // ##############################################################
 
@@ -141,8 +171,6 @@ typedef struct __attribute__((__packed__)) {
 #define MADCTL_MX  0x40
 #define MADCTL_MV  0x20
 #define MADCTL_ML  0x10
-#define MADCTL_RGB 0x00
-#define MADCTL_BGR 0x08
 #define MADCTL_MH  0x04
 
 #define TFT_CASET		0x2A
@@ -157,9 +185,13 @@ typedef struct __attribute__((__packed__)) {
 // Initialization sequence for ILI7341
 // ====================================
 static const uint8_t ILI9341_init[] = {
+#if PIN_NUM_RST
+  23,                   					        // 24 commands in list
+#else
   24,                   					        // 24 commands in list
   TFT_CMD_SWRESET, TFT_CMD_DELAY,					//  1: Software reset, no args, w/delay
   200,												//     200 ms delay
+#endif
   TFT_CMD_POWERA, 5, 0x39, 0x2C, 0x00, 0x34, 0x02,
   TFT_CMD_POWERB, 3, 0x00, 0XC1, 0X30,
   0xEF, 3, 0x03, 0x80, 0x02,
@@ -172,31 +204,34 @@ static const uint8_t ILI9341_init[] = {
   TFT_CMD_VMCTR1, 2, 0x3e, 0x28,					//VCM control
   TFT_CMD_VMCTR2, 1, 0x86,							//VCM control2
   TFT_MADCTL, 1,									// Memory Access Control (orientation)
-  (MADCTL_MX | MADCTL_BGR),
+  (MADCTL_MX | TFT_RGB_BGR),
   // *** INTERFACE PIXEL FORMAT: 0x66 -> 18 bit; 0x55 -> 16 bit
   TFT_CMD_PIXFMT, 1, DISP_COLOR_BITS_24,
   TFT_INVOFF, 0,
   TFT_CMD_FRMCTR1, 2, 0x00, 0x18,
-  TFT_CMD_DFUNCTR, 3, 0x08, 0x82, 0x27,				// Display Function Control
+  TFT_CMD_DFUNCTR, 4, 0x08, 0x82, 0x27, 0x00,		// Display Function Control
   TFT_PTLAR, 4, 0x00, 0x00, 0x01, 0x3F,
-  TFT_CMD_3GAMMA_EN, 1, 0x00,						// 3Gamma Function Disable (0x02)
-  TFT_CMD_GAMMASET, 1, 0x01,						//Gamma curve selected
+  TFT_CMD_3GAMMA_EN, 1, 0x00,						// 3Gamma Function: Disable (0x02), Enable (0x03)
+  TFT_CMD_GAMMASET, 1, 0x01,						//Gamma curve selected (0x01, 0x02, 0x04, 0x08)
   TFT_CMD_GMCTRP1, 15,   							//Positive Gamma Correction
   0x0F, 0x31, 0x2B, 0x0C, 0x0E, 0x08, 0x4E, 0xF1, 0x37, 0x07, 0x10, 0x03, 0x0E, 0x09, 0x00,
   TFT_CMD_GMCTRN1, 15,   							//Negative Gamma Correction
   0x00, 0x0E, 0x14, 0x03, 0x11, 0x07, 0x31, 0xC1, 0x48, 0x08, 0x0F, 0x0C, 0x31, 0x36, 0x0F,
   TFT_CMD_SLPOUT, TFT_CMD_DELAY,					//  Sleep out
   120,			 									//  120 ms delay
-  TFT_DISPON, 0,
+  TFT_DISPON, TFT_CMD_DELAY, 120,
 };
 
 // Initialization sequence for ILI9488
 // ====================================
 static const uint8_t ILI9488_init[] = {
+#if PIN_NUM_RST
+  17,                   					        // 17 commands in list
+#else
   18,                   					        // 18 commands in list
   TFT_CMD_SWRESET, TFT_CMD_DELAY,					//  1: Software reset, no args, w/delay
   200,												//     200 ms delay
-
+#endif
   0xE0, 15, 0x00, 0x03, 0x09, 0x08, 0x16, 0x0A, 0x3F, 0x78, 0x4C, 0x09, 0x0A, 0x08, 0x16, 0x1A, 0x0F,
   0xE1, 15,	0x00, 0x16, 0x19, 0x03, 0x0F, 0x05, 0x32, 0x45, 0x46, 0x04, 0x0E, 0x0D, 0x35, 0x37, 0x0F,
   0xC0, 2,   //Power Control 1
@@ -211,8 +246,11 @@ static const uint8_t ILI9488_init[] = {
 	0x12,    //Vcom
 	0x80,
 
-  TFT_MADCTL, 1,									// Memory Access Control (orientation)
-    (MADCTL_MX | MADCTL_BGR),
+#if TFT_INVERT_ROTATION
+  TFT_MADCTL, 1, (MADCTL_MV | TFT_RGB_BGR),			// Memory Access Control (orientation), set to portrait
+#else
+  TFT_MADCTL, 1, (MADCTL_MX | TFT_RGB_BGR),			// Memory Access Control (orientation), set to portrait
+#endif
 
   // *** INTERFACE PIXEL FORMAT: 0x66 -> 18 bit;
   TFT_CMD_PIXFMT, 1, DISP_COLOR_BITS_24,
@@ -281,6 +319,11 @@ esp_err_t disp_select();
 //======================
 uint32_t find_rd_speed();
 
+
+// Change the screen rotation.
+// Input: m new rotation value (0 to 3)
+//=================================
+void _tft_setRotation(uint8_t rot);
 
 // Perform display initialization sequence
 // Sets orientation to landscape; clears the screen

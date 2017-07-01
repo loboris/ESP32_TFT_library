@@ -48,14 +48,14 @@
 
 static int _demo_pass = 0;
 static uint8_t doprint = 1;
-static uint8_t run_gs_demo = 0;
+static uint8_t run_gs_demo = 1;
 static struct tm* tm_info;
 static char tmp_buff[64];
 static time_t time_now, time_last = 0;
 static const char *file_fonts[3] = {"/spiffs/fonts/DotMatrix_M.fon", "/spiffs/fonts/Ubuntu.fon", "/spiffs/fonts/Grotesk24x48.fon"};
 
-#define GDEMO_TIME 4000
-#define GDEMO_INFO_TIME 4000
+#define GDEMO_TIME 1000
+#define GDEMO_INFO_TIME 1000
 
 //==================================================================================
 #ifdef CONFIG_EXAMPLE_USE_WIFI
@@ -254,9 +254,9 @@ static unsigned int rand_interval(unsigned int min, unsigned int max)
 static color_t random_color() {
 
 	color_t color;
-	color.r  = (uint8_t)rand_interval(8,255);
-	color.g  = (uint8_t)rand_interval(8,255);
-	color.b  = (uint8_t)rand_interval(8,255);
+	color.r  = (uint8_t)rand_interval(8,252);
+	color.g  = (uint8_t)rand_interval(8,252);
+	color.b  = (uint8_t)rand_interval(8,252);
 	return color;
 }
 
@@ -1085,15 +1085,15 @@ void app_main()
 
     // ===================================================
     // ==== Set display type                         =====
-	//tft_disp_type = DISP_TYPE_ILI9341;
-	tft_disp_type = DISP_TYPE_ILI9488;
+	tft_disp_type = DISP_TYPE_ILI9341;
+	//tft_disp_type = DISP_TYPE_ILI9488;
     // ===================================================
 
 	// ===================================================
 	// === Set display resolution if NOT using default ===
 	// === TFT_DISPLAY_WIDTH & TFT_DISPLAY_HEIGHT      ===
-	_width = 320;
-	_height = 480;
+	_width = 240;  // smaller dimension
+	_height = 320; // larger dimension
 	// ===================================================
 
 	// ===================================================
@@ -1152,7 +1152,7 @@ void app_main()
 
 	ret=spi_lobo_bus_add_device(SPI_BUS, &buscfg, &devcfg, &spi);
     assert(ret==ESP_OK);
-	printf("SPI: display device added to spi bus\r\n");
+	printf("SPI: display device added to spi bus (%d)\r\n", SPI_BUS);
 	disp_spi = spi;
 
 	// ==== Test select/deselect ====
@@ -1170,7 +1170,7 @@ void app_main()
 
 	ret=spi_lobo_bus_add_device(SPI_BUS, &buscfg, &tsdevcfg, &tsspi);
     assert(ret==ESP_OK);
-	printf("SPI: touch screen device added to spi bus\r\n");
+	printf("SPI: touch screen device added to spi bus (%d)\r\n", SPI_BUS);
 	ts_spi = tsspi;
 
 	// ==== Test select/deselect ====
@@ -1190,7 +1190,8 @@ void app_main()
     printf("OK\r\n");
 	
 	// ==== Set SPI clock used for display operations ====
-	spi_lobo_set_speed(spi, 40000000);
+	spi_lobo_set_speed(spi, 16000000);
+	printf("SPI: Changed speed to %u\r\n", spi_lobo_get_speed(spi));
 
 	printf("\r\n---------------------\r\n");
 	printf("Graphics demo started\r\n");
@@ -1201,6 +1202,7 @@ void app_main()
 	font_transparent = 0;
 	font_forceFixed = 0;
 	gray_scale = 0;
+    TFT_setGammaCurve(2);
 	TFT_setRotation(PORTRAIT);
 	TFT_setFont(DEFAULT_FONT, NULL);
 	TFT_resetclipwin();

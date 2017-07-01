@@ -56,13 +56,13 @@ const color_t TFT_DARKGREY    = { 128, 128, 128 };
 const color_t TFT_BLUE        = {   0,   0, 255 };
 const color_t TFT_GREEN       = {   0, 255,   0 };
 const color_t TFT_CYAN        = {   0, 255, 255 };
-const color_t TFT_RED         = { 255,   0,   0 };
-const color_t TFT_MAGENTA     = { 255,   0, 255 };
-const color_t TFT_YELLOW      = { 255, 255,   0 };
-const color_t TFT_WHITE       = { 255, 255, 255 };
-const color_t TFT_ORANGE      = { 255, 165,   0 };
-const color_t TFT_GREENYELLOW = { 173, 255,  47 };
-const color_t TFT_PINK        = { 255, 192, 203 };
+const color_t TFT_RED         = { 252,   0,   0 };
+const color_t TFT_MAGENTA     = { 252,   0, 255 };
+const color_t TFT_YELLOW      = { 252, 252,   0 };
+const color_t TFT_WHITE       = { 252, 252, 252 };
+const color_t TFT_ORANGE      = { 252, 164,   0 };
+const color_t TFT_GREENYELLOW = { 172, 252,  44 };
+const color_t TFT_PINK        = { 252, 192, 202 };
 // ===============================================
 
 // ==============================================================
@@ -2045,50 +2045,16 @@ void TFT_print(char *st, int x, int y) {
 // Input: m new rotation value (0 to 3)
 //=================================
 void TFT_setRotation(uint8_t rot) {
-	uint8_t rotation = rot & 3; // can't be higher than 3
-	uint8_t send = 1;
-	uint8_t madctl = 0;
-	uint16_t tmp;
-
-	if (rot > 3) madctl = (rot & 0xF8); // for testing, manually set MADCTL register
-	else {
-		orientation = rot;
-		if ((rotation & 1)) {
-			// in landscape modes width > height
-			if (_width < _height) {
-				tmp = _width;
-				_width  = _height;
-				_height = tmp;
-			}
-		}
-		else {
-			// in portrait modes width < height
-			if (_width > _height) {
-				tmp = _width;
-				_width  = _height;
-				_height = tmp;
-			}
-		}
-		switch (rotation) {
-		  case PORTRAIT:
-			madctl = (MADCTL_MX | MADCTL_BGR);
-			break;
-		  case LANDSCAPE:
-			madctl = (MADCTL_MV | MADCTL_BGR);
-			break;
-		  case PORTRAIT_FLIP:
-			madctl = (MADCTL_MY | MADCTL_BGR);
-			break;
-		  case LANDSCAPE_FLIP:
-			madctl = (MADCTL_MX | MADCTL_MY | MADCTL_MV | MADCTL_BGR);
-			break;
-		}
-	}
-	if (send) {
+    if (rot > 3) {
+        uint8_t madctl = (rot & 0xF8); // for testing, manually set MADCTL register
 		if (disp_select() == ESP_OK) {
 			disp_spi_transfer_cmd_data(TFT_MADCTL, &madctl, 1);
 			disp_deselect();
 		}
+    }
+	else {
+		orientation = rot;
+        _tft_setRotation(rot);
 	}
 
 	dispWin.x1 = 0;
@@ -2105,6 +2071,14 @@ void TFT_setRotation(uint8_t rot) {
 void TFT_invertDisplay(const uint8_t mode) {
   if ( mode == INVERT_ON ) disp_spi_transfer_cmd(TFT_INVONN);
   else disp_spi_transfer_cmd(TFT_INVOFF);
+}
+
+// Select gamma curve
+// Input: gamma = 0~3
+//==================================
+void TFT_setGammaCurve(uint8_t gm) {
+  uint8_t gamma_curve = 1 << (gm & 0x03);
+  disp_spi_transfer_cmd_data(TFT_CMD_GAMMASET, &gamma_curve, 1);
 }
 
 //===========================================================
@@ -2371,9 +2345,9 @@ static UINT tjd_output (
 			for (x = left; x <= right; x++) {
 				// Clip to display area
 				if ((x >= dleft) && (y >= dtop) && (x <= dright) && (y <= dbottom)) {
-					*dest++ = *src++;
-					*dest++ = *src++;
-					*dest++ = *src++;
+					*dest++ = (*src++) & 0xFC;
+					*dest++ = (*src++) & 0xFC;
+					*dest++ = (*src++) & 0xFC;
 				}
 				else src += 3; // skip
 			}

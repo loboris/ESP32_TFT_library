@@ -98,6 +98,7 @@
   * **find_rd_speed()**  Find maximum spi clock for successful read from display RAM
   * **TFT_display_init()**  Perform display initialization sequence. Sets orientation to landscape; clears the screen. SPI interface must already be setup, *tft_disp_type*, *_width*, *_height* variables must be set.
   * **HSBtoRGB**  Converts the components of a color, as specified by the HSB model to an equivalent set of values for the default RGB model.
+  * **TFT_setGammaCurve()** Select one of 4 Gamma curves
 * **compile_font_file**  Function which compiles font c source file to font file which can be used in *TFT_setFont()* function to select external font. Created file have the same name as source file and extension *.fnt*
 
 
@@ -141,6 +142,21 @@ To run the demo, attach ILI9341 or ILI9488 based display module to ESP32. Defaul
 *   DC: 26 (display DC)
 *  TCS: 25 (touch screen CS)
 
+---
+
+*To run the demo on* **ESP-WROWER-KIT** *select the following pin configuration:*
+*  mosi: 23
+*  miso: 25
+*   sck: 19
+*    CS: 22 (display CS)
+*    DC: 21 (display DC)
+*   TCS:  0 (touch screen CS), not used
+*   RST: 18 (display RESET)
+* BKLIT:  8 (Display Back light)
+
+Also set **TFT_RGB_BGR** to 0x00 and **TFT_INVERT_ROTATION** to 1 in *tftspi.h*
+
+---
 
 **If you want to use different pins, change them in** *tftspi.h*
 

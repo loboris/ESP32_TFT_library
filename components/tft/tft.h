@@ -105,12 +105,6 @@ const color_t TFT_PINK;
 #define INVERT_ON		1
 #define INVERT_OFF		0
 
-// === Screen orientation constants ===
-#define PORTRAIT	0
-#define LANDSCAPE	1
-#define PORTRAIT_FLIP	2
-#define LANDSCAPE_FLIP	3
-
 // === Special coordinates constants ===
 #define CENTER	-9003
 #define RIGHT	-9004
@@ -556,6 +550,14 @@ void TFT_setRotation(uint8_t rot);
  */
 //-----------------------------------------
 void TFT_invertDisplay(const uint8_t mode);
+
+/*
+ * Select gamma curve
+ * Params:
+ *      gamma: gama curve, values 0~3
+ */
+//=================================
+void TFT_setGammaCurve(uint8_t gm);
 
 /*
  * Compare two color structures
