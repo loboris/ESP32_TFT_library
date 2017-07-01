@@ -152,7 +152,7 @@ To run the demo, attach ILI9341 or ILI9488 based display module to ESP32. Defaul
 *    DC: 21 (display DC)
 *   TCS:  0 (touch screen CS), not used
 *   RST: 18 (display RESET)
-* BKLIT:  8 (Display Back light)
+* BKLIT:  5 (Display Back light)
 
 Also set **TFT_RGB_BGR** to 0x00 and **TFT_INVERT_ROTATION** to 1 in *tftspi.h*
 
