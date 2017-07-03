@@ -156,6 +156,8 @@ To run the demo, attach ILI9341 or ILI9488 based display module to ESP32. Defaul
 
 Also set **TFT_RGB_BGR** to 0x00 and **TFT_INVERT_ROTATION** to 1 in *tftspi.h*
 
+**You can also select EXAMPLE_ESP_WROVER_KIT in menuconfig to automaticaly define correct configuration**
+
 ---
 
 **If you want to use different pins, change them in** *tftspi.h*

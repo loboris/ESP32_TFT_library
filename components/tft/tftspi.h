@@ -9,6 +9,7 @@
 
 #include "tftspi.h"
 #include "spi_master_lobo.h"
+#include "sdkconfig.h"
 
 // === Screen orientation constants ===
 #define PORTRAIT	0
@@ -16,15 +17,43 @@
 #define PORTRAIT_FLIP	2
 #define LANDSCAPE_FLIP	3
 
-
 #define DISP_TYPE_ILI9341	0
 #define DISP_TYPE_ILI9488	1
+
+#ifdef CONFIG_EXAMPLE_ESP_WROVER_KIT
+
+#define DISP_TYPE_ILI9341	0
+#define DISP_COLOR_BITS_24	0x66
+#define TFT_INVERT_ROTATION 1
+#define TFT_RGB_BGR 0x00
+
+#define PIN_NUM_MISO 25		// SPI MISO
+#define PIN_NUM_MOSI 23		// SPI MOSI
+#define PIN_NUM_CLK  19		// SPI CLOCK pin
+#define PIN_NUM_CS   22		// Display CS pin
+#define PIN_NUM_DC   21		// Display command/data pin
+#define PIN_NUM_TCS   0		// Touch screen CS pin
+#define PIN_NUM_RST 18  	// GPIO used for RESET control
+#define PIN_NUM_BCKL 5      // GPIO used for backlight control
+#define PIN_BCKL_ON 0       // GPIO value for backlight ON
+#define PIN_BCKL_OFF 1      // GPIO value for backlight OFF
+
+#define USE_TOUCH	0
+
+#define DEFAULT_TFT_DISPLAY_WIDTH  240
+#define DEFAULT_TFT_DISPLAY_HEIGHT 320
+#define DEFAULT_GAMMA_CURVE 2
+#define DEFAULT_SPI_CLOCK   16000000
+#define DEFAULT_DISP_TYPE   DISP_TYPE_ILI9341
+
+#else
+
 #define DISP_COLOR_BITS_24	0x66
 //#define DISP_COLOR_BITS_16	0x55
 
 // #############################################
 // ### Set to 1 for some displays,           ###
-//     for example tho one on ESP-WROWER-KIT ###
+//     for example the one on ESP-WROWER-KIT ###
 // #############################################
 #define TFT_INVERT_ROTATION 0
 
@@ -33,34 +62,25 @@
 // ### SET TO 0X08 FOR DISPLAYS WITH BGR MATRIX ###
 // ### For ESP-WROWER-KIT set to 0x00           ###
 // ################################################
-#define TFT_RGB_BGR 0x00
+#define TFT_RGB_BGR 0x08
 
 // ##############################################################
 // ### Define ESP32 SPI pins to which the display is attached ###
 // ##############################################################
-/*
+
 #define PIN_NUM_MISO 19		// SPI MISO
 #define PIN_NUM_MOSI 23		// SPI MOSI
 #define PIN_NUM_CLK  18		// SPI CLOCK pin
 #define PIN_NUM_CS   5		// Display CS pin
 #define PIN_NUM_DC   26		// Display command/data pin
 #define PIN_NUM_TCS  25		// Touch screen CS pin
-*/
-
-// ESP-WROWER-KIT display:
-#define PIN_NUM_MISO 25		// SPI MISO
-#define PIN_NUM_MOSI 23		// SPI MOSI
-#define PIN_NUM_CLK  19		// SPI CLOCK pin
-#define PIN_NUM_CS   22		// Display CS pin
-#define PIN_NUM_DC   21		// Display command/data pin
-#define PIN_NUM_TCS   0		// Touch screen CS pin
 
 // --------------------------------------------------------------
 // ** Set Reset and Backlight pins to 0 if not used
 // ** If you want to use them, set them to some valid GPIO number
-#define PIN_NUM_RST 18	// GPIO used for RESET control
+#define PIN_NUM_RST  0	// GPIO used for RESET control
 
-#define PIN_NUM_BCKL 5	// GPIO used for backlight control
+#define PIN_NUM_BCKL 0	// GPIO used for backlight control
 #define PIN_BCKL_ON 0	// GPIO value for backlight ON
 #define PIN_BCKL_OFF 1	// GPIO value for backlight OFF
 // --------------------------------------------------------------
@@ -75,9 +95,15 @@
 // #######################################################################
 // Default display width (smaller dimension) and height (larger dimension)
 // #######################################################################
-#define TFT_DISPLAY_WIDTH  240
-#define TFT_DISPLAY_HEIGHT 320
+#define DEFAULT_TFT_DISPLAY_WIDTH  240
+#define DEFAULT_TFT_DISPLAY_HEIGHT 320
 // #######################################################################
+
+#define DEFAULT_GAMMA_CURVE 0
+#define DEFAULT_SPI_CLOCK   40000000
+#define DEFAULT_DISP_TYPE   DISP_TYPE_ILI9341
+
+#endif
 
 // ##############################################################
 // #### Global variables                                     ####

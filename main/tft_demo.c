@@ -1085,22 +1085,24 @@ void app_main()
 
     // ===================================================
     // ==== Set display type                         =====
-	tft_disp_type = DISP_TYPE_ILI9341;
+    tft_disp_type = DEFAULT_DISP_TYPE;
+	//tft_disp_type = DISP_TYPE_ILI9341;
 	//tft_disp_type = DISP_TYPE_ILI9488;
     // ===================================================
 
 	// ===================================================
 	// === Set display resolution if NOT using default ===
-	// === TFT_DISPLAY_WIDTH & TFT_DISPLAY_HEIGHT      ===
-	_width = 240;  // smaller dimension
-	_height = 320; // larger dimension
+	// === DEFAULT_TFT_DISPLAY_WIDTH &                 ===
+    // === DEFAULT_TFT_DISPLAY_HEIGHT                  ===
+	_width = DEFAULT_TFT_DISPLAY_WIDTH;  // smaller dimension
+	_height = DEFAULT_TFT_DISPLAY_HEIGHT; // larger dimension
 	// ===================================================
 
 	// ===================================================
 	// ==== Set maximum spi clock for display read    ====
 	//      operations, function 'find_rd_speed()'    ====
 	//      can be used after display initialization  ====
-	max_rdclock = 16000000;
+	max_rdclock = 8000000;
 	// ===================================================
 
 
@@ -1144,7 +1146,7 @@ void app_main()
 
 	vTaskDelay(500 / portTICK_RATE_MS);
 	printf("\r\n==============================\r\n");
-    printf("TFT display DEMO, LoBo 05/2017\r\n");
+    printf("TFT display DEMO, LoBo 07/2017\r\n");
 	printf("==============================\r\n\r\n");
 
 	// ==================================================================
@@ -1190,7 +1192,7 @@ void app_main()
     printf("OK\r\n");
 	
 	// ==== Set SPI clock used for display operations ====
-	spi_lobo_set_speed(spi, 16000000);
+	spi_lobo_set_speed(spi, DEFAULT_SPI_CLOCK);
 	printf("SPI: Changed speed to %u\r\n", spi_lobo_get_speed(spi));
 
 	printf("\r\n---------------------\r\n");
@@ -1202,7 +1204,7 @@ void app_main()
 	font_transparent = 0;
 	font_forceFixed = 0;
 	gray_scale = 0;
-    TFT_setGammaCurve(2);
+    TFT_setGammaCurve(DEFAULT_GAMMA_CURVE);
 	TFT_setRotation(PORTRAIT);
 	TFT_setFont(DEFAULT_FONT, NULL);
 	TFT_resetclipwin();

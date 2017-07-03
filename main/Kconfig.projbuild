@@ -24,12 +24,19 @@ config SPIFFS_LOG_PAGE_SIZE
     help
 	Set it to the phisycal page size og the used SPI Flash chip.
 
+config EXAMPLE_ESP_WROVER_KIT
+    bool "Running on ESP-WROVER-KIT"
+    default n
+    help
+        Select if usung the display on ESP-WROVER-KIT
+
 config EXAMPLE_USE_WIFI
     bool "Use wifi in TFT Demo"
     default n
     help
         If WiFi is used ntp server will be used to provide the exact time
         and file timestamps will be correct.
+
 config WIFI_SSID
     string "WiFi SSID"
    	depends on EXAMPLE_USE_WIFI

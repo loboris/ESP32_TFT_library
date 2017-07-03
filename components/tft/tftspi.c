@@ -25,11 +25,11 @@ uint8_t gray_scale = 0;
 uint32_t max_rdclock = 16000000;
 
 // Default display dimensions
-int _width = TFT_DISPLAY_WIDTH;
-int _height = TFT_DISPLAY_HEIGHT;
+int _width = DEFAULT_TFT_DISPLAY_WIDTH;
+int _height = DEFAULT_TFT_DISPLAY_HEIGHT;
 
 // Display type, DISP_TYPE_ILI9488 or DISP_TYPE_ILI9341
-uint8_t tft_disp_type = DISP_TYPE_ILI9488;
+uint8_t tft_disp_type = DEFAULT_DISP_TYPE;
 
 // Spi device handles for display and touch screen
 spi_lobo_device_handle_t disp_spi = NULL;
