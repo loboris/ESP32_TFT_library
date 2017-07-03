@@ -48,7 +48,7 @@
 
 static int _demo_pass = 0;
 static uint8_t doprint = 1;
-static uint8_t run_gs_demo = 1;
+static uint8_t run_gs_demo = 0; // Run gray scale demo if set to 1
 static struct tm* tm_info;
 static char tmp_buff[64];
 static time_t time_now, time_last = 0;
@@ -1108,7 +1108,7 @@ void app_main()
 
     // ====  CONFIGURE SPI DEVICES(s)  ====================================================================================
 
-	gpio_set_direction(PIN_NUM_MISO, GPIO_MODE_INPUT);
+    gpio_set_direction(PIN_NUM_MISO, GPIO_MODE_INPUT);
     gpio_set_pull_mode(PIN_NUM_MISO, GPIO_PULLUP_ONLY);
 
     spi_lobo_device_handle_t spi;

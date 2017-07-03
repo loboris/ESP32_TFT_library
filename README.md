@@ -6,7 +6,7 @@
 
 #### Features
 
-* Full support for **ILI9341** & **ILI9488** based TFT modules in 4-wire SPI mode. Support for other controllers will be added later
+* Full support for **ILI9341**, **ILI9488** & **ST7789V** based TFT modules in 4-wire SPI mode. Support for other controllers will be added later
 * **18-bit (RGB)** color mode used
 * **SPI displays oriented SPI driver library** based on *spi-master* driver
 * Combined **DMA SPI** transfer mode and **direct SPI** for maximal speed
@@ -144,7 +144,7 @@ To run the demo, attach ILI9341 or ILI9488 based display module to ESP32. Defaul
 
 ---
 
-*To run the demo on* **ESP-WROWER-KIT** *select the following pin configuration:*
+*To run the demo on* **ESP-WROWER-KIT v3** *select the following pin configuration:*
 *  mosi: 23
 *  miso: 25
 *   sck: 19
@@ -154,7 +154,7 @@ To run the demo, attach ILI9341 or ILI9488 based display module to ESP32. Defaul
 *   RST: 18 (display RESET)
 * BKLIT:  5 (Display Back light)
 
-Also set **TFT_RGB_BGR** to 0x00 and **TFT_INVERT_ROTATION** to 1 in *tftspi.h*
+Also set **TFT_RGB_BGR** to 0x00 and **TFT_INVERT_ROTATION1** to 1 in *tftspi.h*
 
 **You can also select EXAMPLE_ESP_WROVER_KIT in menuconfig to automaticaly define correct configuration**
 

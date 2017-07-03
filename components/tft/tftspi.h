@@ -19,12 +19,13 @@
 
 #define DISP_TYPE_ILI9341	0
 #define DISP_TYPE_ILI9488	1
+#define DISP_TYPE_ST7789V	2
 
 #ifdef CONFIG_EXAMPLE_ESP_WROVER_KIT
 
-#define DISP_TYPE_ILI9341	0
 #define DISP_COLOR_BITS_24	0x66
-#define TFT_INVERT_ROTATION 1
+#define TFT_INVERT_ROTATION 0
+#define TFT_INVERT_ROTATION1 1
 #define TFT_RGB_BGR 0x00
 
 #define PIN_NUM_MISO 25		// SPI MISO
@@ -42,9 +43,9 @@
 
 #define DEFAULT_TFT_DISPLAY_WIDTH  240
 #define DEFAULT_TFT_DISPLAY_HEIGHT 320
-#define DEFAULT_GAMMA_CURVE 2
-#define DEFAULT_SPI_CLOCK   16000000
-#define DEFAULT_DISP_TYPE   DISP_TYPE_ILI9341
+#define DEFAULT_GAMMA_CURVE 0
+#define DEFAULT_SPI_CLOCK   26000000
+#define DEFAULT_DISP_TYPE   DISP_TYPE_ST7789V
 
 #else
 
@@ -56,6 +57,7 @@
 //     for example the one on ESP-WROWER-KIT ###
 // #############################################
 #define TFT_INVERT_ROTATION 0
+#define TFT_INVERT_ROTATION1 0
 
 // ################################################
 // ### SET TO 0X00 FOR DISPLAYS WITH RGB MATRIX ###
@@ -193,6 +195,10 @@ typedef struct __attribute__((__packed__)) {
 #define TFT_CMD_PRC			0xF7
 #define TFT_CMD_3GAMMA_EN	0xF2
 
+#define ST_CMD_VCOMS       0xBB
+#define ST_CMD_FRCTRL2      0xC6
+#define ST_CMD_PWCTR1		0xD0
+
 #define MADCTL_MY  0x80
 #define MADCTL_MX  0x40
 #define MADCTL_MV  0x20
@@ -207,6 +213,33 @@ typedef struct __attribute__((__packed__)) {
 
 #define TFT_CMD_DELAY	0x80
 
+
+// Initialization sequence for ILI7341
+// ====================================
+static const uint8_t ST7789V_init[] = {
+#if PIN_NUM_RST
+  15,                   					        // 15 commands in list
+#else
+  16,                   					        // 16 commands in list
+  TFT_CMD_SWRESET, TFT_CMD_DELAY,					//  1: Software reset, no args, w/delay
+  200,												//     200 ms delay
+#endif
+  TFT_CMD_FRMCTR2, 5, 0x0c, 0x0c, 0x00, 0x33, 0x33,
+  TFT_ENTRYM, 1, 0x45,
+  ST_CMD_VCOMS, 1, 0x2B,
+  TFT_CMD_PWCTR1, 1, 0x2C,
+  TFT_CMD_PWCTR3, 2, 0x01, 0xff,
+  TFT_CMD_PWCTR4, 1, 0x11,
+  TFT_CMD_PWCTR5, 1, 0x20,
+  ST_CMD_FRCTRL2, 1, 0x0f,
+  ST_CMD_PWCTR1, 2, 0xA4, 0xA1,
+  TFT_CMD_GMCTRP1, 14, 0xD0, 0x00, 0x05, 0x0E, 0x15, 0x0D, 0x37, 0x43, 0x47, 0x09, 0x15, 0x12, 0x16, 0x19,
+  TFT_CMD_GMCTRN1, 14, 0xD0, 0x00, 0x05, 0x0D, 0x0C, 0x06, 0x2D, 0x44, 0x40, 0x0E, 0x1C, 0x18, 0x16, 0x19,
+  TFT_MADCTL, 1, (MADCTL_MX | TFT_RGB_BGR),			// Memory Access Control (orientation)
+  TFT_CMD_PIXFMT, 1, DISP_COLOR_BITS_24,            // *** INTERFACE PIXEL FORMAT: 0x66 -> 18 bit; 0x55 -> 16 bit
+  TFT_CMD_SLPOUT, TFT_CMD_DELAY, 120,				//  Sleep out,	//  120 ms delay
+  TFT_DISPON, TFT_CMD_DELAY, 120,
+};
 
 // Initialization sequence for ILI7341
 // ====================================
