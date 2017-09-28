@@ -126,7 +126,7 @@ extern int _width;
 extern int _height;
 
 // ==== Display type, DISP_TYPE_ILI9488 or DISP_TYPE_ILI9341 ====
-uint8_t tft_disp_type;
+extern uint8_t tft_disp_type;
 
 // ==== Spi device handles for display and touch screen =========
 extern spi_lobo_device_handle_t disp_spi;

@@ -150,9 +150,9 @@ struct spi_lobo_device_t {
 	spi_lobo_host_device_t host_dev;
 };
 
-typedef struct spi_lobo_device_t* spi_lobo_device_handle_t;  ///< Handle for a device on a SPI bus
-typedef struct spi_lobo_host_t* spi_lobo_host_handle_t;
-typedef struct spi_lobo_device_interface_config_t* spi_lobo_device_interface_config_handle_t;
+typedef spi_lobo_device_t* spi_lobo_device_handle_t;  ///< Handle for a device on a SPI bus
+typedef spi_lobo_host_t* spi_lobo_host_handle_t;
+typedef spi_lobo_device_interface_config_t* spi_lobo_device_interface_config_handle_t;
 
 
 /**

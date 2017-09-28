@@ -16,7 +16,7 @@
 #include "time.h"
 #include <math.h>
 #include "rom/tjpgd.h"
-#include "esp_heap_alloc_caps.h"
+#include "esp_heap_caps.h"
 #include "tftspi.h"
 
 

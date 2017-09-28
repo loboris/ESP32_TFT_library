@@ -18,7 +18,7 @@
 #include "esp_system.h"
 #include "driver/gpio.h"
 #include "esp_system.h"
-#include "esp_heap_alloc_caps.h"
+#include "esp_heap_caps.h"
 #include "tftspi.h"
 #include "tft.h"
 #include "spiffs_vfs.h"
@@ -55,7 +55,7 @@ static time_t time_now, time_last = 0;
 static const char *file_fonts[3] = {"/spiffs/fonts/DotMatrix_M.fon", "/spiffs/fonts/Ubuntu.fon", "/spiffs/fonts/Grotesk24x48.fon"};
 
 #define GDEMO_TIME 1000
-#define GDEMO_INFO_TIME 1000
+#define GDEMO_INFO_TIME 5000
 
 //==================================================================================
 #ifdef CONFIG_EXAMPLE_USE_WIFI
@@ -341,7 +341,7 @@ static void test_times() {
 		sprintf(tmp_buff, "Clear screen: %u ms", t1);
 		TFT_print(tmp_buff, 0, 140);
 
-		color_t *color_line = pvPortMallocCaps((_width*3), MALLOC_CAP_DMA);
+		color_t *color_line = heap_caps_malloc((_width*3), MALLOC_CAP_DMA);
 		color_t *gsline = NULL;
 		if (gray_scale) gsline = malloc(_width*3);
 		if (color_line) {

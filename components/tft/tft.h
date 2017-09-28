@@ -81,25 +81,25 @@ extern uint32_t tp_caly;			// touch screen Y calibration constant
 #define MAX_POLIGON_SIDES	60
 
 // === Color names constants ===
-const color_t TFT_BLACK;
-const color_t TFT_NAVY;
-const color_t TFT_DARKGREEN;
-const color_t TFT_DARKCYAN;
-const color_t TFT_MAROON;
-const color_t TFT_PURPLE;
-const color_t TFT_OLIVE;
-const color_t TFT_LIGHTGREY;
-const color_t TFT_DARKGREY;
-const color_t TFT_BLUE;
-const color_t TFT_GREEN;
-const color_t TFT_CYAN;
-const color_t TFT_RED;
-const color_t TFT_MAGENTA;
-const color_t TFT_YELLOW;
-const color_t TFT_WHITE;
-const color_t TFT_ORANGE;
-const color_t TFT_GREENYELLOW;
-const color_t TFT_PINK;
+extern const color_t TFT_BLACK;
+extern const color_t TFT_NAVY;
+extern const color_t TFT_DARKGREEN;
+extern const color_t TFT_DARKCYAN;
+extern const color_t TFT_MAROON;
+extern const color_t TFT_PURPLE;
+extern const color_t TFT_OLIVE;
+extern const color_t TFT_LIGHTGREY;
+extern const color_t TFT_DARKGREY;
+extern const color_t TFT_BLUE;
+extern const color_t TFT_GREEN;
+extern const color_t TFT_CYAN;
+extern const color_t TFT_RED;
+extern const color_t TFT_MAGENTA;
+extern const color_t TFT_YELLOW;
+extern const color_t TFT_WHITE;
+extern const color_t TFT_ORANGE;
+extern const color_t TFT_GREENYELLOW;
+extern const color_t TFT_PINK;
 
 // === Color invert constants ===
 #define INVERT_ON		1
