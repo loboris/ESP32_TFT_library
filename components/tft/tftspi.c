@@ -12,7 +12,7 @@
 #include "tftspi.h"
 #include "esp_system.h"
 #include "freertos/task.h"
-#include "esp_heap_alloc_caps.h"
+#include "esp_heap_caps.h"
 #include "soc/spi_reg.h"
 
 
@@ -133,7 +133,7 @@ void IRAM_ATTR disp_spi_transfer_cmd_data(int8_t cmd, uint8_t *data, uint32_t le
     disp_spi->host->hw->data_buf[0] = (uint32_t)cmd;
     disp_spi_transfer_start(8);
 
-	if (len == 0) return;
+	if ((len == 0) || (data == NULL)) return;
 
     // Set DC to 1 (data mode);
 	DC_DATA;
@@ -408,7 +408,7 @@ static void IRAM_ATTR _TFT_pushColorRep(color_t *color, uint32_t len, uint8_t re
 		buf_bytes = buf_colors * 3;
 
 		// Prepare color buffer of maximum 2 color lines
-		trans_cline = pvPortMallocCaps(buf_bytes, MALLOC_CAP_DMA);
+		trans_cline = heap_caps_malloc(buf_bytes, MALLOC_CAP_DMA);
 		if (trans_cline == NULL) return;
 
 		// Prepare fill color
@@ -555,10 +555,10 @@ uint32_t find_rd_speed()
     gray_scale = 0;
     cur_speed = spi_lobo_get_speed(disp_spi);
 
-	color_line = pvPortMallocCaps(_width*3, MALLOC_CAP_DMA);
+	color_line = heap_caps_malloc(_width*3, MALLOC_CAP_DMA);
     if (color_line == NULL) goto exit;
 
-    line_rdbuf = pvPortMallocCaps((_width*3)+1, MALLOC_CAP_DMA);
+    line_rdbuf = heap_caps_malloc((_width*3)+1, MALLOC_CAP_DMA);
 	if (line_rdbuf == NULL) goto exit;
 
 	color_t *rdline = (color_t *)(line_rdbuf+1);
@@ -755,6 +755,22 @@ void TFT_display_init()
 		ret = disp_select();
 		assert(ret==ESP_OK);
 		commandList(disp_spi, ST7789V_init);
+	}
+	else if (tft_disp_type == DISP_TYPE_ST7735) {
+		commandList(disp_spi, STP7735_init);
+	}
+	else if (tft_disp_type == DISP_TYPE_ST7735R) {
+		commandList(disp_spi, STP7735R_init);
+		commandList(disp_spi, Rcmd2green);
+		commandList(disp_spi, Rcmd3);
+	}
+	else if (tft_disp_type == DISP_TYPE_ST7735B) {
+		commandList(disp_spi, STP7735R_init);
+		commandList(disp_spi, Rcmd2red);
+		commandList(disp_spi, Rcmd3);
+	    uint8_t dt = 0xC0;
+		disp_select();
+		disp_spi_transfer_cmd_data(TFT_MADCTL, &dt, 1);
 	}
 	else assert(0);
 

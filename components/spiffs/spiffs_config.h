@@ -20,12 +20,18 @@
 #include <ctype.h>
 // ----------- >8 ------------
 
+#include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
+#include "freertos/semphr.h"
+
 typedef signed int s32_t;
 typedef unsigned int u32_t;
 typedef signed short s16_t;
 typedef unsigned short u16_t;
 typedef signed char s8_t;
 typedef unsigned char u8_t;
+
+QueueHandle_t spiffs_mutex;
 
 // compile time switches
 
@@ -195,11 +201,11 @@ typedef unsigned char u8_t;
 
 // define this to enter a mutex if you're running on a multithreaded system
 #ifndef SPIFFS_LOCK
-#define SPIFFS_LOCK(fs)
+#define SPIFFS_LOCK(fs) xSemaphoreTake(spiffs_mutex, portMAX_DELAY)
 #endif
 // define this to exit a mutex if you're running on a multithreaded system
 #ifndef SPIFFS_UNLOCK
-#define SPIFFS_UNLOCK(fs)
+#define SPIFFS_UNLOCK(fs) xSemaphoreGive(spiffs_mutex)
 #endif
 
 // Enable if only one spiffs instance with constant configuration will exist

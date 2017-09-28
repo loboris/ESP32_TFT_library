@@ -1146,7 +1146,7 @@ void app_main()
 
 	vTaskDelay(500 / portTICK_RATE_MS);
 	printf("\r\n==============================\r\n");
-    printf("TFT display DEMO, LoBo 07/2017\r\n");
+    printf("TFT display DEMO, LoBo 09/2017\r\n");
 	printf("==============================\r\n\r\n");
 
 	// ==================================================================

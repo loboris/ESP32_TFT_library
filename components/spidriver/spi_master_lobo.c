@@ -80,7 +80,8 @@ Main driver's function is 'spi_lobo_transfer_data()'
 #include "driver/uart.h"
 #include "driver/gpio.h"
 #include "driver/periph_ctrl.h"
-#include "esp_heap_alloc_caps.h"
+#include "esp_heap_caps.h"
+#include "driver/periph_ctrl.h"
 #include "spi_master_lobo.h"
 
 
@@ -193,6 +194,8 @@ static const spi_signal_conn_t io_signal[3]={
 
 //======================================================================================================
 
+#define DMA_CHANNEL_ENABLED(dma_chan)    (BIT(dma_chan-1))
+
 typedef void(*dmaworkaround_cb_t)(void *arg);
 
 //Set up a list of dma descriptors. dmadesc is an array of descriptors. Data is the buffer to point to.
@@ -235,6 +238,9 @@ static dmaworkaround_cb_t dmaworkaround_cb;
 static void *dmaworkaround_cb_arg;
 static portMUX_TYPE dmaworkaround_mux = portMUX_INITIALIZER_UNLOCKED;
 static int dmaworkaround_waiting_for_chan = 0;
+static bool spi_periph_claimed[3] = {true, false, false};
+static uint8_t spi_dma_chan_enabled = 0;
+static portMUX_TYPE spi_dma_spinlock = portMUX_INITIALIZER_UNLOCKED;
 
 //--------------------------------------------------------------------------------------------
 bool IRAM_ATTR spi_lobo_dmaworkaround_req_reset(int dmachan, dmaworkaround_cb_t cb, void *arg)
@@ -289,13 +295,67 @@ void IRAM_ATTR spi_lobo_dmaworkaround_transfer_active(int dmachan)
     portEXIT_CRITICAL(&dmaworkaround_mux);
 }
 
+//Returns true if this peripheral is successfully claimed, false if otherwise.
+//-----------------------------------------------------
+bool spi_lobo_periph_claim(spi_lobo_host_device_t host)
+{
+    bool ret = __sync_bool_compare_and_swap(&spi_periph_claimed[host], false, true);
+    if (ret) periph_module_enable(io_signal[host].module);
+    return ret;
+}
+
+//Returns true if this peripheral is successfully freed, false if otherwise.
+//-----------------------------------------------
+bool spi_lobo_periph_free(spi_lobo_host_device_t host)
+{
+    bool ret = __sync_bool_compare_and_swap(&spi_periph_claimed[host], true, false);
+    if (ret) periph_module_disable(io_signal[host].module);
+    return ret;
+}
+
+//-----------------------------------------
+bool spi_lobo_dma_chan_claim (int dma_chan)
+{
+    bool ret = false;
+    assert( dma_chan == 1 || dma_chan == 2 );
+
+    portENTER_CRITICAL(&spi_dma_spinlock);
+    if ( !(spi_dma_chan_enabled & DMA_CHANNEL_ENABLED(dma_chan)) ) {
+        // get the channel only when it's not claimed yet.
+        spi_dma_chan_enabled |= DMA_CHANNEL_ENABLED(dma_chan);
+        ret = true;
+    }
+    periph_module_enable( PERIPH_SPI_DMA_MODULE );
+    portEXIT_CRITICAL(&spi_dma_spinlock);
+
+    return ret;
+}
+
+//---------------------------------------
+bool spi_lobo_dma_chan_free(int dma_chan)
+{
+    assert( dma_chan == 1 || dma_chan == 2 );
+    assert( spi_dma_chan_enabled & DMA_CHANNEL_ENABLED(dma_chan) );
+
+    portENTER_CRITICAL(&spi_dma_spinlock);
+    spi_dma_chan_enabled &= ~DMA_CHANNEL_ENABLED(dma_chan);
+    if ( spi_dma_chan_enabled == 0 ) {
+        //disable the DMA only when all the channels are freed.
+        periph_module_disable( PERIPH_SPI_DMA_MODULE );
+    }
+    portEXIT_CRITICAL(&spi_dma_spinlock);
+
+    return true;
+}
+
+
 //======================================================================================================
 
 
 //----------------------------------------------------------------------------------------------------------------
 static esp_err_t spi_lobo_bus_initialize(spi_lobo_host_device_t host, spi_lobo_bus_config_t *bus_config, int init)
 {
-    bool native=true;
+    bool native=true, spi_chan_claimed, dma_chan_claimed;
 
     if (init > 0) {
         /* ToDo: remove this when we have flash operations cooperating with this */
@@ -315,8 +375,11 @@ static esp_err_t spi_lobo_bus_initialize(spi_lobo_host_device_t host, spi_lobo_b
     SPI_CHECK(bus_config->quadhd_io_num<0 || GPIO_IS_VALID_OUTPUT_GPIO(bus_config->quadhd_io_num), "spihd pin invalid", ESP_ERR_INVALID_ARG);
 
     if (init > 0) {
-		//spihost[host]=malloc(sizeof(spi_lobo_host_t));
-		spihost[host]=pvPortMallocCaps(sizeof(spi_lobo_host_t), MALLOC_CAP_DMA);
+        spi_chan_claimed=spi_lobo_periph_claim(host);
+        SPI_CHECK(spi_chan_claimed, "host already in use", ESP_ERR_INVALID_STATE);
+
+        //spihost[host]=malloc(sizeof(spi_lobo_host_t));
+		spihost[host]=heap_caps_malloc(sizeof(spi_lobo_host_t), MALLOC_CAP_DMA);
 		if (spihost[host]==NULL) return ESP_ERR_NO_MEM;
 		memset(spihost[host], 0, sizeof(spi_lobo_host_t));
 		// Create semaphore
@@ -379,14 +442,19 @@ static esp_err_t spi_lobo_bus_initialize(spi_lobo_host_device_t host, spi_lobo_b
 	spihost[host]->hw=io_signal[host].hw;
 
 	if (init > 0) {
+        dma_chan_claimed=spi_lobo_dma_chan_claim(init);
+        if ( !dma_chan_claimed ) {
+        	spi_lobo_periph_free( host );
+            SPI_CHECK(dma_chan_claimed, "dma channel already in use", ESP_ERR_INVALID_STATE);
+        }
 	    spihost[host]->dma_chan = init;
         //See how many dma descriptors we need and allocate them
         int dma_desc_ct=(bus_config->max_transfer_sz+SPI_MAX_DMA_LEN-1)/SPI_MAX_DMA_LEN;
         if (dma_desc_ct==0) dma_desc_ct=1; //default to 4k when max is not given
         spihost[host]->max_transfer_sz = dma_desc_ct*SPI_MAX_DMA_LEN;
 
-        spihost[host]->dmadesc_tx=pvPortMallocCaps(sizeof(lldesc_t)*dma_desc_ct, MALLOC_CAP_DMA);
-        spihost[host]->dmadesc_rx=pvPortMallocCaps(sizeof(lldesc_t)*dma_desc_ct, MALLOC_CAP_DMA);
+        spihost[host]->dmadesc_tx=heap_caps_malloc(sizeof(lldesc_t)*dma_desc_ct, MALLOC_CAP_DMA);
+        spihost[host]->dmadesc_rx=heap_caps_malloc(sizeof(lldesc_t)*dma_desc_ct, MALLOC_CAP_DMA);
         if (!spihost[host]->dmadesc_tx || !spihost[host]->dmadesc_rx) goto nomem;
 
         //Tell common code DMA workaround that our DMA channel is idle. If needed, the code will do a DMA reset.
@@ -429,7 +497,7 @@ nomem:
 		free(spihost[host]->dmadesc_rx);
 	}
 	free(spihost[host]);
-    periph_module_disable(io_signal[host].module);
+    spi_lobo_periph_free(host);
 	return ESP_ERR_NO_MEM;
 }
 
@@ -445,9 +513,12 @@ static esp_err_t spi_lobo_bus_free(spi_lobo_host_device_t host, int dofree)
 			if (spihost[host]->device[x] != NULL) return ESP_ERR_INVALID_STATE;  // not all devices freed
 		}
     }
+    if ( spihost[host]->dma_chan > 0 ) {
+        spi_lobo_dma_chan_free ( spihost[host]->dma_chan );
+    }
     spihost[host]->hw->slave.trans_inten=0;
     spihost[host]->hw->slave.trans_done=0;
-    periph_module_disable(io_signal[host].module);
+    spi_lobo_periph_free(host);
 
     if (dofree) {
 		vSemaphoreDelete(spihost[host]->spi_lobo_bus_mutex);
@@ -479,7 +550,7 @@ esp_err_t spi_lobo_bus_add_device(spi_lobo_host_device_t host, spi_lobo_bus_conf
 		if (dev_config->spics_ext_io_num > 0) dev_config->spics_ext_io_num = -1;
 	}
 	else {
-		if ((dev_config->spics_ext_io_num <= 0) || (!GPIO_IS_VALID_OUTPUT_GPIO(dev_config->spics_ext_io_num))) return ESP_ERR_INVALID_ARG;
+		//if ((dev_config->spics_ext_io_num <= 0) || (!GPIO_IS_VALID_OUTPUT_GPIO(dev_config->spics_ext_io_num))) return ESP_ERR_INVALID_ARG;
 	}
 
     //ToDo: Check if some other device uses the same 'spics_ext_io_num'
@@ -529,7 +600,7 @@ esp_err_t spi_lobo_bus_add_device(spi_lobo_host_device_t host, spi_lobo_bus_conf
             gpio_matrix_out(dev_config->spics_io_num, io_signal[host].spics_out[freecs], false, false);
         }
     }
-    else {
+    else if (dev_config->spics_ext_io_num >= 0) {
 		gpio_set_direction(dev_config->spics_ext_io_num, GPIO_MODE_OUTPUT);
 		gpio_set_level(dev_config->spics_ext_io_num, 1);
 	}

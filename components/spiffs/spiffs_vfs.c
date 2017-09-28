@@ -45,8 +45,10 @@
 int spiffs_is_registered = 0;
 int spiffs_is_mounted = 0;
 
+QueueHandle_t spiffs_mutex = NULL;
+
 static int IRAM_ATTR vfs_spiffs_open(const char *path, int flags, int mode);
-static size_t IRAM_ATTR vfs_spiffs_write(int fd, const void *data, size_t size);
+static ssize_t IRAM_ATTR vfs_spiffs_write(int fd, const void *data, size_t size);
 static ssize_t IRAM_ATTR vfs_spiffs_read(int fd, void * dst, size_t size);
 static int IRAM_ATTR vfs_spiffs_fstat(int fd, struct stat * st);
 static int IRAM_ATTR vfs_spiffs_close(int fd);
@@ -261,8 +263,8 @@ static int IRAM_ATTR vfs_spiffs_open(const char *path, int flags, int mode) {
     return fd;
 }
 
-//-------------------------------------------------------------------------------
-static size_t IRAM_ATTR vfs_spiffs_write(int fd, const void *data, size_t size) {
+//--------------------------------------------------------------------------------
+static ssize_t IRAM_ATTR vfs_spiffs_write(int fd, const void *data, size_t size) {
 	vfs_spiffs_file_t *file;
 	int res;
 
@@ -822,6 +824,14 @@ void vfs_spiffs_register() {
 
 	if (spiffs_is_registered) return;
 
+	if (spiffs_mutex == NULL) {
+		spiffs_mutex = xSemaphoreCreateMutex();
+		if (spiffs_mutex == NULL) {
+            ESP_LOGE(tag, "Error creating SPIFFS mutex");
+			return;
+		}
+	}
+
 	esp_vfs_t vfs = {
         .fd_offset = 0,
         .flags = ESP_VFS_FLAG_DEFAULT,
@@ -844,7 +854,7 @@ void vfs_spiffs_register() {
     ESP_LOGI(tag, "Registering SPIFFS file system");
     esp_err_t res = esp_vfs_register(SPIFFS_BASE_PATH, &vfs, NULL);
     if (res != ESP_OK) {
-        ESP_LOGI(tag, "Error, SPIFFS file system not registered");
+        ESP_LOGE(tag, "Error, SPIFFS file system not registered");
         return;
     }
 	spiffs_is_registered = 1;

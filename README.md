@@ -3,10 +3,15 @@
 
 ---
 
+**This library must be built with the latest esp-idf master branch and xtensa toolchain**
+
+If you are using the esp-idf v2.1, checkout the commit *0518df81a6566820352dad7bf6c539995d41ad18*
+
+---
 
 #### Features
 
-* Full support for **ILI9341**, **ILI9488** & **ST7789V** based TFT modules in 4-wire SPI mode. Support for other controllers will be added later
+* Full support for **ILI9341**, **ILI9488**, **ST7789V** and **ST7735** based TFT modules in 4-wire SPI mode. Support for other controllers will be added later
 * **18-bit (RGB)** color mode used
 * **SPI displays oriented SPI driver library** based on *spi-master* driver
 * Combined **DMA SPI** transfer mode and **direct SPI** for maximal speed
@@ -134,7 +139,24 @@ Full **demo application**, well documented, is included, please **analyze it** t
 
 #### Connecting the display
 
-To run the demo, attach ILI9341 or ILI9488 based display module to ESP32. Default pins used are:
+| ESP32 pin | Display module | Notes |
+| - | - | - |
+| Any output pin | MOSI | SPI input on Display module |
+| Any pin | MISO | SPI output from Display module, optional |
+| Any output pin | SCK | SPI clock input on Display module |
+| Any output pin | CS  | SPI CS input on Display module |
+| Any output pin | DC  | DC (data/command) input on Display module |
+| Any output pin | TCS  | Touch pannel CS input (if touch panel is used |
+| Any output pin | RST  | **optional**, reset input of the display module, if not used **pullup the reset input** to Vcc |
+| Any output pin | BL  | **optional**, backlight input of the display module, if not used connect to +3.3V (or +5V) |
+| GND | GND  | Power supply ground |
+| 3.3V or +5V | Vcc  | Power supply positive |
+
+**Make shure the display module has 3.3V compatible interface, if not you must use level shifter!**
+
+---
+
+To run the demo, attach ILI9341, ILI9488 or ST7735 based display module to ESP32. Default pins used are:
 * mosi: 23
 * miso: 19
 *  sck: 18
@@ -225,121 +247,125 @@ to create **spiffs image** in *build* directory and **flash** it to ESP32
 
 ```
 
-I (1133) cpu_start: Pro cpu up.
-I (1145) cpu_start: Starting app cpu, entry point is 0x40080f5c
 I (0) cpu_start: App cpu up.
-I (1177) heap_alloc_caps: Initializing. RAM available for dynamic allocation:
-I (1200) heap_alloc_caps: At 3FFAE2A0 len 00001D60 (7 KiB): DRAM
-I (1220) heap_alloc_caps: At 3FFBA708 len 000258F8 (150 KiB): DRAM
-I (1241) heap_alloc_caps: At 3FFE0440 len 00003BC0 (14 KiB): D/IRAM
-I (1263) heap_alloc_caps: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM
-I (1284) heap_alloc_caps: At 40095894 len 0000A76C (41 KiB): IRAM
-I (1305) cpu_start: Pro cpu start user code
-I (1359) cpu_start: Starting scheduler on PRO CPU.
-I (196) cpu_start: Starting scheduler on APP CPU.
+I (312) heap_init: Initializing. RAM available for dynamic allocation:
+I (319) heap_init: At 3FFAE6E0 len 00001920 (6 KiB): DRAM
+I (325) heap_init: At 3FFBB0B8 len 00024F48 (147 KiB): DRAM
+I (331) heap_init: At 3FFE0440 len 00003BC0 (14 KiB): D/IRAM
+I (338) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM
+I (344) heap_init: At 40091F94 len 0000E06C (56 KiB): IRAM
+I (350) cpu_start: Pro cpu start user code
+I (144) cpu_start: Starting scheduler on PRO CPU.
+I (0) cpu_start: Starting scheduler on APP CPU.
 
 ==============================
-TFT display DEMO, LoBo 05/2017
+TFT display DEMO, LoBo 09/2017
 ==============================
 
-SPI: display device added to spi bus
+SPI: display device added to spi bus (2)
 SPI: attached display device, speed=8000000
-SPI: bus uses native pins: true
+SPI: bus uses native pins: false
 SPI: display init...
 OK
+SPI: Changed speed to 26666666
 
 ---------------------
 Graphics demo started
 ---------------------
-I (1686) [TFT Demo]: Time is not set yet. Connecting to WiFi and getting time over NTP.
-I (1726) wifi: wifi firmware version: 8a1ad86
-I (1726) wifi: config NVS flash: enabled
-I (1726) wifi: config nano formating: disabled
-I (1726) system_api: Base MAC address is not set, read default base MAC address from BLK0 of EFUSE
-I (1736) system_api: Base MAC address is not set, read default base MAC address from BLK0 of EFUSE
-I (1776) wifi: Init dynamic tx buffer num: 32
-I (1776) wifi: Init dynamic rx buffer num: 64
-I (1776) wifi: wifi driver task: 3ffc1cd4, prio:23, stack:4096
-I (1776) wifi: Init static rx buffer num: 10
-I (1776) wifi: Init dynamic rx buffer num: 64
-I (1786) wifi: Init rx ampdu len mblock:7
-I (1786) wifi: Init lldesc rx ampdu entry mblock:4
-I (1786) wifi: wifi power manager task: 0x3ffc709c prio: 21 stack: 2560
-I (1796) [TFT Demo]: Setting WiFi configuration SSID LoBoInternet...
-I (1806) wifi: wifi timer task: 3ffc811c, prio:22, stack:3584
-I (1836) phy: phy_version: 354.0, b2dba61, May 16 2017, 21:41:06, 1, 0
-I (1836) wifi: mode : sta (24:0a:c4:00:97:c0)
-I (2556) wifi: n:6 0, o:1 0, ap:255 255, sta:6 0, prof:1
-I (3546) wifi: state: init -> auth (b0)
-I (3546) wifi: state: auth -> assoc (0)
-I (3546) wifi: state: assoc -> run (10)
-I (3586) wifi: connected with LoBoInternet, channel 6
-I (5686) event: ip: 192.168.0.16, mask: 255.255.255.0, gw: 192.168.0.1
-I (5686) [TFT Demo]: Initializing SNTP
-I (6186) [TFT Demo]: System time is set.
-I (6186) wifi: state: run -> init (0)
-I (6186) wifi: n:6 0, o:6 0, ap:255 255, sta:6 0, prof:1
-E (6186) wifi: esp_wifi_connect 816 wifi not start
+I (2815) [TFT Demo]: Time is not set yet. Connecting to WiFi and getting time over NTP.
+I (2845) wifi: wifi firmware version: ee52423
+I (2846) wifi: config NVS flash: enabled
+I (2846) wifi: config nano formating: disabled
+I (2846) system_api: Base MAC address is not set, read default base MAC address from BLK0 of EFUSE
+I (2856) system_api: Base MAC address is not set, read default base MAC address from BLK0 of EFUSE
+I (2890) wifi: Init dynamic tx buffer num: 32
+I (2890) wifi: Init data frame dynamic rx buffer num: 32
+I (2890) wifi: Init management frame dynamic rx buffer num: 32
+I (2894) wifi: wifi driver task: 3ffc83d8, prio:23, stack:4096
+I (2899) wifi: Init static rx buffer num: 10
+I (2903) wifi: Init dynamic rx buffer num: 32
+I (2907) wifi: Init rx ampdu len mblock:7
+I (2911) wifi: Init lldesc rx ampdu entry mblock:4
+I (2916) wifi: wifi power manager task: 0x3ffcd844 prio: 21 stack: 2560
+I (2922) [TFT Demo]: Setting WiFi configuration SSID LoBoInternet...
+I (2951) phy: phy_version: 359.0, e79c19d, Aug 31 2017, 17:06:07, 0, 0
+I (2951) wifi: mode : sta (24:0a:c4:11:a4:0c)
+I (3073) wifi: n:11 0, o:1 0, ap:255 255, sta:11 0, prof:1
+I (3731) wifi: state: init -> auth (b0)
+I (3734) wifi: state: auth -> assoc (0)
+I (3738) wifi: state: assoc -> run (10)
+I (3776) wifi: connected with LoBoInternet, channel 11
+I (5827) event: ip: 192.168.0.21, mask: 255.255.255.0, gw: 192.168.0.1
+I (5828) [TFT Demo]: Initializing SNTP
+I (6331) [TFT Demo]: System time is set.
+I (6331) wifi: state: run -> init (0)
+I (6332) wifi: n:11 0, o:11 0, ap:255 255, sta:11 0, prof:1
+I (6344) wifi: flush txq
+I (6344) wifi: stop sw txq
+I (6344) wifi: lmac stop hw txq
+E (6344) wifi: esp_wifi_connect 836 wifi not start
 
 
-I (9296) [SPIFFS]: Registering SPIFFS file system
-I (9296) [SPIFFS]: Mounting SPIFFS files system
-I (9296) [SPIFFS]: Start address: 0x180000; Size 1024 KB
-I (9296) [SPIFFS]:   Work buffer: 2048 B
-I (9306) [SPIFFS]:    FDS buffer: 384 B
-I (9306) [SPIFFS]:    Cache size: 2048 B
-I (9366) [SPIFFS]: Mounted
-
-==========================================
-Display: ILI9488: PORTRAIT 320,480 Color
-
-     Clear screen time: 90 ms
-Send color buffer time: 200 us (320 pixels)
-       JPG Decode time: 420 ms
-    BMP time, scale: 5: 530 ms
-    BMP time, scale: 4: 540 ms
-    BMP time, scale: 3: 550 ms
-    BMP time, scale: 2: 550 ms
-    BMP time, scale: 1: 560 ms
-    BMP time, scale: 0: 550 ms
+I (8441) [SPIFFS]: Registering SPIFFS file system
+I (8441) [SPIFFS]: Mounting SPIFFS files system
+I (8441) [SPIFFS]: Start address: 0x280000; Size 1024 KB
+I (8447) [SPIFFS]:   Work buffer: 2048 B
+I (8451) [SPIFFS]:    FDS buffer: 384 B
+I (8456) [SPIFFS]:    Cache size: 2048 B
+I (8500) [SPIFFS]: Mounted
 
 ==========================================
-Display: ILI9488: LANDSCAPE 480,320 Color
+Display: ILI9488: PORTRAIT 240,320 Color
 
-     Clear screen time: 80 ms
-Send color buffer time: 300 us (480 pixels)
-       JPG Decode time: 440 ms
-    BMP time, scale: 5: 530 ms
-    BMP time, scale: 4: 540 ms
-    BMP time, scale: 3: 540 ms
-    BMP time, scale: 2: 550 ms
-    BMP time, scale: 1: 550 ms
-    BMP time, scale: 0: 430 ms
-
-==========================================
-Display: ILI9488: PORTRAIT FLIP 320,480 Color
-
-     Clear screen time: 90 ms
-Send color buffer time: 200 us (320 pixels)
-       JPG Decode time: 410 ms
-    BMP time, scale: 5: 520 ms
-    BMP time, scale: 4: 540 ms
-    BMP time, scale: 3: 540 ms
-    BMP time, scale: 2: 550 ms
-    BMP time, scale: 1: 560 ms
-    BMP time, scale: 0: 540 ms
+     Clear screen time: 60 ms
+Send color buffer time: 228 us (240 pixels)
+       JPG Decode time: 287 ms
+    BMP time, scale: 5: 422 ms
+    BMP time, scale: 4: 431 ms
+    BMP time, scale: 3: 430 ms
+    BMP time, scale: 2: 434 ms
+    BMP time, scale: 1: 442 ms
+    BMP time, scale: 0: 335 ms
 
 ==========================================
-Display: ILI9488: LANDSCAPE FLIP 480,320 Color
+Display: ILI9488: LANDSCAPE 320,240 Color
 
-     Clear screen time: 80 ms
-Send color buffer time: 300 us (480 pixels)
-       JPG Decode time: 440 ms
-    BMP time, scale: 5: 530 ms
-    BMP time, scale: 4: 530 ms
-    BMP time, scale: 3: 550 ms
-    BMP time, scale: 2: 550 ms
-    BMP time, scale: 1: 560 ms
-    BMP time, scale: 0: 430 ms
+     Clear screen time: 57 ms
+Send color buffer time: 301 us (320 pixels)
+I (126333) event: station ip lost
+       JPG Decode time: 286 ms
+    BMP time, scale: 5: 422 ms
+    BMP time, scale: 4: 431 ms
+    BMP time, scale: 3: 433 ms
+    BMP time, scale: 2: 435 ms
+    BMP time, scale: 1: 444 ms
+    BMP time, scale: 0: 260 ms
+
+==========================================
+Display: ILI9488: PORTRAIT FLIP 240,320 Color
+
+     Clear screen time: 60 ms
+Send color buffer time: 228 us (240 pixels)
+       JPG Decode time: 287 ms
+    BMP time, scale: 5: 420 ms
+    BMP time, scale: 4: 430 ms
+    BMP time, scale: 3: 429 ms
+    BMP time, scale: 2: 436 ms
+    BMP time, scale: 1: 446 ms
+    BMP time, scale: 0: 338 ms
+
+==========================================
+Display: ILI9488: PORTRAIT FLIP 240,320 Color
+
+     Clear screen time: 60 ms
+Send color buffer time: 228 us (240 pixels)
+       JPG Decode time: 287 ms
+    BMP time, scale: 5: 420 ms
+    BMP time, scale: 4: 430 ms
+    BMP time, scale: 3: 429 ms
+    BMP time, scale: 2: 436 ms
+    BMP time, scale: 1: 446 ms
+    BMP time, scale: 0: 338 ms
+
 
 ```

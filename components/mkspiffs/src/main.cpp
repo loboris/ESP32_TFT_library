@@ -6,6 +6,7 @@
 //  Copyright (c) 2015 Ivan Grokhotkov. All rights reserved.
 //
 #define TCLAP_SETBASE_ZERO 1
+#define VERSION "0.3.6"
 
 #include <iostream>
 #include "spiffs/spiffs.h"
