@@ -757,19 +757,24 @@ void TFT_display_init()
 		commandList(disp_spi, ST7789V_init);
 	}
 	else if (tft_disp_type == DISP_TYPE_ST7735) {
+		ret = disp_select();
+		assert(ret==ESP_OK);
 		commandList(disp_spi, STP7735_init);
 	}
 	else if (tft_disp_type == DISP_TYPE_ST7735R) {
+		ret = disp_select();
+		assert(ret==ESP_OK);
 		commandList(disp_spi, STP7735R_init);
 		commandList(disp_spi, Rcmd2green);
 		commandList(disp_spi, Rcmd3);
 	}
 	else if (tft_disp_type == DISP_TYPE_ST7735B) {
+		ret = disp_select();
+		assert(ret==ESP_OK);
 		commandList(disp_spi, STP7735R_init);
 		commandList(disp_spi, Rcmd2red);
 		commandList(disp_spi, Rcmd3);
-	    uint8_t dt = 0xC0;
-		disp_select();
+		uint8_t dt = 0xC0;
 		disp_spi_transfer_cmd_data(TFT_MADCTL, &dt, 1);
 	}
 	else assert(0);
