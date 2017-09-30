@@ -387,11 +387,15 @@ static const uint8_t ILI9488_init[] = {
 // Initialization commands for 7735B screens
 // ------------------------------------
 static const uint8_t STP7735_init[] = {
-  17,						// 18 commands in list:
+#if PIN_NUM_RST
+  17,                   		// 17 commands in list
+#else
+  18,					// 18 commands in list:
   ST7735_SLPOUT ,   TFT_CMD_DELAY,	//  2: Out of sleep mode, no args, w/delay
   255,						//     255 = 500 ms delay
+#endif
   TFT_CMD_PIXFMT , 1+TFT_CMD_DELAY,	//  3: Set color mode, 1 arg + delay:
-  1, 0x06,							//     18-bit color 6-6-6 color format
+  0x06,						//     18-bit color 6-6-6 color format
   10,						//     10 ms delay
   ST7735_FRMCTR1, 3+TFT_CMD_DELAY,	//  4: Frame rate control, 3 args + delay:
   0x00,						//     fastest refresh
@@ -447,9 +451,13 @@ static const uint8_t STP7735_init[] = {
 // Init for 7735R, part 1 (red or green tab)
 // --------------------------------------
 static const uint8_t  STP7735R_init[] = {
-  15,						// 15 commands in list:
+#if PIN_NUM_RST
+  14,            			// 14 commands in list
+#else
+  15,					// 15 commands in list:
   ST7735_SWRESET,   TFT_CMD_DELAY,	//  1: Software reset, 0 args, w/delay
   150,						//     150 ms delay
+#endif
   ST7735_SLPOUT ,   TFT_CMD_DELAY,	//  2: Out of sleep mode, 0 args, w/delay
   255,						//     500 ms delay
   ST7735_FRMCTR1, 3      ,	//  3: Frame rate ctrl - normal mode, 3 args:
