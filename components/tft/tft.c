@@ -41,7 +41,7 @@ extern uint8_t tft_Ubuntu16[];
 extern uint8_t tft_Comic24[];
 extern uint8_t tft_minya24[];
 extern uint8_t tft_tooney32[];
-
+extern uint8_t tft_def_small[];
 
 // ==== Color definitions constants ==============
 const color_t TFT_BLACK       = {   0,   0,   0 };
@@ -1507,6 +1507,7 @@ void TFT_setFont(uint8_t font, const char *font_file)
 	  else if (font == MINYA24_FONT) cfont.font = tft_minya24;
 	  else if (font == TOONEY32_FONT) cfont.font = tft_tooney32;
 	  else if (font == SMALL_FONT) cfont.font = tft_SmallFont;
+	  else if (font == DEF_SMALL_FONT) cfont.font = tft_def_small;
 	  else cfont.font = tft_DefaultFont;
 
 	  cfont.bitmap = 1;
@@ -2385,9 +2386,9 @@ void TFT_jpg_image(int x, int y, uint8_t scale, char *fname, uint8_t *buf, int s
 	dev.linbuf[1] = NULL;
     dev.linbuf_idx = 0;
 
+   	dev.fhndl = NULL;
     if (fname == NULL) {
     	// image from buffer
-    	dev.fhndl = NULL;
         dev.membuff = buf;
         dev.bufsize = size;
         dev.bufptr = 0;

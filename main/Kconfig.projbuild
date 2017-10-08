@@ -24,11 +24,25 @@ config SPIFFS_LOG_PAGE_SIZE
     help
 	Set it to the phisycal page size og the used SPI Flash chip.
 
-config EXAMPLE_ESP_WROVER_KIT
-    bool "Running on ESP-WROVER-KIT"
-    default n
-    help
-        Select if usung the display on ESP-WROVER-KIT
+config EXAMPLE_DISPLAY_TYPE
+    int
+    default 0 if EXAMPLE_DISPLAY_TYPE0
+    default 1 if EXAMPLE_DISPLAY_TYPE1
+    default 2 if EXAMPLE_DISPLAY_TYPE2
+
+    choice
+        prompt "Select predefined display configuration"
+        default EXAMPLE_DISPLAY_TYPE0
+        help
+            Select predefined display configuration
+    
+        config EXAMPLE_DISPLAY_TYPE0
+            bool "None"
+        config EXAMPLE_DISPLAY_TYPE1
+            bool "ESP-WROVER-KIT Display"
+        config EXAMPLE_DISPLAY_TYPE2
+            bool "Adafruit TFT Feather display"
+    endchoice
 
 config EXAMPLE_USE_WIFI
     bool "Use wifi in TFT Demo"

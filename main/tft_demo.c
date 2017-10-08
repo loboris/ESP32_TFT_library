@@ -42,7 +42,7 @@
 
 // ==================================================
 // Define which spi bus to use VSPI_HOST or HSPI_HOST
-#define SPI_BUS VSPI_HOST
+#define SPI_BUS HSPI_HOST
 // ==================================================
 
 
@@ -263,11 +263,17 @@ static color_t random_color() {
 //---------------------
 static void _dispTime()
 {
-	time(&time_now);
+	Font curr_font = cfont;
+    if (_width < 240) TFT_setFont(DEF_SMALL_FONT, NULL);
+	else TFT_setFont(DEFAULT_FONT, NULL);
+
+    time(&time_now);
 	time_last = time_now;
 	tm_info = localtime(&time_now);
 	sprintf(tmp_buff, "%02d:%02d:%02d", tm_info->tm_hour, tm_info->tm_min, tm_info->tm_sec);
 	TFT_print(tmp_buff, CENTER, _height-TFT_getfontheight()-5);
+
+    cfont = curr_font;
 }
 
 //---------------------------------
@@ -279,7 +285,8 @@ static void disp_header(char *info)
 	_fg = TFT_YELLOW;
 	_bg = (color_t){ 64, 64, 64 };
 
-	TFT_setFont(DEFAULT_FONT, NULL);
+    if (_width < 240) TFT_setFont(DEF_SMALL_FONT, NULL);
+	else TFT_setFont(DEFAULT_FONT, NULL);
 	TFT_fillRect(0, 0, _width-1, TFT_getfontheight()+8, _bg);
 	TFT_drawRect(0, 0, _width-1, TFT_getfontheight()+8, TFT_CYAN);
 
@@ -306,7 +313,8 @@ static void update_header(char *hdr, char *ftr)
 	last_fg = _fg;
 	_fg = TFT_YELLOW;
 	_bg = (color_t){ 64, 64, 64 };
-	TFT_setFont(DEFAULT_FONT, NULL);
+    if (_width < 240) TFT_setFont(DEF_SMALL_FONT, NULL);
+	else TFT_setFont(DEFAULT_FONT, NULL);
 
 	if (hdr) {
 		TFT_fillRect(1, 1, _width-3, TFT_getfontheight()+6, _bg);
@@ -443,9 +451,6 @@ static void font_demo()
 		text_wrap = 1;
 		for (int f=0; f<3; f++) {
 			TFT_fillWindow(TFT_BLACK);
-			TFT_setFont(DEFAULT_FONT, NULL);
-			_fg = TFT_YELLOW;
-			TFT_print((char *)file_fonts[f], 0, (dispWin.y2-dispWin.y1)-TFT_getfontheight()-4);
 			update_header(NULL, "");
 
 			TFT_setFont(USER_FONT, file_fonts[f]);
@@ -457,7 +462,12 @@ static void font_demo()
 				TFT_print("Welcome to ESP32\nThis is user font.", 0, 8);
 				n++;
 			}
-			font_line_space = 0;
+			if ((_width < 240) || (_height < 240)) TFT_setFont(DEF_SMALL_FONT, NULL);
+            else TFT_setFont(DEFAULT_FONT, NULL);
+			_fg = TFT_YELLOW;
+			TFT_print((char *)file_fonts[f], 0, (dispWin.y2-dispWin.y1)-TFT_getfontheight()-4);
+
+            font_line_space = 0;
 			sprintf(tmp_buff, "%d STRINGS", n);
 			update_header(NULL, tmp_buff);
 			Wait(-GDEMO_INFO_TIME);
@@ -507,14 +517,16 @@ static void font_demo()
 		_fg = TFT_ORANGE;
 		sprintf(tmp_buff, "%02d:%02d:%03d", tm_info->tm_min, tm_info->tm_sec, ms);
 		TFT_setFont(FONT_7SEG, NULL);
-		set_7seg_font_atrib(12, 2, 1, TFT_DARKGREY);
+        if ((_width < 240) || (_height < 240)) set_7seg_font_atrib(8, 1, 1, TFT_DARKGREY);
+		else set_7seg_font_atrib(12, 2, 1, TFT_DARKGREY);
 		//TFT_clearStringRect(12, y, tmp_buff);
 		TFT_print(tmp_buff, CENTER, y);
 		n++;
 
 		_fg = TFT_GREEN;
 		y += TFT_getfontheight() + 12;
-		set_7seg_font_atrib(14, 3, 1, TFT_DARKGREY);
+		if ((_width < 240) || (_height < 240)) set_7seg_font_atrib(9, 1, 1, TFT_DARKGREY);
+        else set_7seg_font_atrib(14, 3, 1, TFT_DARKGREY);
 		sprintf(tmp_buff, "%02d:%02d", tm_info->tm_sec, ms / 10);
 		//TFT_clearStringRect(12, y, tmp_buff);
 		TFT_print(tmp_buff, CENTER, y);
@@ -539,7 +551,8 @@ static void font_demo()
 	TFT_drawRect(38, 48, (_width*3/4) - 36, (_height*3/4) - 46, TFT_WHITE);
 	TFT_setclipwin(40, 50, _width*3/4, _height*3/4);
 
-	TFT_setFont(UBUNTU16_FONT, NULL);
+	if ((_width < 240) || (_height < 240)) TFT_setFont(DEF_SMALL_FONT, NULL);
+    else TFT_setFont(UBUNTU16_FONT, NULL);
 	text_wrap = 1;
 	end_time = clock() + GDEMO_TIME;
 	n = 0;
@@ -886,8 +899,8 @@ static void triangle_demo()
 //---------------------
 static void poly_demo()
 {
-	uint16_t x, y, r, rot, oldrot;
-	int i, n;
+	uint16_t x, y, rot, oldrot;
+	int i, n, r;
 	uint8_t sides[6] = {3, 4, 5, 6, 8, 10};
 	color_t color[6] = {TFT_WHITE, TFT_CYAN, TFT_RED,       TFT_BLUE,     TFT_YELLOW,     TFT_ORANGE};
 	color_t fill[6]  = {TFT_BLUE,  TFT_NAVY,   TFT_DARKGREEN, TFT_DARKGREY, TFT_LIGHTGREY, TFT_OLIVE};
@@ -908,6 +921,7 @@ static void poly_demo()
 			TFT_drawPolygon(x, y, sides[i], r, TFT_BLACK, TFT_BLACK, oldrot, 1);
 			TFT_drawPolygon(x, y, sides[i], r, color[i], color[i], rot, 1);
 			r -= 16;
+            if (r <= 0) break;
 			n += 2;
 		}
 		Wait(100);
@@ -929,6 +943,7 @@ static void poly_demo()
 		for (i=5; i>=0; i--) {
 			TFT_drawPolygon(x, y, sides[i], r, color[i], fill[i], rot, 2);
 			r -= 16;
+            if (r <= 0) break;
 			n += 2;
 		}
 		Wait(500);
@@ -999,7 +1014,32 @@ void tft_demo() {
 
 	image_debug = 0;
 
-	uint8_t disp_rot = PORTRAIT;
+    char dtype[16];
+    
+    switch (tft_disp_type) {
+        case DISP_TYPE_ILI9341:
+            sprintf(dtype, "ILI9341");
+            break;
+        case DISP_TYPE_ILI9488:
+            sprintf(dtype, "ILI9488");
+            break;
+        case DISP_TYPE_ST7789V:
+            sprintf(dtype, "ST7789V");
+            break;
+        case DISP_TYPE_ST7735:
+            sprintf(dtype, "ST7735");
+            break;
+        case DISP_TYPE_ST7735R:
+            sprintf(dtype, "ST7735R");
+            break;
+        case DISP_TYPE_ST7735B:
+            sprintf(dtype, "ST7735B");
+            break;
+        default:
+            sprintf(dtype, "Unknown");
+    }
+    
+    uint8_t disp_rot = PORTRAIT;
 	_demo_pass = 0;
 	gray_scale = 0;
 	doprint = 1;
@@ -1049,7 +1089,7 @@ void tft_demo() {
 			if (disp_rot == 3) sprintf(tmp_buff, "PORTRAIT FLIP");
 			if (disp_rot == 0) sprintf(tmp_buff, "LANDSCAPE FLIP");
 			printf("\r\n==========================================\r\nDisplay: %s: %s %d,%d %s\r\n\r\n",
-					((tft_disp_type == DISP_TYPE_ILI9341) ? "ILI9341" : "ILI9488"), tmp_buff, _width, _height, ((gray_scale) ? "Gray" : "Color"));
+					dtype, tmp_buff, _width, _height, ((gray_scale) ? "Gray" : "Color"));
 		}
 
 		disp_header("Welcome to ESP32");
@@ -1088,6 +1128,7 @@ void app_main()
     tft_disp_type = DEFAULT_DISP_TYPE;
 	//tft_disp_type = DISP_TYPE_ILI9341;
 	//tft_disp_type = DISP_TYPE_ILI9488;
+	//tft_disp_type = DISP_TYPE_ST7735B;
     // ===================================================
 
 	// ===================================================
@@ -1096,6 +1137,8 @@ void app_main()
     // === DEFAULT_TFT_DISPLAY_HEIGHT                  ===
 	_width = DEFAULT_TFT_DISPLAY_WIDTH;  // smaller dimension
 	_height = DEFAULT_TFT_DISPLAY_HEIGHT; // larger dimension
+	//_width = 128;  // smaller dimension
+	//_height = 160; // larger dimension
 	// ===================================================
 
 	// ===================================================
@@ -1105,11 +1148,12 @@ void app_main()
 	max_rdclock = 8000000;
 	// ===================================================
 
+    // ====================================================================
+    // === Pins MUST be initialized before SPI interface initialization ===
+    // ====================================================================
+    TFT_PinsInit();
 
     // ====  CONFIGURE SPI DEVICES(s)  ====================================================================================
-
-    gpio_set_direction(PIN_NUM_MISO, GPIO_MODE_INPUT);
-    gpio_set_pull_mode(PIN_NUM_MISO, GPIO_PULLUP_ONLY);
 
     spi_lobo_device_handle_t spi;
 	
@@ -1129,12 +1173,12 @@ void app_main()
 		.flags=SPI_DEVICE_HALFDUPLEX,           // ALWAYS SET  to HALF DUPLEX MODE!! for display spi
     };
 
-#if USE_TOUCH
+#if USE_TOUCH == 1
     spi_lobo_device_handle_t tsspi = NULL;
 
     spi_lobo_device_interface_config_t tsdevcfg={
         .clock_speed_hz=2500000,                //Clock out at 2.5 MHz
-        .mode=0,                                //SPI mode 2
+        .mode=0,                                //SPI mode 0
         .spics_io_num=PIN_NUM_TCS,              //Touch CS pin
 		.spics_ext_io_num=-1,                   //Not using the external CS
 		.command_bits=8,                        //1 byte command
@@ -1143,10 +1187,14 @@ void app_main()
     // ====================================================================================================================
 
 
-
-	vTaskDelay(500 / portTICK_RATE_MS);
+    vTaskDelay(500 / portTICK_RATE_MS);
 	printf("\r\n==============================\r\n");
-    printf("TFT display DEMO, LoBo 09/2017\r\n");
+    printf("TFT display DEMO, LoBo 10/2017\r\n");
+	printf("==============================\r\n");
+    printf("Pins used: miso=%d, mosi=%d, sck=%d, cs=%d\r\n", PIN_NUM_MISO, PIN_NUM_MOSI, PIN_NUM_CLK, PIN_NUM_CS);
+#if USE_TOUCH
+    printf(" Touch CS: %d\r\n", PIN_NUM_TCS);
+#endif
 	printf("==============================\r\n\r\n");
 
 	// ==================================================================
@@ -1191,11 +1239,15 @@ void app_main()
 	TFT_display_init();
     printf("OK\r\n");
 	
-	// ==== Set SPI clock used for display operations ====
+	// ---- Detect maximum read speed ----
+	max_rdclock = find_rd_speed();
+	printf("SPI: Max rd speed = %u\r\n", max_rdclock);
+
+    // ==== Set SPI clock used for display operations ====
 	spi_lobo_set_speed(spi, DEFAULT_SPI_CLOCK);
 	printf("SPI: Changed speed to %u\r\n", spi_lobo_get_speed(spi));
 
-	printf("\r\n---------------------\r\n");
+    printf("\r\n---------------------\r\n");
 	printf("Graphics demo started\r\n");
 	printf("---------------------\r\n");
 
@@ -1259,9 +1311,6 @@ void app_main()
     	TFT_print("SPIFFS Mounted.", CENTER, LASTY+TFT_getfontheight()+2);
     }
 	Wait(-2000);
-
-	// ---- Detect maximum read speed ----
-	max_rdclock = find_rd_speed();
 
 	//=========
     // Run demo

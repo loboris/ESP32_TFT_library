@@ -25,12 +25,21 @@
 #define DISP_TYPE_ST7735B	5
 #define DISP_TYPE_MAX		6
 
-#ifdef CONFIG_EXAMPLE_ESP_WROVER_KIT
+#if CONFIG_EXAMPLE_DISPLAY_TYPE == 1
 
-#define DISP_COLOR_BITS_24	0x66
-#define TFT_INVERT_ROTATION 0
-#define TFT_INVERT_ROTATION1 1
-#define TFT_RGB_BGR 0x00
+// ** Set the correct configuration for ESP32-WROVER-KIT v3
+// --------------------------------------------------------
+#define DEFAULT_DISP_TYPE           DISP_TYPE_ST7789V
+#define DEFAULT_TFT_DISPLAY_WIDTH   240
+#define DEFAULT_TFT_DISPLAY_HEIGHT  320
+#define DISP_COLOR_BITS_24          0x66
+#define DEFAULT_GAMMA_CURVE         0
+#define DEFAULT_SPI_CLOCK           26000000
+#define TFT_INVERT_ROTATION         0
+#define TFT_INVERT_ROTATION1        1
+#define TFT_RGB_BGR                 0x00
+
+#define USE_TOUCH	0
 
 #define PIN_NUM_MISO 25		// SPI MISO
 #define PIN_NUM_MOSI 23		// SPI MOSI
@@ -38,23 +47,48 @@
 #define PIN_NUM_CS   22		// Display CS pin
 #define PIN_NUM_DC   21		// Display command/data pin
 #define PIN_NUM_TCS   0		// Touch screen CS pin
-#define PIN_NUM_RST 18  	// GPIO used for RESET control
-#define PIN_NUM_BCKL 5      // GPIO used for backlight control
-#define PIN_BCKL_ON 0       // GPIO value for backlight ON
-#define PIN_BCKL_OFF 1      // GPIO value for backlight OFF
 
-#define USE_TOUCH	0
+#define PIN_NUM_RST  18  	// GPIO used for RESET control
+#define PIN_NUM_BCKL  5     // GPIO used for backlight control
+#define PIN_BCKL_ON   0     // GPIO value for backlight ON
+#define PIN_BCKL_OFF  1     // GPIO value for backlight OFF
+// --------------------------------------------------------
 
-#define DEFAULT_TFT_DISPLAY_WIDTH  240
-#define DEFAULT_TFT_DISPLAY_HEIGHT 320
-#define DEFAULT_GAMMA_CURVE 0
-#define DEFAULT_SPI_CLOCK   26000000
-#define DEFAULT_DISP_TYPE   DISP_TYPE_ST7789V
+#elif CONFIG_EXAMPLE_DISPLAY_TYPE == 2
+
+// ** Set the correct configuration for Adafruit TFT Feather
+// ---------------------------------------------------------
+#define DEFAULT_DISP_TYPE   DISP_TYPE_ILI9341
+#define DEFAULT_TFT_DISPLAY_WIDTH   240
+#define DEFAULT_TFT_DISPLAY_HEIGHT  320
+#define DISP_COLOR_BITS_24          0x66
+#define DEFAULT_GAMMA_CURVE         0
+#define DEFAULT_SPI_CLOCK           26000000
+#define TFT_INVERT_ROTATION         0
+#define TFT_INVERT_ROTATION1        0
+#define TFT_RGB_BGR                 0x08
+
+#define USE_TOUCH                   0
+
+#define PIN_NUM_MISO 19		// SPI MISO
+#define PIN_NUM_MOSI 18		// SPI MOSI
+#define PIN_NUM_CLK  5		// SPI CLOCK pin
+#define PIN_NUM_CS   15		// Display CS pin
+#define PIN_NUM_DC   33		// Display command/data pin
+#define PIN_NUM_TCS  32		// Touch screen CS pin (NOT used if USE_TOUCH=0)
+
+#define PIN_NUM_RST  0  	// GPIO used for RESET control (#16)
+#define PIN_NUM_BCKL 0  	// GPIO used for backlight control
+#define PIN_BCKL_ON  0  	// GPIO value for backlight ON
+#define PIN_BCKL_OFF 1  	// GPIO value for backlight OFF
+// ---------------------------------------------------------
 
 #else
 
+// Configuration for other boards, set the correct values for the display used
+//----------------------------------------------------------------------------
 #define DISP_COLOR_BITS_24	0x66
-//#define DISP_COLOR_BITS_16	0x55
+//#define DISP_COLOR_BITS_16	0x55  // Do not use!
 
 // #############################################
 // ### Set to 1 for some displays,           ###
@@ -74,23 +108,24 @@
 // ### Define ESP32 SPI pins to which the display is attached ###
 // ##############################################################
 
+// The pins configured here are the native spi pins for HSPI interface
+// Any other valid pin combination can be used
 #define PIN_NUM_MISO 19		// SPI MISO
 #define PIN_NUM_MOSI 23		// SPI MOSI
 #define PIN_NUM_CLK  18		// SPI CLOCK pin
 #define PIN_NUM_CS   5		// Display CS pin
 #define PIN_NUM_DC   26		// Display command/data pin
-#define PIN_NUM_TCS  25		// Touch screen CS pin
+#define PIN_NUM_TCS  25		// Touch screen CS pin (NOT used if USE_TOUCH=0)
 
 // --------------------------------------------------------------
-// ** Set Reset and Backlight pins to 0 if not used
+// ** Set Reset and Backlight pins to 0 if not used !
 // ** If you want to use them, set them to some valid GPIO number
-#define PIN_NUM_RST  0	// GPIO used for RESET control
+#define PIN_NUM_RST  0  	// GPIO used for RESET control
 
-#define PIN_NUM_BCKL 0	// GPIO used for backlight control
-#define PIN_BCKL_ON 0	// GPIO value for backlight ON
-#define PIN_BCKL_OFF 1	// GPIO value for backlight OFF
+#define PIN_NUM_BCKL 0  	// GPIO used for backlight control
+#define PIN_BCKL_ON  0  	// GPIO value for backlight ON
+#define PIN_BCKL_OFF 1  	// GPIO value for backlight OFF
 // --------------------------------------------------------------
-// ##############################################################
 
 // #######################################################
 // Set this to 1 if you want to use touch screen functions
@@ -106,10 +141,12 @@
 // #######################################################################
 
 #define DEFAULT_GAMMA_CURVE 0
-#define DEFAULT_SPI_CLOCK   40000000
+#define DEFAULT_SPI_CLOCK   26000000
 #define DEFAULT_DISP_TYPE   DISP_TYPE_ILI9341
+//----------------------------------------------------------------------------
 
-#endif
+#endif  // CONFIG_EXAMPLE_ESP_WROVER_KIT
+
 
 // ##############################################################
 // #### Global variables                                     ####
@@ -134,7 +171,7 @@ extern spi_lobo_device_handle_t ts_spi;
 
 // ##############################################################
 
-
+// 24-bit color type structure
 typedef struct __attribute__((__packed__)) {
 //typedef struct {
 	uint8_t r;
@@ -248,7 +285,7 @@ typedef struct __attribute__((__packed__)) {
 #define TFT_CMD_DELAY	0x80
 
 
-// Initialization sequence for ILI7341
+// Initialization sequence for ILI7749
 // ====================================
 static const uint8_t ST7789V_init[] = {
 #if PIN_NUM_RST
@@ -283,7 +320,7 @@ static const uint8_t ILI9341_init[] = {
 #else
   24,                   					        // 24 commands in list
   TFT_CMD_SWRESET, TFT_CMD_DELAY,					//  1: Software reset, no args, w/delay
-  200,												//     200 ms delay
+  250,												//     200 ms delay
 #endif
   TFT_CMD_POWERA, 5, 0x39, 0x2C, 0x00, 0x34, 0x02,
   TFT_CMD_POWERB, 3, 0x00, 0XC1, 0X30,
@@ -311,8 +348,8 @@ static const uint8_t ILI9341_init[] = {
   TFT_CMD_GMCTRN1, 15,   							//Negative Gamma Correction
   0x00, 0x0E, 0x14, 0x03, 0x11, 0x07, 0x31, 0xC1, 0x48, 0x08, 0x0F, 0x0C, 0x31, 0x36, 0x0F,
   TFT_CMD_SLPOUT, TFT_CMD_DELAY,					//  Sleep out
-  120,			 									//  120 ms delay
-  TFT_DISPON, TFT_CMD_DELAY, 120,
+  200,			 									//  120 ms delay
+  TFT_DISPON, TFT_CMD_DELAY, 200,
 };
 
 // Initialization sequence for ILI9488
@@ -387,12 +424,16 @@ static const uint8_t ILI9488_init[] = {
 // Initialization commands for 7735B screens
 // ------------------------------------
 static const uint8_t STP7735_init[] = {
+#if PIN_NUM_RST
+  16,                       // 17 commands in list
+#else
   17,						// 18 commands in list:
-  ST7735_SLPOUT ,   TFT_CMD_DELAY,	//  2: Out of sleep mode, no args, w/delay
-  255,						//     255 = 500 ms delay
-  TFT_CMD_PIXFMT , 1+TFT_CMD_DELAY,	//  3: Set color mode, 1 arg + delay:
-  1, 0x06,							//     18-bit color 6-6-6 color format
-  10,						//     10 ms delay
+  ST7735_SLPOUT,   TFT_CMD_DELAY,	//  2: Out of sleep mode, no args, w/delay
+  255,			           			//     255 = 500 ms delay
+#endif
+  TFT_CMD_PIXFMT, 1+TFT_CMD_DELAY,	//  3: Set color mode, 1 arg + delay:
+  0x06, 							//     18-bit color 6-6-6 color format
+  10,	          					//     10 ms delay
   ST7735_FRMCTR1, 3+TFT_CMD_DELAY,	//  4: Frame rate control, 3 args + delay:
   0x00,						//     fastest refresh
   0x06,						//     6 lines front porch
@@ -447,9 +488,13 @@ static const uint8_t STP7735_init[] = {
 // Init for 7735R, part 1 (red or green tab)
 // --------------------------------------
 static const uint8_t  STP7735R_init[] = {
+#if PIN_NUM_RST
+  14,                       // 14 commands in list
+#else
   15,						// 15 commands in list:
   ST7735_SWRESET,   TFT_CMD_DELAY,	//  1: Software reset, 0 args, w/delay
   150,						//     150 ms delay
+#endif
   ST7735_SLPOUT ,   TFT_CMD_DELAY,	//  2: Out of sleep mode, 0 args, w/delay
   255,						//     500 ms delay
   ST7735_FRMCTR1, 3      ,	//  3: Frame rate ctrl - normal mode, 3 args:
@@ -564,8 +609,14 @@ uint32_t find_rd_speed();
 //=================================
 void _tft_setRotation(uint8_t rot);
 
+// Initialize all pins used by display driver
+// ** MUST be executed before SPI interface initialization
+//=================
+void TFT_PinsInit();
+
 // Perform display initialization sequence
 // Sets orientation to landscape; clears the screen
+// * All pins must be configured
 // * SPI interface must already be setup
 // * 'tft_disp_type', 'COLOR_BITS', '_width', '_height' variables must be set
 //======================

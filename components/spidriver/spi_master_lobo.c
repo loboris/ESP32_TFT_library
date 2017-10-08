@@ -815,8 +815,7 @@ esp_err_t IRAM_ATTR spi_lobo_device_select(spi_lobo_device_handle_t handle, int 
 	}
 
 	if ((handle->cfg.spics_io_num < 0) && (handle->cfg.spics_ext_io_num > 0)) {
-		//gpio_set_level(handle->cfg.spics_ext_io_num, 0);
-		GPIO.out_w1tc = (1 << handle->cfg.spics_ext_io_num);
+		gpio_set_level(handle->cfg.spics_ext_io_num, 0);
 	}
 
 	handle->cfg.selected = 1;
@@ -841,8 +840,7 @@ esp_err_t IRAM_ATTR spi_lobo_device_deselect(spi_lobo_device_handle_t handle)
 	
 	if (host->device[host->cur_device] == handle) {
 		if ((handle->cfg.spics_io_num < 0) && (handle->cfg.spics_ext_io_num > 0)) {
-			//gpio_set_level(handle->cfg.spics_ext_io_num, 1);
-			GPIO.out_w1ts = (1 << handle->cfg.spics_ext_io_num);
+			gpio_set_level(handle->cfg.spics_ext_io_num, 1);
 		}
 	}
 
@@ -971,7 +969,7 @@ esp_err_t IRAM_ATTR spi_lobo_transfer_data(spi_lobo_device_handle_t handle, spi_
 		if (ret) return ret;
 		do_deselect = 1;     // We will deselect the device after the operation !
 	}
-	
+
 	// ** Call pre-transmission callback, if any
 	if (handle->cfg.pre_cb) handle->cfg.pre_cb(trans);
 
@@ -982,18 +980,11 @@ esp_err_t IRAM_ATTR spi_lobo_transfer_data(spi_lobo_device_handle_t handle, spi_
     uint32_t bits, rdbits;
 	uint32_t wd;
 	uint8_t bc, rdidx;
-	uint32_t rdcount = rxlen;  // Total number of bytes to read
-	uint32_t rd_read = 0;      // Number of bytes read so far
+	uint32_t rdcount = rxlen;	// Total number of bytes to read
+	uint32_t count = 0;			// number of bytes transmitted
+	uint32_t rd_read = 0;		// Number of bytes read so far
 
-	host->hw->user.usr_mosi_highpart = 0;
-
-    // ** Check if mosi phase will be used
-    if ((txbuffer != NULL) && (txlen > 0)) host->hw->user.usr_mosi = 1;  // We have to send some data
-	else host->hw->user.usr_mosi = 0;                                    // Nothing to send, no mosi phase
-
-    // ** Check if miso phase will be used
-	if ((rxbuffer != NULL) && (rxlen > 0)) host->hw->user.usr_miso = 1;  // We have to receive some data
-	else host->hw->user.usr_miso = 0;                                    // Nothing to receive, no miso phase
+	host->hw->user.usr_mosi_highpart = 0; // use the whole spi buffer
 
     // ** Check if address phase will be used
 	host->hw->user2.usr_command_value=trans->command;
@@ -1004,20 +995,14 @@ esp_err_t IRAM_ATTR spi_lobo_transfer_data(spi_lobo_device_handle_t handle, spi_
 		host->hw->addr=trans->address & 0xffffffff;
 	}
 
-	// ---------------------------------------------------------------------
-	// *** If host->hw->user.usr_mosi == 1 we have to transmit some data ***
-	//     host->hw->user.usr_mosi == 0  if no data needs to be transmitted
-	// ---------------------------------------------------------------------
-	if (host->hw->user.usr_mosi == 1) {
+	// Check if we have to transmit some data
+	if (txlen > 0) {
+		host->hw->user.usr_mosi = 1;
 		uint8_t idx;
-		uint32_t count;
+		bits = 0;				// remaining bits to send
+		idx = 0;				// index to spi hw data_buf (16 32-bit words, 64 bytes, 512 bits)
 
-		bits = 0;   // remaining bits to send
-		rdbits = 0; // remaining bits to receive
-		idx = 0;    // index to spi hw data_buf (16 32-bit words, 64 bytes, 512 bits)
-		count = 0;  // number of bytes transmitted so far
-
-        // ** Transimit 'txlen' bytes
+        // ** Transmit 'txlen' bytes
 		while (count < txlen) {
 			wd = 0;
 			for (bc=0;bc<32;bc+=8) {
@@ -1029,139 +1014,137 @@ esp_err_t IRAM_ATTR spi_lobo_transfer_data(spi_lobo_device_handle_t handle, spi_
 			host->hw->data_buf[idx] = wd;
 			idx++;
 			if (idx == 16) {
-				// Hw SPI buffer full (all 64 bytes filled, START THE TRANSSACTION
+				// hw SPI buffer full (all 64 bytes filled, START THE TRANSSACTION
 				host->hw->mosi_dlen.usr_mosi_dbitlen=bits-1;            // Set mosi dbitlen
 
-				if ((duplex) && (host->hw->user.usr_miso == 1)) {
+				if ((duplex) && (rdcount > 0)) {
                     // In full duplex mode we are receiving while sending !
-			    	if (rdcount <= 64) rdbits = rdcount * 8;
-			    	else rdbits = 64 * 8;
-					host->hw->mosi_dlen.usr_mosi_dbitlen = rdbits-1;    // Set miso dbitlen
+					host->hw->miso_dlen.usr_miso_dbitlen = bits-1;      // Set miso dbitlen
+					host->hw->user.usr_miso = 1;
 				}
-				else host->hw->miso_dlen.usr_miso_dbitlen = 0;          // In half duplex mode nothing will be received
+				else {
+					host->hw->miso_dlen.usr_miso_dbitlen = 0;           // In half duplex mode nothing will be received
+					host->hw->user.usr_miso = 0;
+				}
 
 				// ** Start the transaction ***
 				host->hw->cmd.usr=1;
                 // Wait the transaction to finish
 				while (host->hw->cmd.usr);
 
-				if ((duplex) && (host->hw->user.usr_miso == 1)) {
+				if ((duplex) && (rdcount > 0)) {
 					// *** in full duplex mode transfer received data to input buffer ***
 					rdidx = 0;
-			    	while (rdbits > 0) {
+			    	while (bits > 0) {
 						wd = host->hw->data_buf[rdidx];
 						rdidx++;
-						for (bc=0;bc<32;bc+=8) {
+						for (bc=0;bc<32;bc+=8) { // get max 4 bytes
 							rxbuffer[rd_read++] = (uint8_t)((wd >> bc) & 0xFF);
 							rdcount--;
-							rdbits -= 8;
+							bits -= 8;
 							if (rdcount == 0) {
-								// Finished reading data
-								host->hw->user.usr_miso = 0;
-								break;
+								bits = 0;
+								break; // Finished reading data
 							}
 						}
 			    	}
 				}
-
 				bits = 0;   // nothing in hw spi buffer yet
-				idx = 0;    // start from the begining of the hw spi buffer
+				idx = 0;    // start from the beginning of the hw spi buffer
 			}
 		}
-		// *** All transmit data are sent or oushed to hw spi buffer
-		// bits > 0  IF SOME DATA STILL WAITING IN THE HW SPI TRANSMIT BUFFER
+		// *** All transmit data are sent or pushed to hw spi buffer
+		// bits > 0  IF THERE ARE SOME DATA STILL WAITING IN THE HW SPI TRANSMIT BUFFER
 		if (bits > 0) {
 			// ** WE HAVE SOME DATA IN THE HW SPI TRANSMIT BUFFER
-			host->hw->mosi_dlen.usr_mosi_dbitlen=bits-1;            // Set mosi dbitlen
+			host->hw->mosi_dlen.usr_mosi_dbitlen = bits-1;          // Set mosi dbitlen
 
-			if ((duplex) && (host->hw->user.usr_miso == 1)) {
+			if ((duplex) && (rdcount > 0)) {
                 // In full duplex mode we are receiving while sending !
-		    	if (rdcount <= 64) rdbits = rdcount * 8;
-		    	else rdbits = 64 * 8;
-				host->hw->mosi_dlen.usr_mosi_dbitlen = rdbits-1;    // Set miso dbitlen
+				host->hw->miso_dlen.usr_miso_dbitlen = bits-1;      // Set miso dbitlen
+				host->hw->user.usr_miso = 1;
 			}
-			else host->hw->miso_dlen.usr_miso_dbitlen = 0;          // In half duplex mode nothing will be received
+			else {
+				host->hw->miso_dlen.usr_miso_dbitlen = 0;           // In half duplex mode nothing will be received
+				host->hw->user.usr_miso = 0;
+			}
 
 			// ** Start the transaction ***
 			host->hw->cmd.usr=1;
             // Wait the transaction to finish
 			while (host->hw->cmd.usr);
 
-			if ((duplex) && (host->hw->user.usr_miso == 1))  {
+			if ((duplex) && (rdcount > 0)) {
                 // *** in full duplex mode transfer received data to input buffer ***
 				rdidx = 0;
-		    	while (rdbits > 0) {
+		    	while (bits > 0) {
 					wd = host->hw->data_buf[rdidx];
 					rdidx++;
-					for (bc=0;bc<32;bc+=8) {
+					for (bc=0;bc<32;bc+=8) { // get max 4 bytes
 						rxbuffer[rd_read++] = (uint8_t)((wd >> bc) & 0xFF);
 						rdcount--;
-						rdbits -= 8;
+						bits -= 8;
+						if (bits == 0) break;
 						if (rdcount == 0) {
-							// Finished reading data
-							host->hw->user.usr_miso = 0;
-							break;
+							bits = 0;
+							break; // Finished reading data
 						}
 					}
 		    	}
 			}
 		}
-		if (duplex) rdcount = 0;
+		//if (duplex) rdcount = 0;  // In duplex mode receive only as many bytes as was transmitted
 	}
 
 	// ------------------------------------------------------------------------
 	// *** If rdcount = 0 we have nothing to receive and we exit the function
     //     This is true if no data receive was requested,
-    //     or the data was received in Full duplex mode during the transmission
+    //     or all the data was received in Full duplex mode during the transmission
 	// ------------------------------------------------------------------------
-	if (rdcount == 0) {
-		// ** Call post-transmission callback, if any
-		if (handle->cfg.post_cb) handle->cfg.post_cb(trans);
+	if (rdcount > 0) {
+		// ----------------------------------------------------------------------------------------------------------------
+		// *** rdcount > 0, we have to receive some data
+		//     This is true if we operate in Half duplex mode when receiving after transmission is done,
+		//     or not all data was received in Full duplex mode during the transmission (trans->rxlength > trans->txlength)
+		// ----------------------------------------------------------------------------------------------------------------
+		host->hw->user.usr_mosi = 0;  // do not send
+		host->hw->user.usr_miso = 1;  // do receive
+		while (rdcount > 0) {
+			if (rdcount <= 64) rdbits = rdcount * 8;
+			else rdbits = 64 * 8;
 
-		if (do_deselect) {
-            // Spi device was selected in this function, we have to deselect it now 
-			ret = spi_lobo_device_deselect(handle);
-			if (ret) return ret;
-		}
-		return ESP_OK;
-	}
+			// Load receive buffer
+			host->hw->mosi_dlen.usr_mosi_dbitlen=0;
+			host->hw->miso_dlen.usr_miso_dbitlen=rdbits-1;
 
-	// ----------------------------------------------------------------------------------------------------------------
-    // *** If rdcount > 0 we have to receive some data
-    //     This is true if we operate in Half duplex mode when receiving after transmission is done,
-    //     or not all data was received in Full duplex mode during the transmission (trans->rxlength > trans->txlength)
-	// ----------------------------------------------------------------------------------------------------------------
-    while (rdcount > 0) {
-    	if (rdcount <= 64) rdbits = rdcount * 8;
-    	else rdbits = 64 * 8;
+			// ** Start the transaction ***
+			host->hw->cmd.usr=1;
+			// Wait the transaction to finish
+			while (host->hw->cmd.usr);
 
-		// Load receive buffer
-		host->hw->mosi_dlen.usr_mosi_dbitlen=0;
-		host->hw->miso_dlen.usr_miso_dbitlen=rdbits-1;
-
-        // ** Start the transaction ***
-		host->hw->cmd.usr=1;
-        // Wait the transaction to finish
-		while (host->hw->cmd.usr);
-
-        // *** transfer received data to input buffer ***
-		rdidx = 0;
-    	while (rdbits > 0) {
-			wd = host->hw->data_buf[rdidx];
-			rdidx++;
-			for (bc=0;bc<32;bc+=8) {
-				rxbuffer[rd_read++] = (uint8_t)((wd >> bc) & 0xFF);
-				rdcount--;
-				rdbits -= 8;
-				if (rdcount == 0) break;
+			// *** transfer received data to input buffer ***
+			rdidx = 0;
+			while (rdbits > 0) {
+				wd = host->hw->data_buf[rdidx];
+				rdidx++;
+				for (bc=0;bc<32;bc+=8) {
+					rxbuffer[rd_read++] = (uint8_t)((wd >> bc) & 0xFF);
+					rdcount--;
+					rdbits -= 8;
+					if (rdcount == 0) {
+						rdbits = 0;
+						break;
+					}
+				}
 			}
-    	}
-    }
+		}
+	}
 
 	// ** Call post-transmission callback, if any
 	if (handle->cfg.post_cb) handle->cfg.post_cb(trans);
 
 	if (do_deselect) {
+        // Spi device was selected in this function, we have to deselect it now
 		ret = spi_lobo_device_deselect(handle);
 		if (ret) return ret;
 	}

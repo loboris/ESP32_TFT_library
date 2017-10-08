@@ -122,8 +122,9 @@ extern const color_t TFT_PINK;
 #define MINYA24_FONT	5
 #define TOONEY32_FONT	6
 #define SMALL_FONT		7
-#define FONT_7SEG		8
-#define USER_FONT		9  // font will be read from file
+#define DEF_SMALL_FONT	8
+#define FONT_7SEG		9
+#define USER_FONT		10  // font will be read from file
 
 
 

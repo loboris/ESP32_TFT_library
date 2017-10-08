@@ -22,7 +22,7 @@
 // Converts colors to grayscale if set to 1
 uint8_t gray_scale = 0;
 // Spi clock for reading data from display memory in Hz
-uint32_t max_rdclock = 16000000;
+uint32_t max_rdclock = 8000000;
 
 // Default display dimensions
 int _width = DEFAULT_TFT_DISPLAY_WIDTH;
@@ -40,10 +40,6 @@ spi_lobo_device_handle_t ts_spi = NULL;
 
 static color_t *trans_cline = NULL;
 static uint8_t _dma_sending = 0;
-
-#define DC_VAL (1 << PIN_NUM_DC)
-#define DC_CMD	GPIO.out_w1tc = (DC_VAL)
-#define DC_DATA	GPIO.out_w1ts = (DC_VAL)
 
 // RGB to GRAYSCALE constants
 // 0.2989  0.5870  0.1140
@@ -115,7 +111,7 @@ void IRAM_ATTR disp_spi_transfer_cmd(int8_t cmd) {
 	while (disp_spi->host->hw->cmd.usr);
 
 	// Set DC to 0 (command mode);
-    DC_CMD;
+    gpio_set_level(PIN_NUM_DC, 0);
 
     disp_spi->host->hw->data_buf[0] = (uint32_t)cmd;
     disp_spi_transfer_start(8);
@@ -128,7 +124,7 @@ void IRAM_ATTR disp_spi_transfer_cmd_data(int8_t cmd, uint8_t *data, uint32_t le
 	while (disp_spi->host->hw->cmd.usr);
 
     // Set DC to 0 (command mode);
-    DC_CMD;
+    gpio_set_level(PIN_NUM_DC, 0);
 
     disp_spi->host->hw->data_buf[0] = (uint32_t)cmd;
     disp_spi_transfer_start(8);
@@ -136,8 +132,7 @@ void IRAM_ATTR disp_spi_transfer_cmd_data(int8_t cmd, uint8_t *data, uint32_t le
 	if ((len == 0) || (data == NULL)) return;
 
     // Set DC to 1 (data mode);
-	DC_DATA;
-    //GPIO.out_w1ts = (1 << PIN_NUM_DC);
+	gpio_set_level(PIN_NUM_DC, 1);
 
 	uint8_t idx=0, bidx=0;
 	uint32_t bits=0;
@@ -179,7 +174,7 @@ static void IRAM_ATTR disp_spi_transfer_addrwin(uint16_t x1, uint16_t x2, uint16
     taskDISABLE_INTERRUPTS();
 	// Wait for SPI bus ready
 	while (disp_spi->host->hw->cmd.usr);
-    DC_CMD;
+    gpio_set_level(PIN_NUM_DC, 0);
 
 	disp_spi->host->hw->data_buf[0] = (uint32_t)TFT_CASET;
 	disp_spi->host->hw->user.usr_mosi_highpart = 0;
@@ -196,13 +191,13 @@ static void IRAM_ATTR disp_spi_transfer_addrwin(uint16_t x1, uint16_t x2, uint16
 	wd |= (uint32_t)(x2&0xff) << 24;
 
 	while (disp_spi->host->hw->cmd.usr); // wait transfer end
-	DC_DATA;
+	gpio_set_level(PIN_NUM_DC, 1);
 	disp_spi->host->hw->data_buf[0] = wd;
 	disp_spi->host->hw->mosi_dlen.usr_mosi_dbitlen = 31;
 	disp_spi->host->hw->cmd.usr = 1; // Start transfer
 
     while (disp_spi->host->hw->cmd.usr);
-    DC_CMD;
+    gpio_set_level(PIN_NUM_DC, 0);
     disp_spi->host->hw->data_buf[0] = (uint32_t)TFT_PASET;
 	disp_spi->host->hw->mosi_dlen.usr_mosi_dbitlen = 7;
 	disp_spi->host->hw->cmd.usr = 1; // Start transfer
@@ -213,7 +208,7 @@ static void IRAM_ATTR disp_spi_transfer_addrwin(uint16_t x1, uint16_t x2, uint16
 	wd |= (uint32_t)(y2&0xff) << 24;
 
 	while (disp_spi->host->hw->cmd.usr);
-	DC_DATA;
+	gpio_set_level(PIN_NUM_DC, 1);
 
 	disp_spi->host->hw->data_buf[0] = wd;
 	disp_spi->host->hw->mosi_dlen.usr_mosi_dbitlen = 31;
@@ -256,7 +251,7 @@ void IRAM_ATTR drawPixel(int16_t x, int16_t y, color_t color, uint8_t sel)
 	disp_spi_transfer_addrwin(x, x+1, y, y+1);
 
 	// Send RAM WRITE command
-    DC_CMD;
+    gpio_set_level(PIN_NUM_DC, 0);
     disp_spi->host->hw->data_buf[0] = (uint32_t)TFT_RAMWR;
 	disp_spi->host->hw->mosi_dlen.usr_mosi_dbitlen = 7;
 	disp_spi->host->hw->cmd.usr = 1;		// Start transfer
@@ -267,7 +262,7 @@ void IRAM_ATTR drawPixel(int16_t x, int16_t y, color_t color, uint8_t sel)
 	wd |= (uint32_t)_color.b << 16;
 
     // Set DC to 1 (data mode);
-	DC_DATA;
+	gpio_set_level(PIN_NUM_DC, 1);
 
 	disp_spi->host->hw->data_buf[0] = wd;
 	disp_spi->host->hw->mosi_dlen.usr_mosi_dbitlen = 23;
@@ -364,13 +359,13 @@ static void IRAM_ATTR _TFT_pushColorRep(color_t *color, uint32_t len, uint8_t re
 	if (!(disp_spi->cfg.flags & SPI_DEVICE_HALFDUPLEX)) return;
 
 	// Send RAM WRITE command
-    DC_CMD;
+    gpio_set_level(PIN_NUM_DC, 0);
     disp_spi->host->hw->data_buf[0] = (uint32_t)TFT_RAMWR;
 	disp_spi->host->hw->mosi_dlen.usr_mosi_dbitlen = 7;
 	disp_spi->host->hw->cmd.usr = 1;		// Start transfer
 	while (disp_spi->host->hw->cmd.usr);	// Wait for SPI bus ready
 
-	DC_DATA;								// Set DC to 1 (data mode);
+	gpio_set_level(PIN_NUM_DC, 1);								// Set DC to 1 (data mode);
 
 	if ((len*24) <= 512) {
 
@@ -487,9 +482,9 @@ int IRAM_ATTR read_data(int x1, int y1, int x2, int y2, int len, uint8_t *buf, u
     t.tx_buffer=NULL;
     t.rxlength=8*((len*3)+1);  //Receive size in bits
     t.rx_buffer=buf;
-    t.user = (void*)1;
+    //t.user = (void*)1;
 
-	spi_lobo_transfer_data(disp_spi, &t); // Receive using direct mode
+	esp_err_t res = spi_lobo_transfer_data(disp_spi, &t); // Receive using direct mode
 
 	disp_deselect();
 
@@ -498,7 +493,7 @@ int IRAM_ATTR read_data(int x1, int y1, int x2, int y2, int len, uint8_t *buf, u
 		if (max_rdclock < current_clock) spi_lobo_set_speed(disp_spi, current_clock);
 	}
 
-    return 0;
+    return res;
 }
 
 // Reads one pixel/color from the TFT's GRAM at position (x,y)
@@ -555,10 +550,10 @@ uint32_t find_rd_speed()
     gray_scale = 0;
     cur_speed = spi_lobo_get_speed(disp_spi);
 
-	color_line = heap_caps_malloc(_width*3, MALLOC_CAP_DMA);
+	color_line = malloc(_width*3);
     if (color_line == NULL) goto exit;
 
-    line_rdbuf = heap_caps_malloc((_width*3)+1, MALLOC_CAP_DMA);
+    line_rdbuf = malloc((_width*3)+1);
 	if (line_rdbuf == NULL) goto exit;
 
 	color_t *rdline = (color_t *)(line_rdbuf+1);
@@ -588,8 +583,8 @@ uint32_t find_rd_speed()
 		line_check = 0;
 		if (ret == ESP_OK) {
 			for (int y=0; y<_width; y++) {
-				if ((color_line[y].g & 0xFC) != (rdline[y].g & 0xFC)) line_check = 1;
-				else if ((color_line[y].r & 0xFC) != (rdline[y].r & 0xFC)) line_check = 1;
+				if ((color_line[y].r & 0xFC) != (rdline[y].r & 0xFC)) line_check = 1;
+				else if ((color_line[y].g & 0xFC) != (rdline[y].g & 0xFC)) line_check = 1;
 				else if ((color_line[y].b & 0xFC) != (rdline[y].b & 0xFC)) line_check =  1;
 				if (line_check) break;
 			}
@@ -716,6 +711,39 @@ void _tft_setRotation(uint8_t rot) {
 
 }
 
+//=================
+void TFT_PinsInit()
+{
+    // Route all used pins to GPIO control
+    gpio_pad_select_gpio(PIN_NUM_CS);
+    gpio_pad_select_gpio(PIN_NUM_MISO);
+    gpio_pad_select_gpio(PIN_NUM_MOSI);
+    gpio_pad_select_gpio(PIN_NUM_CLK);
+    gpio_pad_select_gpio(PIN_NUM_DC);
+
+    gpio_set_direction(PIN_NUM_MISO, GPIO_MODE_INPUT);
+    gpio_set_pull_mode(PIN_NUM_MISO, GPIO_PULLUP_ONLY);
+    gpio_set_direction(PIN_NUM_CS, GPIO_MODE_OUTPUT);
+    gpio_set_direction(PIN_NUM_MOSI, GPIO_MODE_OUTPUT);
+    gpio_set_direction(PIN_NUM_CLK, GPIO_MODE_OUTPUT);
+    gpio_set_direction(PIN_NUM_DC, GPIO_MODE_OUTPUT);
+    gpio_set_level(PIN_NUM_DC, 0);
+#if USE_TOUCH
+    gpio_pad_select_gpio(PIN_NUM_TCS);
+    gpio_set_direction(PIN_NUM_TCS, GPIO_MODE_OUTPUT);
+#endif    
+#if PIN_NUM_BCKL
+    gpio_pad_select_gpio(PIN_NUM_BCKL);
+    gpio_set_direction(PIN_NUM_BCKL, GPIO_MODE_OUTPUT);
+    gpio_set_level(PIN_NUM_BCKL, PIN_BCKL_OFF);
+#endif
+
+#if PIN_NUM_RST
+    gpio_pad_select_gpio(PIN_NUM_RST);
+    gpio_set_direction(PIN_NUM_RST, GPIO_MODE_OUTPUT);
+    gpio_set_level(PIN_NUM_RST, 0);
+#endif
+}
 
 // Initialize the display
 // ====================
@@ -723,37 +751,24 @@ void TFT_display_init()
 {
     esp_err_t ret;
 
-    //Initialize non-SPI GPIOs
-    gpio_set_direction(PIN_NUM_DC, GPIO_MODE_OUTPUT);
-
-#if PIN_NUM_BCKL
-    gpio_set_direction(PIN_NUM_BCKL, GPIO_MODE_OUTPUT);
-    gpio_set_level(PIN_NUM_BCKL, PIN_BCKL_OFF);
-#endif
-
 #if PIN_NUM_RST
-    gpio_set_direction(PIN_NUM_RST, GPIO_MODE_OUTPUT);
     //Reset the display
     gpio_set_level(PIN_NUM_RST, 0);
-    vTaskDelay(100 / portTICK_RATE_MS);
+    vTaskDelay(20 / portTICK_RATE_MS);
     gpio_set_level(PIN_NUM_RST, 1);
-    vTaskDelay(100 / portTICK_RATE_MS);
+    vTaskDelay(150 / portTICK_RATE_MS);
 #endif
 
+    ret = disp_select();
+    assert(ret==ESP_OK);
     //Send all the initialization commands
 	if (tft_disp_type == DISP_TYPE_ILI9341) {
-		ret = disp_select();
-		assert(ret==ESP_OK);
 		commandList(disp_spi, ILI9341_init);
 	}
 	else if (tft_disp_type == DISP_TYPE_ILI9488) {
-		ret = disp_select();
-		assert(ret==ESP_OK);
 		commandList(disp_spi, ILI9488_init);
 	}
 	else if (tft_disp_type == DISP_TYPE_ST7789V) {
-		ret = disp_select();
-		assert(ret==ESP_OK);
 		commandList(disp_spi, ST7789V_init);
 	}
 	else if (tft_disp_type == DISP_TYPE_ST7735) {
@@ -769,7 +784,6 @@ void TFT_display_init()
 		commandList(disp_spi, Rcmd2red);
 		commandList(disp_spi, Rcmd3);
 	    uint8_t dt = 0xC0;
-		disp_select();
 		disp_spi_transfer_cmd_data(TFT_MADCTL, &dt, 1);
 	}
 	else assert(0);
