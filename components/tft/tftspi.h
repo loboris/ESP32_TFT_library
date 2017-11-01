@@ -10,6 +10,17 @@
 #include "tftspi.h"
 #include "spi_master_lobo.h"
 #include "sdkconfig.h"
+#include "stmpe610.h"
+
+#define TOUCH_TYPE_NONE		0
+#define TOUCH_TYPE_XPT2046	1
+#define TOUCH_TYPE_STMPE610	2
+
+#define TP_CALX_XPT2046		7472920
+#define TP_CALY_XPT2046		122224794
+
+#define TP_CALX_STMPE610	21368532
+#define TP_CALY_STMPE610	11800144
 
 // === Screen orientation constants ===
 #define PORTRAIT	0
@@ -39,7 +50,7 @@
 #define TFT_INVERT_ROTATION1        1
 #define TFT_RGB_BGR                 0x00
 
-#define USE_TOUCH	0
+#define USE_TOUCH	TOUCH_TYPE_NONE
 
 #define PIN_NUM_MISO 25		// SPI MISO
 #define PIN_NUM_MOSI 23		// SPI MOSI
@@ -68,7 +79,7 @@
 #define TFT_INVERT_ROTATION1        0
 #define TFT_RGB_BGR                 0x08
 
-#define USE_TOUCH                   0
+#define USE_TOUCH                   TOUCH_TYPE_STMPE610
 
 #define PIN_NUM_MISO 19		// SPI MISO
 #define PIN_NUM_MOSI 18		// SPI MOSI
@@ -130,7 +141,7 @@
 // #######################################################
 // Set this to 1 if you want to use touch screen functions
 // #######################################################
-#define USE_TOUCH	0
+#define USE_TOUCH	TOUCH_TYPE_NONE
 // #######################################################
 
 // #######################################################################
@@ -621,6 +632,15 @@ void TFT_PinsInit();
 // * 'tft_disp_type', 'COLOR_BITS', '_width', '_height' variables must be set
 //======================
 void TFT_display_init();
+
+//===================
+void stmpe610_Init();
+
+//============================================================
+int stmpe610_get_touch(uint16_t *x, uint16_t *y, uint16_t *z);
+
+//========================
+uint32_t stmpe610_getID();
 
 // ===============================================================================
 

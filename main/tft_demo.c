@@ -1173,7 +1173,7 @@ void app_main()
 		.flags=SPI_DEVICE_HALFDUPLEX,           // ALWAYS SET  to HALF DUPLEX MODE!! for display spi
     };
 
-#if USE_TOUCH == 1
+#if USE_TOUCH == TOUCH_TYPE_XPT2046
     spi_lobo_device_handle_t tsspi = NULL;
 
     spi_lobo_device_interface_config_t tsdevcfg={
@@ -1181,9 +1181,20 @@ void app_main()
         .mode=0,                                //SPI mode 0
         .spics_io_num=PIN_NUM_TCS,              //Touch CS pin
 		.spics_ext_io_num=-1,                   //Not using the external CS
-		.command_bits=8,                        //1 byte command
+		//.command_bits=8,                        //1 byte command
+    };
+#elif USE_TOUCH == TOUCH_TYPE_STMPE610
+    spi_lobo_device_handle_t tsspi = NULL;
+
+    spi_lobo_device_interface_config_t tsdevcfg={
+        .clock_speed_hz=1000000,                //Clock out at 1 MHz
+        .mode=STMPE610_SPI_MODE,                //SPI mode 0
+        .spics_io_num=PIN_NUM_TCS,              //Touch CS pin
+		.spics_ext_io_num=-1,                   //Not using the external CS
+        .flags = 0,
     };
 #endif
+
     // ====================================================================================================================
 
 
@@ -1192,7 +1203,7 @@ void app_main()
     printf("TFT display DEMO, LoBo 10/2017\r\n");
 	printf("==============================\r\n");
     printf("Pins used: miso=%d, mosi=%d, sck=%d, cs=%d\r\n", PIN_NUM_MISO, PIN_NUM_MOSI, PIN_NUM_CLK, PIN_NUM_CS);
-#if USE_TOUCH
+#if USE_TOUCH > TOUCH_TYPE_NONE
     printf(" Touch CS: %d\r\n", PIN_NUM_TCS);
 #endif
 	printf("==============================\r\n\r\n");
@@ -1214,7 +1225,7 @@ void app_main()
 	printf("SPI: attached display device, speed=%u\r\n", spi_lobo_get_speed(spi));
 	printf("SPI: bus uses native pins: %s\r\n", spi_lobo_uses_native_pins(spi) ? "true" : "false");
 
-#if USE_TOUCH
+#if USE_TOUCH > TOUCH_TYPE_NONE
 	// =====================================================
     // ==== Attach the touch screen to the same SPI bus ====
 
@@ -1238,6 +1249,12 @@ void app_main()
 	printf("SPI: display init...\r\n");
 	TFT_display_init();
     printf("OK\r\n");
+    #if USE_TOUCH == TOUCH_TYPE_STMPE610
+	stmpe610_Init();
+	vTaskDelay(10 / portTICK_RATE_MS);
+    uint32_t tver = stmpe610_getID();
+    printf("STMPE touch initialized, ver: %04x - %02x\r\n", tver >> 8, tver & 0xFF);
+    #endif
 	
 	// ---- Detect maximum read speed ----
 	max_rdclock = find_rd_speed();

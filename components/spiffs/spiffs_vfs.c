@@ -833,7 +833,7 @@ void vfs_spiffs_register() {
 	}
 
 	esp_vfs_t vfs = {
-        .fd_offset = 0,
+        //.fd_offset = 0, // not available in latest esp-idf
         .flags = ESP_VFS_FLAG_DEFAULT,
         .write = &vfs_spiffs_write,
         .open = &vfs_spiffs_open,
