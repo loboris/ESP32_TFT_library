@@ -36,6 +36,7 @@
 #include "lwip/err.h"
 #include "apps/sntp/sntp.h"
 #include "esp_log.h"
+#include "nvs_flash.h"
 
 #endif
 
@@ -1200,7 +1201,7 @@ void app_main()
 
     vTaskDelay(500 / portTICK_RATE_MS);
 	printf("\r\n==============================\r\n");
-    printf("TFT display DEMO, LoBo 10/2017\r\n");
+    printf("TFT display DEMO, LoBo 11/2017\r\n");
 	printf("==============================\r\n");
     printf("Pins used: miso=%d, mosi=%d, sck=%d, cs=%d\r\n", PIN_NUM_MISO, PIN_NUM_MOSI, PIN_NUM_CLK, PIN_NUM_CS);
 #if USE_TOUCH > TOUCH_TYPE_NONE
@@ -1280,7 +1281,9 @@ void app_main()
 
 #ifdef CONFIG_EXAMPLE_USE_WIFI
 
-	// ===== Set time zone ======
+    ESP_ERROR_CHECK( nvs_flash_init() );
+
+    // ===== Set time zone ======
 	setenv("TZ", "CET-1CEST", 0);
 	tzset();
 	// ==========================
