@@ -359,9 +359,9 @@ static esp_err_t spi_lobo_bus_initialize(spi_lobo_host_device_t host, spi_lobo_b
 
     if (init > 0) {
         /* ToDo: remove this when we have flash operations cooperating with this */
-        SPI_CHECK(host!=SPI_HOST, "SPI1 is not supported", ESP_ERR_NOT_SUPPORTED);
+        SPI_CHECK(host!=TFT_SPI_HOST, "SPI1 is not supported", ESP_ERR_NOT_SUPPORTED);
 
-        SPI_CHECK(host>=SPI_HOST && host<=VSPI_HOST, "invalid host", ESP_ERR_INVALID_ARG);
+        SPI_CHECK(host>=TFT_SPI_HOST && host<=TFT_VSPI_HOST, "invalid host", ESP_ERR_INVALID_ARG);
         SPI_CHECK(spihost[host]==NULL, "host already in use", ESP_ERR_INVALID_STATE);
     }
     else {
@@ -504,7 +504,7 @@ nomem:
 //---------------------------------------------------------------------------
 static esp_err_t spi_lobo_bus_free(spi_lobo_host_device_t host, int dofree)
 {
-	if ((host == SPI_HOST) || (host >VSPI_HOST)) return ESP_ERR_NOT_SUPPORTED;  // invalid host
+	if ((host == TFT_SPI_HOST) || (host > TFT_VSPI_HOST)) return ESP_ERR_NOT_SUPPORTED;  // invalid host
 
 	if (spihost[host] == NULL) return ESP_ERR_INVALID_STATE;  // host not in use
 
@@ -533,7 +533,7 @@ static esp_err_t spi_lobo_bus_free(spi_lobo_host_device_t host, int dofree)
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 esp_err_t spi_lobo_bus_add_device(spi_lobo_host_device_t host, spi_lobo_bus_config_t *bus_config, spi_lobo_device_interface_config_t *dev_config, spi_lobo_device_handle_t *handle)
 {
-	if ((host == SPI_HOST) || (host >VSPI_HOST)) return ESP_ERR_NOT_SUPPORTED;  // invalid host
+	if ((host == TFT_SPI_HOST) || (host > TFT_VSPI_HOST)) return ESP_ERR_NOT_SUPPORTED;  // invalid host
 	
 	if (spihost[host] == NULL) {
 		esp_err_t ret = spi_lobo_bus_initialize(host, bus_config, 1);

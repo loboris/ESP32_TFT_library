@@ -39,9 +39,9 @@ extern "C"
  * @brief Enum with the three SPI peripherals that are software-accessible in it
  */
 typedef enum {
-    SPI_HOST=0,                     ///< SPI1, SPI; Cannot be used in this driver!
-    HSPI_HOST=1,                    ///< SPI2, HSPI
-    VSPI_HOST=2                     ///< SPI3, VSPI
+    TFT_SPI_HOST=0,                 ///< SPI1, SPI; Cannot be used in this driver!
+    TFT_HSPI_HOST=1,                ///< SPI2, HSPI
+    TFT_VSPI_HOST=2                 ///< SPI3, VSPI
 } spi_lobo_host_device_t;
 
 

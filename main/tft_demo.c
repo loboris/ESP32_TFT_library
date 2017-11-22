@@ -41,10 +41,10 @@
 #endif
 
 
-// ==================================================
-// Define which spi bus to use VSPI_HOST or HSPI_HOST
-#define SPI_BUS HSPI_HOST
-// ==================================================
+// ==========================================================
+// Define which spi bus to use TFT_VSPI_HOST or TFT_HSPI_HOST
+#define SPI_BUS TFT_HSPI_HOST
+// ==========================================================
 
 
 static int _demo_pass = 0;
