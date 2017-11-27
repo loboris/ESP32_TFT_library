@@ -62,51 +62,51 @@ typedef struct {
 } spi_lobo_bus_config_t;
 
 
-#define SPI_DEVICE_TXBIT_LSBFIRST          (1<<0)  ///< Transmit command/address/data LSB first instead of the default MSB first
-#define SPI_DEVICE_RXBIT_LSBFIRST          (1<<1)  ///< Receive data LSB first instead of the default MSB first
-#define SPI_DEVICE_BIT_LSBFIRST            (SPI_TXBIT_LSBFIRST|SPI_RXBIT_LSBFIRST); ///< Transmit and receive LSB first
-#define SPI_DEVICE_3WIRE                   (1<<2)  ///< Use spiq for both sending and receiving data
-#define SPI_DEVICE_POSITIVE_CS             (1<<3)  ///< Make CS positive during a transaction instead of negative
-#define SPI_DEVICE_HALFDUPLEX              (1<<4)  ///< Transmit data before receiving it, instead of simultaneously
-#define SPI_DEVICE_CLK_AS_CS               (1<<5)  ///< Output clock on CS line if CS is active
+#define LB_SPI_DEVICE_TXBIT_LSBFIRST          (1<<0)  ///< Transmit command/address/data LSB first instead of the default MSB first
+#define LB_SPI_DEVICE_RXBIT_LSBFIRST          (1<<1)  ///< Receive data LSB first instead of the default MSB first
+#define LB_SPI_DEVICE_BIT_LSBFIRST            (SPI_TXBIT_LSBFIRST|SPI_RXBIT_LSBFIRST); ///< Transmit and receive LSB first
+#define LB_SPI_DEVICE_3WIRE                   (1<<2)  ///< Use spiq for both sending and receiving data
+#define LB_SPI_DEVICE_POSITIVE_CS             (1<<3)  ///< Make CS positive during a transaction instead of negative
+#define LB_SPI_DEVICE_HALFDUPLEX              (1<<4)  ///< Transmit data before receiving it, instead of simultaneously
+#define LB_SPI_DEVICE_CLK_AS_CS               (1<<5)  ///< Output clock on CS line if CS is active
 
 #define SPI_ERR_OTHER_CONFIG 7001
 
 typedef struct spi_lobo_transaction_t spi_lobo_transaction_t;
-typedef void(*transaction_cb_t)(spi_lobo_transaction_t *trans);
+typedef void(*spi_lobo_transaction_cb_t)(spi_lobo_transaction_t *trans);
 
 /**
  * @brief This is a configuration for a SPI slave device that is connected to one of the SPI buses.
  */
 typedef struct {
-    uint8_t command_bits;           ///< Amount of bits in command phase (0-16)
-    uint8_t address_bits;           ///< Amount of bits in address phase (0-64)
-    uint8_t dummy_bits;             ///< Amount of dummy bits to insert between address and data phase
-    uint8_t mode;                   ///< SPI mode (0-3)
-    uint8_t duty_cycle_pos;         ///< Duty cycle of positive clock, in 1/256th increments (128 = 50%/50% duty). Setting this to 0 (=not setting it) is equivalent to setting this to 128.
-    uint8_t cs_ena_pretrans;        ///< Amount of SPI bit-cycles the cs should be activated before the transmission (0-16). This only works on half-duplex transactions.
-    uint8_t cs_ena_posttrans;       ///< Amount of SPI bit-cycles the cs should stay active after the transmission (0-16)
-    int clock_speed_hz;             ///< Clock speed, in Hz
-    int spics_io_num;               ///< CS GPIO pin for this device, handled by hardware; set to -1 if not used
-    int spics_ext_io_num;           ///< CS GPIO pin for this device, handled by software (spi_lobo_device_select/spi_lobo_device_deselect); only used if spics_io_num=-1
-    uint32_t flags;                 ///< Bitwise OR of SPI_DEVICE_* flags
-    transaction_cb_t pre_cb;        ///< Callback to be called before a transmission is started. This callback from 'spi_lobo_transfer_data' function.
-    transaction_cb_t post_cb;       ///< Callback to be called after a transmission has completed. This callback from 'spi_lobo_transfer_data' function.
-    uint8_t selected;               ///< **INTERNAL** 1 if the device's CS pin is active
+    uint8_t command_bits;               ///< Amount of bits in command phase (0-16)
+    uint8_t address_bits;               ///< Amount of bits in address phase (0-64)
+    uint8_t dummy_bits;                 ///< Amount of dummy bits to insert between address and data phase
+    uint8_t mode;                       ///< SPI mode (0-3)
+    uint8_t duty_cycle_pos;             ///< Duty cycle of positive clock, in 1/256th increments (128 = 50%/50% duty). Setting this to 0 (=not setting it) is equivalent to setting this to 128.
+    uint8_t cs_ena_pretrans;            ///< Amount of SPI bit-cycles the cs should be activated before the transmission (0-16). This only works on half-duplex transactions.
+    uint8_t cs_ena_posttrans;           ///< Amount of SPI bit-cycles the cs should stay active after the transmission (0-16)
+    int clock_speed_hz;                 ///< Clock speed, in Hz
+    int spics_io_num;                   ///< CS GPIO pin for this device, handled by hardware; set to -1 if not used
+    int spics_ext_io_num;               ///< CS GPIO pin for this device, handled by software (spi_lobo_device_select/spi_lobo_device_deselect); only used if spics_io_num=-1
+    uint32_t flags;                     ///< Bitwise OR of LB_SPI_DEVICE_* flags
+    spi_lobo_transaction_cb_t pre_cb;   ///< Callback to be called before a transmission is started. This callback from 'spi_lobo_transfer_data' function.
+    spi_lobo_transaction_cb_t post_cb;  ///< Callback to be called after a transmission has completed. This callback from 'spi_lobo_transfer_data' function.
+    uint8_t selected;                   ///< **INTERNAL** 1 if the device's CS pin is active
 } spi_lobo_device_interface_config_t;
 
 
-#define SPI_TRANS_MODE_DIO            (1<<0)  ///< Transmit/receive data in 2-bit mode
-#define SPI_TRANS_MODE_QIO            (1<<1)  ///< Transmit/receive data in 4-bit mode
-#define SPI_TRANS_MODE_DIOQIO_ADDR    (1<<2)  ///< Also transmit address in mode selected by SPI_MODE_DIO/SPI_MODE_QIO
-#define SPI_TRANS_USE_RXDATA          (1<<3)  ///< Receive into rx_data member of spi_lobo_transaction_t instead into memory at rx_buffer.
-#define SPI_TRANS_USE_TXDATA          (1<<4)  ///< Transmit tx_data member of spi_lobo_transaction_t instead of data at tx_buffer. Do not set tx_buffer when using this.
+#define LB_SPI_TRANS_MODE_DIO            (1<<0)  ///< Transmit/receive data in 2-bit mode
+#define LB_SPI_TRANS_MODE_QIO            (1<<1)  ///< Transmit/receive data in 4-bit mode
+#define LB_SPI_TRANS_MODE_DIOQIO_ADDR    (1<<2)  ///< Also transmit address in mode selected by SPI_MODE_DIO/SPI_MODE_QIO
+#define LB_SPI_TRANS_USE_RXDATA          (1<<3)  ///< Receive into rx_data member of spi_lobo_transaction_t instead into memory at rx_buffer.
+#define LB_SPI_TRANS_USE_TXDATA          (1<<4)  ///< Transmit tx_data member of spi_lobo_transaction_t instead of data at tx_buffer. Do not set tx_buffer when using this.
 
 /**
  * This structure describes one SPI transmission
  */
 struct spi_lobo_transaction_t {
-    uint32_t flags;                 ///< Bitwise OR of SPI_TRANS_* flags
+    uint32_t flags;                 ///< Bitwise OR of LB_SPI_TRANS_* flags
     uint16_t command;               ///< Command data. Specific length was given when device was added to the bus.
     uint64_t address;               ///< Address. Specific length was given when device was added to the bus.
     size_t length;                  ///< Total data length to be transmitted to the device, in bits; if 0, no data is transmitted
@@ -281,8 +281,8 @@ void spi_lobo_get_native_pins(int host, int *sdi, int *sdo, int *sck);
  * Lengths must be 8-bit multiples!
  * If trans->rx_buffer is NULL or trans->rx_length is 0, only transmits data
  * If trans->tx_buffer is NULL or trans->length is 0, only receives data
- * If the device is in duplex mode (SPI_DEVICE_HALFDUPLEX flag NOT set), data are transmitted and received simultaneously.
- * If the device is in half duplex mode (SPI_DEVICE_HALFDUPLEX flag IS set), data are received after transmission
+ * If the device is in duplex mode (LB_SPI_DEVICE_HALFDUPLEX flag NOT set), data are transmitted and received simultaneously.
+ * If the device is in half duplex mode (LB_SPI_DEVICE_HALFDUPLEX flag IS set), data are received after transmission
  * 'address', 'command' and 'dummy bits' are transmitted before data phase IF set in device's configuration
  *   and IF 'trans->length' and 'trans->rx_length' are NOT both 0
  * If device was not previously selected, it will be selected before transmission and deselected after transmission.

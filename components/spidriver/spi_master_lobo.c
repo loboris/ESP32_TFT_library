@@ -44,8 +44,8 @@ Main driver's function is 'spi_lobo_transfer_data()'
  * Lengths must be 8-bit multiples!
  * If trans->rx_buffer is NULL or trans->rx_length is 0, only transmits data
  * If trans->tx_buffer is NULL or trans->length is 0, only receives data
- * If the device is in duplex mode (SPI_DEVICE_HALFDUPLEX flag NOT set), data are transmitted and received simultaneously.
- * If the device is in half duplex mode (SPI_DEVICE_HALFDUPLEX flag IS set), data are received after transmission
+ * If the device is in duplex mode (LB_SPI_DEVICE_HALFDUPLEX flag NOT set), data are transmitted and received simultaneously.
+ * If the device is in half duplex mode (LB_SPI_DEVICE_HALFDUPLEX flag IS set), data are received after transmission
  * 'address', 'command' and 'dummy bits' are transmitted before data phase IF set in device's configuration
  *   and IF 'trans->length' and 'trans->rx_length' are NOT both 0
  * If configured, devices 'pre_cb' callback is called before and 'post_cb' after the transmission
@@ -567,10 +567,10 @@ esp_err_t spi_lobo_bus_add_device(spi_lobo_host_device_t host, spi_lobo_bus_conf
 
     // The hardware looks like it would support this, but actually setting cs_ena_pretrans when transferring in full
     // duplex mode does absolutely nothing on the ESP32.
-    if ((dev_config->cs_ena_pretrans != 0) && (dev_config->flags & SPI_DEVICE_HALFDUPLEX)) return ESP_ERR_INVALID_ARG;
+    if ((dev_config->cs_ena_pretrans != 0) && (dev_config->flags & LB_SPI_DEVICE_HALFDUPLEX)) return ESP_ERR_INVALID_ARG;
 
     // Speeds >=40MHz over GPIO matrix needs a dummy cycle, but these don't work for full-duplex connections.
-    if (((dev_config->flags & SPI_DEVICE_HALFDUPLEX)==0) && (dev_config->clock_speed_hz > ((apbclk*2)/5)) && (!spihost[host]->no_gpio_matrix)) return ESP_ERR_INVALID_ARG;
+    if (((dev_config->flags & LB_SPI_DEVICE_HALFDUPLEX)==0) && (dev_config->clock_speed_hz > ((apbclk*2)/5)) && (!spihost[host]->no_gpio_matrix)) return ESP_ERR_INVALID_ARG;
 
     //Allocate memory for device
     spi_lobo_device_t *dev=malloc(sizeof(spi_lobo_device_t));
@@ -604,12 +604,12 @@ esp_err_t spi_lobo_bus_add_device(spi_lobo_host_device_t host, spi_lobo_bus_conf
 		gpio_set_direction(dev_config->spics_ext_io_num, GPIO_MODE_OUTPUT);
 		gpio_set_level(dev_config->spics_ext_io_num, 1);
 	}
-    if (dev_config->flags & SPI_DEVICE_CLK_AS_CS) {
+    if (dev_config->flags & LB_SPI_DEVICE_CLK_AS_CS) {
         spihost[host]->hw->pin.master_ck_sel |= (1<<freecs);
     } else {
         spihost[host]->hw->pin.master_ck_sel &= (1<<freecs);
     }
-    if (dev_config->flags & SPI_DEVICE_POSITIVE_CS) {
+    if (dev_config->flags & LB_SPI_DEVICE_POSITIVE_CS) {
         spihost[host]->hw->pin.master_cs_pol |= (1<<freecs);
     } else {
         spihost[host]->hw->pin.master_cs_pol &= (1<<freecs);
@@ -746,15 +746,15 @@ esp_err_t IRAM_ATTR spi_lobo_device_select(spi_lobo_device_handle_t handle, int 
 		int apbclk=APB_CLK_FREQ;
 
 	    //Speeds >=40MHz over GPIO matrix needs a dummy cycle, but these don't work for full-duplex connections.
-	    if (((handle->cfg.flags & SPI_DEVICE_HALFDUPLEX) == 0) && (handle->cfg.clock_speed_hz > ((apbclk*2)/5)) && (!host->no_gpio_matrix)) {
+	    if (((handle->cfg.flags & LB_SPI_DEVICE_HALFDUPLEX) == 0) && (handle->cfg.clock_speed_hz > ((apbclk*2)/5)) && (!host->no_gpio_matrix)) {
 	    	// set speed to 32 MHz
 	    	handle->cfg.clock_speed_hz = (apbclk*2)/5;
 	    }
 
 		int effclk=spi_set_clock(host->hw, apbclk, handle->cfg.clock_speed_hz, handle->cfg.duty_cycle_pos);
 		//Configure bit order
-		host->hw->ctrl.rd_bit_order=(handle->cfg.flags & SPI_DEVICE_RXBIT_LSBFIRST)?1:0;
-		host->hw->ctrl.wr_bit_order=(handle->cfg.flags & SPI_DEVICE_TXBIT_LSBFIRST)?1:0;
+		host->hw->ctrl.rd_bit_order=(handle->cfg.flags & LB_SPI_DEVICE_RXBIT_LSBFIRST)?1:0;
+		host->hw->ctrl.wr_bit_order=(handle->cfg.flags & LB_SPI_DEVICE_TXBIT_LSBFIRST)?1:0;
 		
 		//Configure polarity
         //SPI iface needs to be configured for a delay in some cases.
@@ -798,8 +798,8 @@ esp_err_t IRAM_ATTR spi_lobo_device_select(spi_lobo_device_handle_t handle, int 
 		host->hw->user1.usr_dummy_cyclelen=handle->cfg.dummy_bits+extra_dummy-1;
 		host->hw->user2.usr_command_bitlen=handle->cfg.command_bits-1;
 		//Configure misc stuff
-		host->hw->user.doutdin=(handle->cfg.flags & SPI_DEVICE_HALFDUPLEX)?0:1;
-		host->hw->user.sio=(handle->cfg.flags & SPI_DEVICE_3WIRE)?1:0;
+		host->hw->user.doutdin=(handle->cfg.flags & LB_SPI_DEVICE_HALFDUPLEX)?0:1;
+		host->hw->user.sio=(handle->cfg.flags & LB_SPI_DEVICE_3WIRE)?1:0;
 
 		host->hw->ctrl2.setup_time=handle->cfg.cs_ena_pretrans-1;
 		host->hw->user.cs_setup=handle->cfg.cs_ena_pretrans?1:0;
@@ -930,14 +930,14 @@ esp_err_t IRAM_ATTR spi_lobo_transfer_data(spi_lobo_device_handle_t handle, spi_
     const uint8_t *txbuffer = NULL;
 	uint8_t *rxbuffer = NULL;
 
-	if (trans->flags & SPI_TRANS_USE_TXDATA) {
+	if (trans->flags & LB_SPI_TRANS_USE_TXDATA) {
         // Send data from 'trans->tx_data'
 		txbuffer=(uint8_t*)&trans->tx_data[0];
 	} else {
         // Send data from 'trans->tx_buffer'
 		txbuffer=(uint8_t*)trans->tx_buffer;
 	}
-	if (trans->flags & SPI_TRANS_USE_RXDATA) {
+	if (trans->flags & LB_SPI_TRANS_USE_RXDATA) {
         // Receive data to 'trans->rx_data'
 		rxbuffer=(uint8_t*)&trans->rx_data[0];
 	} else {
@@ -975,7 +975,7 @@ esp_err_t IRAM_ATTR spi_lobo_transfer_data(spi_lobo_device_handle_t handle, spi_
 
     // Test if operating in full duplex mode
 	uint8_t duplex = 1;
-	if (handle->cfg.flags & SPI_DEVICE_HALFDUPLEX) duplex = 0; // Half duplex mode !
+	if (handle->cfg.flags & LB_SPI_DEVICE_HALFDUPLEX) duplex = 0; // Half duplex mode !
 
     uint32_t bits, rdbits;
 	uint32_t wd;

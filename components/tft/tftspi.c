@@ -241,7 +241,7 @@ static color_t IRAM_ATTR color2gs(color_t color)
 //------------------------------------------------------------------------
 void IRAM_ATTR drawPixel(int16_t x, int16_t y, color_t color, uint8_t sel)
 {
-	if (!(disp_spi->cfg.flags & SPI_DEVICE_HALFDUPLEX)) return;
+	if (!(disp_spi->cfg.flags & LB_SPI_DEVICE_HALFDUPLEX)) return;
 
 	if (sel) {
 		if (disp_select()) return;
@@ -361,7 +361,7 @@ static void IRAM_ATTR _direct_send(color_t *color, uint32_t len, uint8_t rep)
 static void IRAM_ATTR _TFT_pushColorRep(color_t *color, uint32_t len, uint8_t rep, uint8_t wait)
 {
 	if (len == 0) return;
-	if (!(disp_spi->cfg.flags & SPI_DEVICE_HALFDUPLEX)) return;
+	if (!(disp_spi->cfg.flags & LB_SPI_DEVICE_HALFDUPLEX)) return;
 
 	// Send RAM WRITE command
     gpio_set_level(PIN_NUM_DC, 0);
