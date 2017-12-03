@@ -32,3 +32,4 @@ local/
 *.elf
 *.map
 **/.DS_Store
+mkspiffs/

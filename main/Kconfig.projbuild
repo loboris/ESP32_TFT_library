@@ -2,8 +2,8 @@ menu "TFT Display DEMO Configuration"
 
 config SPIFFS_BASE_ADDR
     hex "SPIFFS Base address"
-    range 100000 1FFE000
-    default 180000
+    range 0x100000 0x1FFE000
+    default 0x180000
     help
 	Starting address of the SPIFFS area in ESP32 Flash
 
@@ -14,7 +14,7 @@ config SPIFFS_SIZE
 
 config SPIFFS_LOG_BLOCK_SIZE
     int "SPIFFS Logical block size"
-    range 4098 65536
+    range 4096 65536
     default 8192
 
 config SPIFFS_LOG_PAGE_SIZE
