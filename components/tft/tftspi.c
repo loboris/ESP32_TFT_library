@@ -815,6 +815,21 @@ void _tft_setRotation(uint8_t rot) {
         madctl = (MADCTL_MX | MADCTL_MV | TFT_RGB_BGR);
         break;
     }
+    #elif TFT_INVERT_ROTATION2
+    switch (rotation) {
+        case PORTRAIT:
+        madctl = (MADCTL_MX | MADCTL_MV | TFT_RGB_BGR);
+        break;
+        case LANDSCAPE:
+        madctl = (TFT_RGB_BGR);
+        break;
+        case PORTRAIT_FLIP:
+        madctl = (MADCTL_MY | MADCTL_MV | TFT_RGB_BGR);
+        break;
+        case LANDSCAPE_FLIP:
+        madctl = (MADCTL_MY | MADCTL_MX | TFT_RGB_BGR);
+        break;
+    }
     #else
     switch (rotation) {
         case PORTRAIT:
