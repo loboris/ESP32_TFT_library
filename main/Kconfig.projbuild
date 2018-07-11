@@ -29,6 +29,7 @@ config EXAMPLE_DISPLAY_TYPE
     default 0 if EXAMPLE_DISPLAY_TYPE0
     default 1 if EXAMPLE_DISPLAY_TYPE1
     default 2 if EXAMPLE_DISPLAY_TYPE2
+    default 3 if EXAMPLE_DISPLAY_TYPE3
 
     choice
         prompt "Select predefined display configuration"
@@ -42,6 +43,8 @@ config EXAMPLE_DISPLAY_TYPE
             bool "ESP-WROVER-KIT Display"
         config EXAMPLE_DISPLAY_TYPE2
             bool "Adafruit TFT Feather display"
+        config EXAMPLE_DISPLAY_TYPE3
+            bool "M5Stack TFT display"
     endchoice
 
 config EXAMPLE_USE_WIFI
