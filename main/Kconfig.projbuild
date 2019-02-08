@@ -1,7 +1,7 @@
 menu "TFT Display DEMO Configuration"
 
 config SPIFFS_BASE_ADDR
-    hex "SPIFFS Base address"
+    int "SPIFFS Base address"
     range 1048576 33546240
     default 1572864
     help
