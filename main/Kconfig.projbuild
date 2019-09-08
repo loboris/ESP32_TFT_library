@@ -1,9 +1,9 @@
 menu "TFT Display DEMO Configuration"
 
 config SPIFFS_BASE_ADDR
-    hex "SPIFFS Base address"
-    range 100000 1FFE000
-    default 180000
+    int "SPIFFS Base address"
+    range 1048576 33546240
+    default 1572864
     help
 	Starting address of the SPIFFS area in ESP32 Flash
 
@@ -36,7 +36,7 @@ config EXAMPLE_DISPLAY_TYPE
         default EXAMPLE_DISPLAY_TYPE0
         help
             Select predefined display configuration
-    
+
         config EXAMPLE_DISPLAY_TYPE0
             bool "None"
         config EXAMPLE_DISPLAY_TYPE1
