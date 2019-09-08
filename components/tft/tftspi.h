@@ -166,7 +166,12 @@
 //     for example the one on ESP-WROWER-KIT ###
 // #############################################
 #define TFT_INVERT_ROTATION 0
+
+#if defined(CONFIG_TFT_INVERT_ROTATION1)
+#define TFT_INVERT_ROTATION1 CONFIG_TFT_INVERT_ROTATION1
+#else
 #define TFT_INVERT_ROTATION1 0
+#endif
 
 // ################################################
 // ### SET TO 0X00 FOR DISPLAYS WITH RGB MATRIX ###
@@ -191,7 +196,13 @@
 // --------------------------------------------------------------
 // ** Set Reset and Backlight pins to 0 if not used !
 // ** If you want to use them, set them to some valid GPIO number
-#define PIN_NUM_RST  0  	// GPIO used for RESET control
+
+// GPIO used for RESET control
+#if defined(CONFIG_TFT_PIN_NUM_RST)
+#define PIN_NUM_RST CONFIG_TFT_PIN_NUM_RST
+#else
+#define PIN_NUM_RST 0
+#endif
 
 #define PIN_NUM_BCKL 0  	// GPIO used for backlight control
 #define PIN_BCKL_ON  0  	// GPIO value for backlight ON

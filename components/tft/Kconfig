@@ -1,0 +1,16 @@
+menu "TFT Display"
+
+config TFT_INVERT_ROTATION1
+    bool "Invert rotation1."
+    default n
+    help
+    If text is backwards on your display, try enabling this.
+
+
+config TFT_PIN_NUM_RST
+    int "GPIO for Reset"
+    default 0
+    help
+    If not using an EXAMPLE display type, configure the reset pin here.
+
+endmenu
