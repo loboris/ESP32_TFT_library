@@ -30,6 +30,7 @@ config EXAMPLE_DISPLAY_TYPE
     default 1 if EXAMPLE_DISPLAY_TYPE1
     default 2 if EXAMPLE_DISPLAY_TYPE2
     default 3 if EXAMPLE_DISPLAY_TYPE3
+    default 4 if EXAMPLE_DISPLAY_TYPE4
 
     choice
         prompt "Select predefined display configuration"
@@ -40,7 +41,9 @@ config EXAMPLE_DISPLAY_TYPE
         config EXAMPLE_DISPLAY_TYPE0
             bool "None"
         config EXAMPLE_DISPLAY_TYPE1
-            bool "ESP-WROVER-KIT Display"
+            bool "ESP-WROVER-KIT v3 Display (ST7789V)"
+        config EXAMPLE_DISPLAY_TYPE4
+            bool "ESP-WROVER-KIT v4.1 Display (ILI9341)"
         config EXAMPLE_DISPLAY_TYPE2
             bool "Adafruit TFT Feather display"
         config EXAMPLE_DISPLAY_TYPE3

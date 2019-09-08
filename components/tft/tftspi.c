@@ -2,7 +2,7 @@
  *  Author: LoBo (loboris@gmail.com, loboris.github)
  *
  *  Module supporting SPI TFT displays based on ILI9341 & ILI9488 controllers
- * 
+ *
  * HIGH SPEED LOW LEVEL DISPLAY FUNCTIONS
  * USING DIRECT or DMA SPI TRANSFER MODEs
  *
@@ -14,6 +14,7 @@
 #include "freertos/task.h"
 #include "esp_heap_caps.h"
 #include "soc/spi_reg.h"
+#include "driver/gpio.h"
 
 
 // ====================================================
@@ -162,7 +163,7 @@ void IRAM_ATTR disp_spi_transfer_cmd_data(int8_t cmd, uint8_t *data, uint32_t le
     	if (idx == 16) {
     		// SPI buffer full, send data
 			_spi_transfer_start(disp_spi, bits, 0);
-    		
+
 			bits = 0;
     		idx = 0;
 			bidx = 0;
@@ -875,7 +876,7 @@ void TFT_PinsInit()
 #if USE_TOUCH
     gpio_pad_select_gpio(PIN_NUM_TCS);
     gpio_set_direction(PIN_NUM_TCS, GPIO_MODE_OUTPUT);
-#endif    
+#endif
 #if PIN_NUM_BCKL
     gpio_pad_select_gpio(PIN_NUM_BCKL);
     gpio_set_direction(PIN_NUM_BCKL, GPIO_MODE_OUTPUT);
