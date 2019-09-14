@@ -34,7 +34,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include "lwip/err.h"
-#include "apps/sntp/sntp.h"
+#include "esp_sntp.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
 
@@ -922,7 +922,7 @@ static void poly_demo()
 			TFT_drawPolygon(x, y, sides[i], r, TFT_BLACK, TFT_BLACK, oldrot, 1);
 			TFT_drawPolygon(x, y, sides[i], r, color[i], color[i], rot, 1);
 			r -= 16;
-            if (r <= 0) break;
+            if (r <= 0) { break; };
 			n += 2;
 		}
 		Wait(100);
@@ -944,7 +944,7 @@ static void poly_demo()
 		for (i=5; i>=0; i--) {
 			TFT_drawPolygon(x, y, sides[i], r, color[i], fill[i], rot, 2);
 			r -= 16;
-            if (r <= 0) break;
+            if (r <= 0) { break; }
 			n += 2;
 		}
 		Wait(500);
