@@ -8,17 +8,12 @@
 */
 
 #include <time.h>
-#include <errno.h>
-#include <sys/fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "esp_system.h"
-#include "driver/gpio.h"
-#include "esp_system.h"
-#include "esp_heap_caps.h"
+
 #include "tftspi.h"
 #include "tft.h"
 #include "spiffs_vfs.h"
@@ -26,14 +21,7 @@
 #ifdef CONFIG_EXAMPLE_USE_WIFI
 
 #include "esp_wifi.h"
-#include "esp_system.h"
-#include "esp_event.h"
-#include "esp_event_loop.h"
 #include "freertos/event_groups.h"
-#include "esp_attr.h"
-#include <sys/time.h>
-#include <unistd.h>
-#include "lwip/err.h"
 #include "esp_sntp.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
