@@ -180,9 +180,11 @@ Configurations are available for:
 
 ---
 
-**if you want to use the touch screen functions, set** `#define USE_TOUCH 1` in *tftspi.h*
+#### Other config notes
 
-Using *make menuconfig* **select tick rate 1000** ( → Component config → FreeRTOS → Tick rate (Hz) ) to get more accurate timings
+Touch screen can be enabled in Components -> TFT Display as well.
+
+Using *idf.py menuconfig* **select tick rate 1000** ( → Component config → FreeRTOS → Tick rate (Hz) ) to get more accurate timings
 
 ---
 
