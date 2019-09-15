@@ -22,7 +22,7 @@
 #define TP_CALX_STMPE610	21368532
 #define TP_CALY_STMPE610	11800144
 
-// === Screen orientation constants ===
+// === Screen tft_orientation constants ===
 #define PORTRAIT	0
 #define LANDSCAPE	1
 #define PORTRAIT_FLIP	2
@@ -269,10 +269,10 @@
 // ##############################################################
 
 // ==== Converts colors to grayscale if 1 =======================
-extern uint8_t gray_scale;
+extern uint8_t tft_gray_scale;
 
 // ==== Spi clock for reading data from display memory in Hz ====
-extern uint32_t max_rdclock;
+extern uint32_t tft_max_rdclock;
 
 // ==== Display dimensions in pixels ============================
 extern int tft_width;
@@ -282,8 +282,8 @@ extern int tft_height;
 extern uint8_t tft_disp_type;
 
 // ==== Spi device handles for display and touch screen =========
-extern spi_lobo_device_handle_t disp_spi;
-extern spi_lobo_device_handle_t ts_spi;
+extern spi_lobo_device_handle_t tft_disp_spi;
+extern spi_lobo_device_handle_t tft_ts_spi;
 
 // ##############################################################
 
@@ -422,7 +422,7 @@ static const uint8_t ST7789V_init[] = {
   ST_CMD_PWCTR1, 2, 0xA4, 0xA1,
   TFT_CMD_GMCTRP1, 14, 0xD0, 0x00, 0x05, 0x0E, 0x15, 0x0D, 0x37, 0x43, 0x47, 0x09, 0x15, 0x12, 0x16, 0x19,
   TFT_CMD_GMCTRN1, 14, 0xD0, 0x00, 0x05, 0x0D, 0x0C, 0x06, 0x2D, 0x44, 0x40, 0x0E, 0x1C, 0x18, 0x16, 0x19,
-  TFT_MADCTL, 1, (MADCTL_MX | TFT_RGB_BGR),			// Memory Access Control (orientation)
+  TFT_MADCTL, 1, (MADCTL_MX | TFT_RGB_BGR),			// Memory Access Control (tft_orientation)
   TFT_CMD_PIXFMT, 1, DISP_COLOR_BITS_24,            // *** INTERFACE PIXEL FORMAT: 0x66 -> 18 bit; 0x55 -> 16 bit
   TFT_CMD_SLPOUT, TFT_CMD_DELAY, 120,				//  Sleep out,	//  120 ms delay
   TFT_DISPON, TFT_CMD_DELAY, 120,
@@ -449,7 +449,7 @@ static const uint8_t ILI9341_init[] = {
   TFT_CMD_PWCTR2, 1, 0x10,							//Power control SAP[2:0];BT[3:0]
   TFT_CMD_VMCTR1, 2, 0x3e, 0x28,					//VCM control
   TFT_CMD_VMCTR2, 1, 0x86,							//VCM control2
-  TFT_MADCTL, 1,									// Memory Access Control (orientation)
+  TFT_MADCTL, 1,									// Memory Access Control (tft_orientation)
   (MADCTL_MX | TFT_RGB_BGR),
   // *** INTERFACE PIXEL FORMAT: 0x66 -> 18 bit; 0x55 -> 16 bit
   TFT_CMD_PIXFMT, 1, DISP_COLOR_BITS_24,
@@ -493,9 +493,9 @@ static const uint8_t ILI9488_init[] = {
 	0x80,
 
 #if TFT_INVERT_ROTATION
-  TFT_MADCTL, 1, (MADCTL_MV | TFT_RGB_BGR),			// Memory Access Control (orientation), set to portrait
+  TFT_MADCTL, 1, (MADCTL_MV | TFT_RGB_BGR),			// Memory Access Control (tft_orientation), set to portrait
 #else
-  TFT_MADCTL, 1, (MADCTL_MX | TFT_RGB_BGR),			// Memory Access Control (orientation), set to portrait
+  TFT_MADCTL, 1, (MADCTL_MX | TFT_RGB_BGR),			// Memory Access Control (tft_orientation), set to portrait
 #endif
 
   // *** INTERFACE PIXEL FORMAT: 0x66 -> 18 bit;
@@ -731,7 +731,7 @@ void _tft_setRotation(uint8_t rot);
 void TFT_PinsInit();
 
 // Perform display initialization sequence
-// Sets orientation to landscape; clears the screen
+// Sets tft_orientation to landscape; clears the screen
 // * All pins must be configured
 // * SPI interface must already be setup
 // * 'tft_disp_type', 'COLOR_BITS', 'tft_width', 'tft_height' variables must be set

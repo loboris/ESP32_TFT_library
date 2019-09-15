@@ -38,26 +38,26 @@ typedef struct {
 //==========================================================================================
 // ==== Global variables ===================================================================
 //==========================================================================================
-extern uint8_t   orientation;		// current screen orientation
-extern uint16_t  font_rotate;   	// current font font_rotate angle (0~395)
-extern uint8_t   font_transparent;	// if not 0 draw fonts transparent
-extern uint8_t   font_forceFixed;   // if not zero force drawing proportional fonts with fixed width
-extern uint8_t   font_buffered_char;
-extern uint8_t   font_line_space;	// additional spacing between text lines; added to font height
-extern uint8_t   text_wrap;         // if not 0 wrap long text to the new line, else clip
-extern color_t   _fg;            	// current foreground color for fonts
-extern color_t   _bg;            	// current background for non transparent fonts
-extern dispWin_t dispWin;			// display clip window
-extern float	  _angleOffset;		// angle offset for arc, polygon and line by angle functions
-extern uint8_t	  image_debug;		// print debug messages during image decode if set to 1
+extern uint8_t   tft_orientation;		// current screen tft_orientation
+extern uint16_t  tft_font_rotate;   	// current font tft_font_rotate angle (0~395)
+extern uint8_t   tft_font_transparent;	// if not 0 draw fonts transparent
+extern uint8_t   tft_font_forceFixed;   // if not zero force drawing proportional fonts with fixed width
+extern uint8_t   tft_font_buffered_char;
+extern uint8_t   tft_font_line_space;	// additional spacing between text lines; added to font height
+extern uint8_t   tft_text_wrap;         // if not 0 wrap long text to the new line, else clip
+extern color_t   tft_fg;            	// current foreground color for fonts
+extern color_t   tft_bg;            	// current background for non transparent fonts
+extern dispWin_t tft_dispWin;			// display clip window
+extern float	  tft_angleOffset;		// angle offset for arc, polygon and line by angle functions
+extern uint8_t	  tft_image_debug;		// print debug messages during image decode if set to 1
 
-extern Font cfont;					// Current font structure
+extern Font tft_cfont;					// Current font structure
 
 extern int	TFT_X;					// X position of the next character after TFT_print() function
 extern int	TFT_Y;					// Y position of the next character after TFT_print() function
 
-extern uint32_t tp_calx;			// touch screen X calibration constant
-extern uint32_t tp_caly;			// touch screen Y calibration constant
+extern uint32_t tft_tp_calx;			// touch screen X calibration constant
+extern uint32_t tft_tp_caly;			// touch screen Y calibration constant
 // =========================================================================================
 
 
@@ -204,7 +204,7 @@ void TFT_drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, color_t color)
 /*
  * Draw line on screen from (x,y) point at given angle
  * Line drawing angle starts at lower right quadrant of the screen and is offseted by
- * '_angleOffset' global variable (default: -90 degrees)
+ * 'tft_angleOffset' global variable (default: -90 degrees)
  *
  * Params:
  *       x: horizontal start position
@@ -387,7 +387,7 @@ void TFT_fillEllipse(uint16_t x0, uint16_t y0, uint16_t rx, uint16_t ry, color_t
 /*
  * Draw circle arc on screen
  * Arc drawing angle starts at lower right quadrant of the screen and is offseted by
- * '_angleOffset' global variable (default: -90 degrees)
+ * 'tft_angleOffset' global variable (default: -90 degrees)
  *
  * Params:
  *        cx: arc center X position
@@ -460,11 +460,11 @@ int TFT_getfontheight();
 /*
  * Write text to display.
  *
- * Rotation of the displayed text depends on 'font_rotate' variable (0~360)
- * if 'font_transparent' variable is set to 1, no background pixels will be printed
+ * Rotation of the displayed text depends on 'tft_font_rotate' variable (0~360)
+ * if 'tft_font_transparent' variable is set to 1, no background pixels will be printed
  *
- * If the text does not fit the screen width it will be clipped (if text_wrap=0),
- * or continued on next line (if text_wrap=1)
+ * If the text does not fit the screen width it will be clipped (if tft_text_wrap=0),
+ * or continued on next line (if tft_text_wrap=1)
  *
  * Two special characters are allowed in strings:
  * 		‘\r’ CR (0x0D), clears the display to EOL
@@ -644,7 +644,7 @@ int TFT_bmp_image(int x, int y, uint8_t scale, char *fname, uint8_t *imgbuf, int
 
 /*
  * Get the touch panel coordinates.
- * The coordinates are adjusted to screen orientation if raw=0
+ * The coordinates are adjusted to screen tft_orientation if raw=0
  *
  * Params:
  * 		x: pointer to X coordinate

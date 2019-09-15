@@ -106,23 +106,23 @@
 
 
 * **Global wariables**
-  * **orientation**  current screen orientation
-  * **font_ratate**  current font rotate angle (0~395)
-  * **font_transparent**  if not 0 draw fonts transparent
-  * **font_forceFixed**  if not zero force drawing proportional fonts with fixed width
-  * **text_wrap**  if not 0 wrap long text to the new line, else clip
-  * **_fg**  current foreground color for fonts
-  * **_bg**  current background for non transparent fonts
-  * **dispWin** current display clip window
-  * **_angleOffset**  angle offset for arc, polygon and line by angle functions
-  * **image_debug**  print debug messages during image decode if set to 1
-  * **cfont**  Currently used font structure
+  * **tft_orientation**  current screen orientation
+  * **tft_font_ratate**  current font rotate angle (0~395)
+  * **tft_font_transparent**  if not 0 draw fonts transparent
+  * **tft_font_forceFixed**  if not zero force drawing proportional fonts with fixed width
+  * **tft_text_wrap**  if not 0 wrap long text to the new line, else clip
+  * **tft__fg**  current foreground color for fonts
+  * **tft__bg**  current background for non transparent fonts
+  * **tft_dispWin** current display clip window
+  * **tft__angleOffset**  angle offset for arc, polygon and line by angle functions
+  * **tft_image_debug**  print debug messages during image decode if set to 1
+  * **tft_cfont**  Currently used font structure
   * **TFT_X**  X position of the next character after TFT_print() function
   * **TFT_Y**  Y position of the next character after TFT_print() function
-  * **tp_calx**  touch screen X calibration constant
-  * **tp_caly**  touch screen Y calibration constant
-  * **gray_scale**  convert all colors to gray scale if set to 1
-  * **max_rdclock**  current spi clock for reading from display RAM
+  * **tft_tp_calx**  touch screen X calibration constant
+  * **tft_tp_caly**  touch screen Y calibration constant
+  * **tft_gray_scale**  convert all colors to gray scale if set to 1
+  * **tft_max_rdclock**  current spi clock for reading from display RAM
   * **tft_width** screen width (smaller dimension) in pixels
   * **tft_height** screen height (larger dimension) in pixels
   * **tft_disp_type**  current display type (DISP_TYPE_ILI9488 or DISP_TYPE_ILI9341)
