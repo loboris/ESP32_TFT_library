@@ -1237,15 +1237,6 @@ void app_main()
 
     // === SET GLOBAL VARIABLES ==========================
 
-    // ===================================================
-    // ==== Set display type                         =====
-    //tft_disp_type = DEFAULT_DISP_TYPE;
-	//tft_disp_type = DISP_TYPE_ILI9341;
-	tft_disp_type = DISP_TYPE_ST7735B;
-	//tft_disp_type = DISP_TYPE_ILI9488;
-	//tft_disp_type = DISP_TYPE_ST7735B;
-    // ===================================================
-
 	// ===================================================
 	// ==== Set maximum spi clock for display read    ====
 	//      operations, function 'find_rd_speed()'    ====

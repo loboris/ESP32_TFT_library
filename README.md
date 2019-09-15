@@ -166,19 +166,18 @@ To run the demo, attach ILI9341, ILI9488 or ST7735 based display module to ESP32
 
 ---
 
-*To run the demo on* **ESP-WROWER-KIT v3** *select the following pin configuration:*
-*  mosi: 23
-*  miso: 25
-*   sck: 19
-*    CS: 22 (display CS)
-*    DC: 21 (display DC)
-*   TCS:  0 (touch screen CS), not used
-*   RST: 18 (display RESET)
-* BKLIT:  5 (Display Back light)
+#### Display Kits
 
-Also set **TFT_RGB_BGR** to 0x00 and **TFT_INVERT_ROTATION1** to 1 in *tftspi.h*
+Predefined display configurations are available that will set pins, display size, and inversion properly for the specified kit.
 
-**You can also select EXAMPLE_ESP_WROVER_KIT in menuconfig to automaticaly define correct configuration**
+Access these through the `idf.py menuconfig` in Components->TFT Display
+
+Configurations are available for:
+
+    "ESP-WROVER-KIT v3 Display (ST7789V)"
+    "ESP-WROVER-KIT v4.1 Display (ILI9341)"
+    "Adafruit TFT Feather Display"
+    "M5Stack TFT Display"
 
 ---
 
@@ -198,17 +197,15 @@ Clone the repository
 
 `git clone https://github.com/loboris/ESP32_TFT_library.git`
 
-Execute menuconfig and configure your Serial flash config and other settings. Included *sdkconfig.defaults* sets some defaults to be used.
+Execute `idf.py menuconfig` and configure your Serial flash config and other settings. Included *sdkconfig.defaults* sets some defaults to be used.
 
-Navigate to **TFT Display DEMO Configuration** and set **SPIFFS** options.
+Navigate to **Components -> TFT Display** and set **display** options or select a pre-defined display configuration for a kit.
 
-Select if you want to use **wifi** (recommended) to get the time from **NTP** server and set your WiFi SSID and password.
-
-`make menuconfig`
+To enable **Wifi** in the demo (recommended - gets time from NTP), select **TFT Display DEMO Configuration** from the top-level menu and select those options.
 
 Make and flash the example.
 
-`make all && make flash`
+`idf.py build && idf.py -p <PORT> flash monitor`
 
 ---
 
@@ -223,6 +220,12 @@ Make and flash the example.
 ---
 
 You can also prepare different SFPIFFS **image** and flash it to ESP32. *This feature is only tested on Linux.*
+
+If you change the SPIFFS image, review the SPIFFS configuration as well. This would also need to be updated if the partition table is changed.
+
+`idf.py menuconfig`
+Navigate to **Components -> TFT SPIFFS** and set **SPIFFS** options.
+
 
 Files to be included on spiffs are already in **components/spiffs_image/image/** directory. You can add or remove the files you want to include.
 

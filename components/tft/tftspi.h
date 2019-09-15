@@ -35,7 +35,7 @@
 #define DISP_TYPE_ST7735R	4
 #define DISP_TYPE_ST7735B	5
 
-#if CONFIG_EXAMPLE_DISPLAY_TYPE == 1
+#if CONFIG_TFT_PREDEFINED_DISPLAY_TYPE == 1
 
 // ** Set the correct configuration for ESP-WROVER-KIT v3
 // --------------------------------------------------------
@@ -64,7 +64,7 @@
 #define PIN_BCKL_OFF  1     // GPIO value for backlight OFF
 // --------------------------------------------------------
 
-#elif CONFIG_EXAMPLE_DISPLAY_TYPE == 2
+#elif CONFIG_TFT_PREDEFINED_DISPLAY_TYPE == 2
 
 // ** Set the correct configuration for Adafruit TFT Feather
 // ---------------------------------------------------------
@@ -93,7 +93,7 @@
 #define PIN_BCKL_OFF 1  	// GPIO value for backlight OFF
 // ---------------------------------------------------------
 
-#elif CONFIG_EXAMPLE_DISPLAY_TYPE == 3
+#elif CONFIG_TFT_PREDEFINED_DISPLAY_TYPE == 3
 
 // ** Set the correct configuration for M5Stack TFT
 // ---------------------------------------------------------
@@ -123,7 +123,7 @@
 #define PIN_BCKL_OFF 0  	// GPIO value for backlight OFF
 // ---------------------------------------------------------
 
-#elif CONFIG_EXAMPLE_DISPLAY_TYPE == 4
+#elif CONFIG_TFT_PREDEFINED_DISPLAY_TYPE == 4
 
 // ** Set the correct configuration for ESP-WROVER-KIT v4.1
 // --------------------------------------------------------
@@ -223,10 +223,15 @@
 
 #define DEFAULT_GAMMA_CURVE 0
 #define DEFAULT_SPI_CLOCK   26000000
+
+#if defined(CONFIG_TFT_DISPLAY_CONTROLLER_MODEL)
+#define DEFAULT_DISP_TYPE CONFIG_TFT_DISPLAY_CONTROLLER_MODEL
+#else
 #define DEFAULT_DISP_TYPE   DISP_TYPE_ILI9341
+#endif
 //----------------------------------------------------------------------------
 
-#endif  // CONFIG_EXAMPLE_ESP_WROVER_KIT
+#endif  // CONFIG_PREDEFINED_DISPLAY_TYPE
 
 
 // ##############################################################

@@ -1,4 +1,4 @@
-menu "TFT SPIFFS Configuration"
+menu "TFT SPIFFS"
 
 config SPIFFS_BASE_ADDR
     int "SPIFFS Base address"

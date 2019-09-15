@@ -1,5 +1,60 @@
 menu "TFT Display"
 
+config TFT_PREDEFINED_DISPLAY_TYPE
+    int
+    default 0 if TFT_PREDEFINED_DISPLAY_TYPE0
+    default 1 if TFT_PREDEFINED_DISPLAY_TYPE1
+    default 2 if TFT_PREDEFINED_DISPLAY_TYPE2
+    default 3 if TFT_PREDEFINED_DISPLAY_TYPE3
+    default 4 if TFT_PREDEFINED_DISPLAY_TYPE4
+
+    choice
+        prompt "Select predefined display configuration"
+        default TFT_PREDEFINED_DISPLAY_TYPE0
+        help
+            Select predefined display configuration
+
+        config TFT_PREDEFINED_DISPLAY_TYPE0
+            bool "None"
+        config TFT_PREDEFINED_DISPLAY_TYPE1
+            bool "ESP-WROVER-KIT v3 Display (ST7789V)"
+        config TFT_PREDEFINED_DISPLAY_TYPE4
+            bool "ESP-WROVER-KIT v4.1 Display (ILI9341)"
+        config TFT_PREDEFINED_DISPLAY_TYPE2
+            bool "Adafruit TFT Feather Display"
+        config TFT_PREDEFINED_DISPLAY_TYPE3
+            bool "M5Stack TFT Display"
+    endchoice
+
+config TFT_DISPLAY_CONTROLLER_MODEL
+    int
+    default 0 if TFT_DISPLAY_CONTROLLER_ILI9341
+    default 1 if TFT_DISPLAY_CONTROLLER_ILI9488
+    default 2 if TFT_DISPLAY_CONTROLLER_ST7789V
+    default 3 if TFT_DISPLAY_CONTROLLER_ST7735
+    default 4 if TFT_DISPLAY_CONTROLLER_ST7735R
+    default 5 if TFT_DISPLAY_CONTROLLER_ST7735B
+
+    choice
+        prompt "Select a display controller model."
+        default TFT_DISPLAY_CONTROLLER_ILI9341
+        help
+          Select the controller for your display. If an TFT_PREDEFINED_DISPLAY_TYPE is set, this will be overridden.
+
+        config TFT_DISPLAY_CONTROLLER_ILI9341
+            bool "ILI9341"
+        config TFT_DISPLAY_CONTROLLER_ILI9488
+            bool "ILI9488"
+        config TFT_DISPLAY_CONTROLLER_ST7789V
+            bool "ST7789V"
+        config TFT_DISPLAY_CONTROLLER_ST7735
+            bool "ST7735"
+        config TFT_DISPLAY_CONTROLLER_ST7735R
+            bool "ST7735R"
+        config TFT_DISPLAY_CONTROLLER_ST7735B
+            bool "ST7735B"
+    endchoice
+
 config TFT_INVERT_ROTATION1
     bool "Invert rotation1."
     default n
