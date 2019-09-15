@@ -3,9 +3,7 @@
 
 ---
 
-**This library must be built with the latest esp-idf master branch and xtensa toolchain**
-
-If you are using the esp-idf v2.1, checkout the commit *0518df81a6566820352dad7bf6c539995d41ad18*
+**This library must be built with the esp-idf release/v4.0 branch and xtensa toolchain**
 
 ---
 
@@ -152,7 +150,7 @@ Full **demo application**, well documented, is included, please **analyze it** t
 | GND | GND  | Power supply ground |
 | 3.3V or +5V | Vcc  | Power supply positive |
 
-**Make shure the display module has 3.3V compatible interface, if not you must use level shifter!**
+**Make sure the display module has 3.3V compatible interface, if not you must use level shifter!**
 
 ---
 
@@ -189,23 +187,64 @@ Using *make menuconfig* **select tick rate 1000** ( → Component config → Fre
 
 ---
 
-#### How to build
+#### Installing as Library
+This repository is intended to be installable as a component library using the ESP-IDF 4.0 build system.
 
-Configure your esp32 build environment as for **esp-idf examples**
+It is recommended though that you first follow the [demo instructions](#building-the-demo) below to build this repository as a standalone example to validate your hardware and have a basis to learn the library features. 
 
-Clone the repository
+When you are ready to incorporate it into your existing project, it is recommended to:
 
-`git clone https://github.com/loboris/ESP32_TFT_library.git`
+```shell
+mkdir -p externals
+git submodule add https://github.com/jeremyjh/ESP32_TFT_library.git externals/ESP32_TFT_library
+```
+
+In your project's root CMakeLists.txt add the components folder to `EXTRA_COMPONENT_DIRS` - make sure this is before the project() config e.g.
+
+```cmake
+cmake_minimum_required(VERSION 3.5)
+
+include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+    set(EXTRA_COMPONENT_DIRS
+            externals/ESP32_TFT_library/components)
+
+project(hello-world)
+```
+
+In your own components/<my-component>/CMakeLists.txt or main/CMakeLists.txt add `tft` and `spiffs` (if you are using spiffs) as `REQUIRES` e.g.
+
+```cmake
+set(SOURCES tft_demo.c)
+idf_component_register(
+        SRCS ${SOURCES}
+        INCLUDE_DIRS
+          ${CMAKE_CURRENT_LIST_DIR}
+          $ENV{IDF_PATH}/components
+        REQUIRES
+            tft
+            spiffs
+)
+```
+
+---
+
+#### Building the Demo
+
+Clone the repository to your esp folder (same level as esp-idf, as explained [in instructions](https://docs.espressif.com/projects/esp-idf/en/latest/get-started/index.html)).
+
+`git clone https://github.com/jeremyjh/ESP32_TFT_library.git`
 
 Execute `idf.py menuconfig` and configure your Serial flash config and other settings. Included *sdkconfig.defaults* sets some defaults to be used.
 
-Navigate to **Components -> TFT Display** and set **display** options or select a pre-defined display configuration for a kit.
+Navigate to **Components -> TFT Display** and set **display and pin** options or select a pre-defined display configuration for a kit.
 
 To enable **Wifi** in the demo (recommended - gets time from NTP), select **TFT Display DEMO Configuration** from the top-level menu and select those options.
 
 Make and flash the example.
 
 `idf.py build && idf.py -p <PORT> flash monitor`
+
+Deploy the SPIFFS image as below to make the image and font examples work.
 
 ---
 
