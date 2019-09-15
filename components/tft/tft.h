@@ -8,6 +8,11 @@
 #define _TFT_H_
 
 #include <stdlib.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "tftspi.h"
 
 typedef struct {
@@ -676,4 +681,8 @@ int compile_font_file(char *fontfile, uint8_t dbg);
  */
 void getFontCharacters(uint8_t *buf);
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif
