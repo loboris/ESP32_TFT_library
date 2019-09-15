@@ -1,3 +1,2 @@
-set(COMPONENT_SRCDIRS ".")
-set(COMPONENT_ADD_INCLUDEDIRS ".")
-register_component()
+FILE(GLOB SOURCES *.c)
+idf_component_register(SRCS ${SOURCES} INCLUDE_DIRS ".")
