@@ -34,7 +34,6 @@
 #define DISP_TYPE_ST7735	3
 #define DISP_TYPE_ST7735R	4
 #define DISP_TYPE_ST7735B	5
-#define DISP_TYPE_MAX		6
 
 #if CONFIG_EXAMPLE_DISPLAY_TYPE == 1
 
@@ -241,8 +240,8 @@ extern uint8_t gray_scale;
 extern uint32_t max_rdclock;
 
 // ==== Display dimensions in pixels ============================
-extern int _width;
-extern int _height;
+extern int tft_width;
+extern int tft_height;
 
 // ==== Display type, DISP_TYPE_ILI9488 or DISP_TYPE_ILI9341 ====
 extern uint8_t tft_disp_type;
@@ -700,7 +699,7 @@ void TFT_PinsInit();
 // Sets orientation to landscape; clears the screen
 // * All pins must be configured
 // * SPI interface must already be setup
-// * 'tft_disp_type', 'COLOR_BITS', '_width', '_height' variables must be set
+// * 'tft_disp_type', 'COLOR_BITS', 'tft_width', 'tft_height' variables must be set
 //======================
 void TFT_display_init();
 

@@ -26,8 +26,8 @@ uint8_t gray_scale = 0;
 uint32_t max_rdclock = 8000000;
 
 // Default display dimensions
-int _width = DEFAULT_TFT_DISPLAY_WIDTH;
-int _height = DEFAULT_TFT_DISPLAY_HEIGHT;
+int tft_width = CONFIG_TFT_DISPLAY_WIDTH;
+int tft_height = CONFIG_TFT_DISPLAY_HEIGHT;
 
 // Display type, DISP_TYPE_ILI9488 or DISP_TYPE_ILI9341
 uint8_t tft_disp_type = DEFAULT_DISP_TYPE;
@@ -405,7 +405,7 @@ static void IRAM_ATTR _TFT_pushColorRep(color_t *color, uint32_t len, uint8_t re
 		}
 		*/
 
-		buf_colors = ((len > (_width*2)) ? (_width*2) : len);
+		buf_colors = ((len > (tft_width*2)) ? (tft_width*2) : len);
 		buf_bytes = buf_colors * 3;
 
 		// Prepare color buffer of maximum 2 color lines
@@ -680,17 +680,17 @@ uint32_t find_rd_speed()
     gray_scale = 0;
     cur_speed = spi_lobo_get_speed(disp_spi);
 
-	color_line = malloc(_width*3);
+	color_line = malloc(tft_width*3);
     if (color_line == NULL) goto exit;
 
-    line_rdbuf = malloc((_width*3)+1);
+    line_rdbuf = malloc((tft_width*3)+1);
 	if (line_rdbuf == NULL) goto exit;
 
 	color_t *rdline = (color_t *)(line_rdbuf+1);
 
 	// Fill test line with colors
 	color = (color_t){0xEC,0xA8,0x74};
-	for (int x=0; x<_width; x++) {
+	for (int x=0; x<tft_width; x++) {
 		color_line[x] = color;
 	}
 
@@ -699,20 +699,20 @@ uint32_t find_rd_speed()
 		change_speed = spi_lobo_set_speed(disp_spi, speed);
 		if (change_speed == 0) goto exit;
 
-		memset(line_rdbuf, 0, _width*sizeof(color_t)+1);
+		memset(line_rdbuf, 0, tft_width*sizeof(color_t)+1);
 
 		if (disp_select()) goto exit;
 		// Write color line
-		send_data(0, _height/2, _width-1, _height/2, _width, color_line);
+		send_data(0, tft_height/2, tft_width-1, tft_height/2, tft_width, color_line);
 		if (disp_deselect()) goto exit;
 
 		// Read color line
-		ret = read_data(0, _height/2, _width-1, _height/2, _width, line_rdbuf, 0);
+		ret = read_data(0, tft_height/2, tft_width-1, tft_height/2, tft_width, line_rdbuf, 0);
 
 		// Compare
 		line_check = 0;
 		if (ret == ESP_OK) {
-			for (int y=0; y<_width; y++) {
+			for (int y=0; y<tft_width; y++) {
 				if ((color_line[y].r & 0xFC) != (rdline[y].r & 0xFC)) line_check = 1;
 				else if ((color_line[y].g & 0xFC) != (rdline[y].g & 0xFC)) line_check = 1;
 				else if ((color_line[y].b & 0xFC) != (rdline[y].b & 0xFC)) line_check =  1;
@@ -772,18 +772,18 @@ void _tft_setRotation(uint8_t rot) {
 
     if ((rotation & 1)) {
         // in landscape modes must be width > height
-        if (_width < _height) {
-            tmp = _width;
-            _width  = _height;
-            _height = tmp;
+        if (tft_width < tft_height) {
+            tmp = tft_width;
+            tft_width  = tft_height;
+            tft_height = tmp;
         }
     }
     else {
         // in portrait modes must be width < height
-        if (_width > _height) {
-            tmp = _width;
-            _width  = _height;
-            _height = tmp;
+        if (tft_width > tft_height) {
+            tmp = tft_width;
+            tft_width  = tft_height;
+            tft_height = tmp;
         }
     }
     #if TFT_INVERT_ROTATION
@@ -938,7 +938,7 @@ void TFT_display_init()
 
 	// Clear screen
     _tft_setRotation(PORTRAIT);
-	TFT_pushColorRep(0, 0, _width-1, _height-1, (color_t){0,0,0}, (uint32_t)(_height*_width));
+	TFT_pushColorRep(0, 0, tft_width-1, tft_height-1, (color_t){0,0,0}, (uint32_t)(tft_height*tft_width));
 
 	///Enable backlight
 #if PIN_NUM_BCKL

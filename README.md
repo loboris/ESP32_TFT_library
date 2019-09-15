@@ -101,7 +101,7 @@ If you are using the esp-idf v2.1, checkout the commit *0518df81a6566820352dad7b
   * **disp_select()**  Activate display's CS line
   * **disp_deselect()**  Deactivate display's CS line
   * **find_rd_speed()**  Find maximum spi clock for successful read from display RAM
-  * **TFT_display_init()**  Perform display initialization sequence. Sets orientation to landscape; clears the screen. SPI interface must already be setup, *tft_disp_type*, *_width*, *_height* variables must be set.
+  * **TFT_display_init()**  Perform display initialization sequence. Sets orientation to landscape; clears the screen. SPI interface must already be setup, *tft_disp_type*, *tft_width*, *tft_height* variables must be set.
   * **HSBtoRGB**  Converts the components of a color, as specified by the HSB model to an equivalent set of values for the default RGB model.
   * **TFT_setGammaCurve()** Select one of 4 Gamma curves
 * **compile_font_file**  Function which compiles font c source file to font file which can be used in *TFT_setFont()* function to select external font. Created file have the same name as source file and extension *.fnt*
@@ -125,8 +125,8 @@ If you are using the esp-idf v2.1, checkout the commit *0518df81a6566820352dad7b
   * **tp_caly**  touch screen Y calibration constant
   * **gray_scale**  convert all colors to gray scale if set to 1
   * **max_rdclock**  current spi clock for reading from display RAM
-  * **_width** screen width (smaller dimension) in pixels
-  * **_height** screen height (larger dimension) in pixels
+  * **tft_width** screen width (smaller dimension) in pixels
+  * **tft_height** screen height (larger dimension) in pixels
   * **tft_disp_type**  current display type (DISP_TYPE_ILI9488 or DISP_TYPE_ILI9341)
 
 ---

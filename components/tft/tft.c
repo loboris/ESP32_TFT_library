@@ -10,21 +10,15 @@
 #include <sys/stat.h>
 #include <string.h>
 #include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "esp_system.h"
 #include "tft.h"
-#include "time.h"
 #include <math.h>
-#include "rom/tjpgd.h"
-#include "esp_heap_caps.h"
-#include "tftspi.h"
+#include "esp32/rom/tjpgd.h"
 
 
 #define DEG_TO_RAD 0.01745329252
-#define RAD_TO_DEG 57.295779513
 #define deg_to_rad 0.01745329252 + 3.14159265359
 #define swap(a, b) { int16_t t = a; a = b; b = t; }
-#define constrain(amt,low,high) ((amt)<(low)?(low):((amt)>(high)?(high):(amt)))
+
 #if !defined(max)
 #define max(A,B) ( (A) > (B) ? (A):(B))
 #endif
@@ -87,8 +81,8 @@ uint32_t tp_caly = 122224794;
 dispWin_t dispWin = {
   .x1 = 0,
   .y1 = 0,
-  .x2 = DEFAULT_TFT_DISPLAY_WIDTH,
-  .y2 = DEFAULT_TFT_DISPLAY_HEIGHT,
+  .x2 = CONFIG_TFT_DISPLAY_WIDTH,
+  .y2 = CONFIG_TFT_DISPLAY_HEIGHT,
 };
 
 Font cfont = {
@@ -302,7 +296,7 @@ void TFT_fillRect(int16_t x, int16_t y, int16_t w, int16_t h, color_t color) {
 
 //==================================
 void TFT_fillScreen(color_t color) {
-	TFT_pushColorRep(0, 0, _width-1, _height-1, color, (uint32_t)(_height*_width));
+	TFT_pushColorRep(0, 0, tft_width-1, tft_height-1, color, (uint32_t)(tft_height*tft_width));
 }
 
 //==================================
@@ -2064,8 +2058,8 @@ void TFT_setRotation(uint8_t rot) {
 
 	dispWin.x1 = 0;
 	dispWin.y1 = 0;
-	dispWin.x2 = _width-1;
-	dispWin.y2 = _height-1;
+	dispWin.x2 = tft_width-1;
+	dispWin.y2 = tft_height-1;
 
 	TFT_fillScreen(_bg);
 }
@@ -2162,8 +2156,8 @@ void TFT_setclipwin(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2)
 	dispWin.x2 = x2;
 	dispWin.y2 = y2;
 
-	if (dispWin.x2 >= _width) dispWin.x2 = _width-1;
-	if (dispWin.y2 >= _height) dispWin.y2 = _height-1;
+	if (dispWin.x2 >= tft_width) dispWin.x2 = tft_width-1;
+	if (dispWin.y2 >= tft_height) dispWin.y2 = tft_height-1;
 	if (dispWin.x1 > dispWin.x2) dispWin.x1 = dispWin.x2;
 	if (dispWin.y1 > dispWin.y2) dispWin.y1 = dispWin.y2;
 }
@@ -2171,8 +2165,8 @@ void TFT_setclipwin(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2)
 //=====================
 void TFT_resetclipwin()
 {
-	dispWin.x2 = _width-1;
-	dispWin.y2 = _height-1;
+	dispWin.x2 = tft_width-1;
+	dispWin.y2 = tft_height-1;
 	dispWin.x1 = 0;
 	dispWin.y1 = 0;
 }
@@ -2884,8 +2878,8 @@ int TFT_read_touch(int *x, int* y, uint8_t raw)
 	if (((xright - xleft) <= 0) || ((ybottom - ytop) <= 0)) return 0;
 
     #if USE_TOUCH == TOUCH_TYPE_XPT2046
-        int width = _width;
-        int height = _height;
+        int width = tft_width;
+        int height = tft_height;
         X = ((X - xleft) * height) / (xright - xleft);
         Y = ((Y - ytop) * width) / (ybottom - ytop);
 
@@ -2911,11 +2905,11 @@ int TFT_read_touch(int *x, int* y, uint8_t raw)
                 break;
         }
     #elif USE_TOUCH == TOUCH_TYPE_STMPE610
-        int width = _width;
-        int height = _height;
-        if (_width > _height) {
-            width = _height;
-            height = _width;
+        int width = tft_width;
+        int height = tft_height;
+        if (tft_width > tft_height) {
+            width = tft_height;
+            height = tft_width;
         }
 		X = ((X - xleft) * width) / (xright - xleft);
 		Y = ((Y - ytop) * height) / (ybottom - ytop);

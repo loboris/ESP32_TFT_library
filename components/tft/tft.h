@@ -515,7 +515,7 @@ void set_7seg_font_atrib(uint8_t l, uint8_t w, int outline, color_t color);
 void TFT_setclipwin(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2);
 
 /*
- * Resets the clipping area to full screen (0,0),(_wodth,_height)
+ * Resets the clipping area to full screen (0,0),(_wodth,tft_height)
  *
  */
 //----------------------

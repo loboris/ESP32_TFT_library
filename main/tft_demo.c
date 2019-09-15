@@ -171,8 +171,8 @@ static void _checkTime()
 		_bg = (color_t){ 64, 64, 64 };
 		TFT_setFont(DEFAULT_FONT, NULL);
 
-		TFT_fillRect(1, _height-TFT_getfontheight()-8, _width-3, TFT_getfontheight()+6, _bg);
-		TFT_print(tmp_buff, CENTER, _height-TFT_getfontheight()-5);
+		TFT_fillRect(1, tft_height-TFT_getfontheight()-8, tft_width-3, TFT_getfontheight()+6, _bg);
+		TFT_print(tmp_buff, CENTER, tft_height-TFT_getfontheight()-5);
 
 		cfont = curr_font;
 		_fg = last_fg;
@@ -253,14 +253,14 @@ static color_t random_color() {
 static void _dispTime()
 {
 	Font curr_font = cfont;
-    if (_width < 240) TFT_setFont(DEF_SMALL_FONT, NULL);
+    if (tft_width < 240) TFT_setFont(DEF_SMALL_FONT, NULL);
 	else TFT_setFont(DEFAULT_FONT, NULL);
 
     time(&time_now);
 	time_last = time_now;
 	tm_info = localtime(&time_now);
 	sprintf(tmp_buff, "%02d:%02d:%02d", tm_info->tm_hour, tm_info->tm_min, tm_info->tm_sec);
-	TFT_print(tmp_buff, CENTER, _height-TFT_getfontheight()-5);
+	TFT_print(tmp_buff, CENTER, tft_height-TFT_getfontheight()-5);
 
     cfont = curr_font;
 }
@@ -274,19 +274,19 @@ static void disp_header(char *info)
 	_fg = TFT_YELLOW;
 	_bg = (color_t){ 64, 64, 64 };
 
-    if (_width < 240) TFT_setFont(DEF_SMALL_FONT, NULL);
+    if (tft_width < 240) TFT_setFont(DEF_SMALL_FONT, NULL);
 	else TFT_setFont(DEFAULT_FONT, NULL);
-	TFT_fillRect(0, 0, _width-1, TFT_getfontheight()+8, _bg);
-	TFT_drawRect(0, 0, _width-1, TFT_getfontheight()+8, TFT_CYAN);
+	TFT_fillRect(0, 0, tft_width-1, TFT_getfontheight()+8, _bg);
+	TFT_drawRect(0, 0, tft_width-1, TFT_getfontheight()+8, TFT_CYAN);
 
-	TFT_fillRect(0, _height-TFT_getfontheight()-9, _width-1, TFT_getfontheight()+8, _bg);
-	TFT_drawRect(0, _height-TFT_getfontheight()-9, _width-1, TFT_getfontheight()+8, TFT_CYAN);
+	TFT_fillRect(0, tft_height-TFT_getfontheight()-9, tft_width-1, TFT_getfontheight()+8, _bg);
+	TFT_drawRect(0, tft_height-TFT_getfontheight()-9, tft_width-1, TFT_getfontheight()+8, TFT_CYAN);
 
 	TFT_print(info, CENTER, 4);
 	_dispTime();
 
 	_bg = TFT_BLACK;
-	TFT_setclipwin(0,TFT_getfontheight()+9, _width-1, _height-TFT_getfontheight()-10);
+	TFT_setclipwin(0,TFT_getfontheight()+9, tft_width-1, tft_height-TFT_getfontheight()-10);
 }
 
 //---------------------------------------------
@@ -302,18 +302,18 @@ static void update_header(char *hdr, char *ftr)
 	last_fg = _fg;
 	_fg = TFT_YELLOW;
 	_bg = (color_t){ 64, 64, 64 };
-    if (_width < 240) TFT_setFont(DEF_SMALL_FONT, NULL);
+    if (tft_width < 240) TFT_setFont(DEF_SMALL_FONT, NULL);
 	else TFT_setFont(DEFAULT_FONT, NULL);
 
 	if (hdr) {
-		TFT_fillRect(1, 1, _width-3, TFT_getfontheight()+6, _bg);
+		TFT_fillRect(1, 1, tft_width-3, TFT_getfontheight()+6, _bg);
 		TFT_print(hdr, CENTER, 4);
 	}
 
 	if (ftr) {
-		TFT_fillRect(1, _height-TFT_getfontheight()-8, _width-3, TFT_getfontheight()+6, _bg);
+		TFT_fillRect(1, tft_height-TFT_getfontheight()-8, tft_width-3, TFT_getfontheight()+6, _bg);
 		if (strlen(ftr) == 0) _dispTime();
-		else TFT_print(ftr, CENTER, _height-TFT_getfontheight()-5);
+		else TFT_print(ftr, CENTER, tft_height-TFT_getfontheight()-5);
 	}
 
 	cfont = curr_font;
@@ -338,19 +338,19 @@ static void test_times() {
 		sprintf(tmp_buff, "Clear screen: %u ms", t1);
 		TFT_print(tmp_buff, 0, 140);
 
-		color_t *color_line = heap_caps_malloc((_width*3), MALLOC_CAP_DMA);
+		color_t *color_line = heap_caps_malloc((tft_width*3), MALLOC_CAP_DMA);
 		color_t *gsline = NULL;
-		if (gray_scale) gsline = malloc(_width*3);
+		if (gray_scale) gsline = malloc(tft_width*3);
 		if (color_line) {
-			float hue_inc = (float)((10.0 / (float)(_height-1) * 360.0));
-			for (int x=0; x<_width; x++) {
-				color_line[x] = HSBtoRGB(hue_inc, 1.0, (float)x / (float)_width);
+			float hue_inc = (float)((10.0 / (float)(tft_height-1) * 360.0));
+			for (int x=0; x<tft_width; x++) {
+				color_line[x] = HSBtoRGB(hue_inc, 1.0, (float)x / (float)tft_width);
 				if (gsline) gsline[x] = color_line[x];
 			}
 			disp_select();
 			tstart = clock();
 			for (int n=0; n<1000; n++) {
-				if (gsline) memcpy(color_line, gsline, _width*3);
+				if (gsline) memcpy(color_line, gsline, tft_width*3);
 				send_data(0, 40+(n&63), dispWin.x2-dispWin.x1, 40+(n&63), (uint32_t)(dispWin.x2-dispWin.x1+1), color_line);
 				wait_trans_finish(1);
 			}
@@ -451,7 +451,7 @@ static void font_demo()
 				TFT_print("Welcome to ESP32\nThis is user font.", 0, 8);
 				n++;
 			}
-			if ((_width < 240) || (_height < 240)) TFT_setFont(DEF_SMALL_FONT, NULL);
+			if ((tft_width < 240) || (tft_height < 240)) TFT_setFont(DEF_SMALL_FONT, NULL);
             else TFT_setFont(DEFAULT_FONT, NULL);
 			_fg = TFT_YELLOW;
 			TFT_print((char *)file_fonts[f], 0, (dispWin.y2-dispWin.y1)-TFT_getfontheight()-4);
@@ -506,7 +506,7 @@ static void font_demo()
 		_fg = TFT_ORANGE;
 		sprintf(tmp_buff, "%02d:%02d:%03d", tm_info->tm_min, tm_info->tm_sec, ms);
 		TFT_setFont(FONT_7SEG, NULL);
-        if ((_width < 240) || (_height < 240)) set_7seg_font_atrib(8, 1, 1, TFT_DARKGREY);
+        if ((tft_width < 240) || (tft_height < 240)) set_7seg_font_atrib(8, 1, 1, TFT_DARKGREY);
 		else set_7seg_font_atrib(12, 2, 1, TFT_DARKGREY);
 		//TFT_clearStringRect(12, y, tmp_buff);
 		TFT_print(tmp_buff, CENTER, y);
@@ -514,7 +514,7 @@ static void font_demo()
 
 		_fg = TFT_GREEN;
 		y += TFT_getfontheight() + 12;
-		if ((_width < 240) || (_height < 240)) set_7seg_font_atrib(9, 1, 1, TFT_DARKGREY);
+		if ((tft_width < 240) || (tft_height < 240)) set_7seg_font_atrib(9, 1, 1, TFT_DARKGREY);
         else set_7seg_font_atrib(14, 3, 1, TFT_DARKGREY);
 		sprintf(tmp_buff, "%02d:%02d", tm_info->tm_sec, ms / 10);
 		//TFT_clearStringRect(12, y, tmp_buff);
@@ -537,10 +537,10 @@ static void font_demo()
 
 	TFT_saveClipWin();
 	TFT_resetclipwin();
-	TFT_drawRect(38, 48, (_width*3/4) - 36, (_height*3/4) - 46, TFT_WHITE);
-	TFT_setclipwin(40, 50, _width*3/4, _height*3/4);
+	TFT_drawRect(38, 48, (tft_width*3/4) - 36, (tft_height*3/4) - 46, TFT_WHITE);
+	TFT_setclipwin(40, 50, tft_width*3/4, tft_height*3/4);
 
-	if ((_width < 240) || (_height < 240)) TFT_setFont(DEF_SMALL_FONT, NULL);
+	if ((tft_width < 240) || (tft_height < 240)) TFT_setFont(DEF_SMALL_FONT, NULL);
     else TFT_setFont(UBUNTU16_FONT, NULL);
 	text_wrap = 1;
 	end_time = clock() + GDEMO_TIME;
@@ -1078,7 +1078,7 @@ void tft_demo() {
 			if (disp_rot == 3) sprintf(tmp_buff, "PORTRAIT FLIP");
 			if (disp_rot == 0) sprintf(tmp_buff, "LANDSCAPE FLIP");
 			printf("\r\n==========================================\r\nDisplay: %s: %s %d,%d %s\r\n\r\n",
-					dtype, tmp_buff, _width, _height, ((gray_scale) ? "Gray" : "Color"));
+					dtype, tmp_buff, tft_width, tft_height, ((gray_scale) ? "Gray" : "Color"));
 		}
 
 		disp_header("Welcome to ESP32");
@@ -1239,21 +1239,12 @@ void app_main()
 
     // ===================================================
     // ==== Set display type                         =====
-    tft_disp_type = DEFAULT_DISP_TYPE;
+    //tft_disp_type = DEFAULT_DISP_TYPE;
 	//tft_disp_type = DISP_TYPE_ILI9341;
+	tft_disp_type = DISP_TYPE_ST7735B;
 	//tft_disp_type = DISP_TYPE_ILI9488;
 	//tft_disp_type = DISP_TYPE_ST7735B;
     // ===================================================
-
-	// ===================================================
-	// === Set display resolution if NOT using default ===
-	// === DEFAULT_TFT_DISPLAY_WIDTH &                 ===
-    // === DEFAULT_TFT_DISPLAY_HEIGHT                  ===
-	_width = DEFAULT_TFT_DISPLAY_WIDTH;  // smaller dimension
-	_height = DEFAULT_TFT_DISPLAY_HEIGHT; // larger dimension
-	//_width = 128;  // smaller dimension
-	//_height = 160; // larger dimension
-	// ===================================================
 
 	// ===================================================
 	// ==== Set maximum spi clock for display read    ====
