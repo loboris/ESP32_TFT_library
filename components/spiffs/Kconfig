@@ -3,7 +3,7 @@ menu "TFT SPIFFS"
 config SPIFFS_BASE_ADDR
     int "SPIFFS Base address"
     range 1048576 33546240
-    default 1572864
+    default 0x180000
     help
 	Starting address of the SPIFFS area in ESP32 Flash
 

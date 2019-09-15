@@ -215,17 +215,17 @@ Make and flash the example.
 
 **To flash already prepared image to flash** execute:
 
-`make copyfs`
+`ESPPORT=<PORT> make copyfs`
 
 ---
 
-You can also prepare different SFPIFFS **image** and flash it to ESP32. *This feature is only tested on Linux.*
+You can also prepare different SFPIFFS **image** and flash it to ESP32.
 
-If you change the SPIFFS image, review the SPIFFS configuration as well. This would also need to be updated if the partition table is changed.
+The example partition file reserves 1MB for SPIFFS.
+If you change the spiffs partition size, update the SPIFFS configuration as well.
 
 `idf.py menuconfig`
 Navigate to **Components -> TFT SPIFFS** and set **SPIFFS** options.
-
 
 Files to be included on spiffs are already in **components/spiffs_image/image/** directory. You can add or remove the files you want to include.
 
@@ -237,7 +237,7 @@ to create **spiffs image** in *build* directory **without flashing** to ESP32
 
 Or execute:
 
-`make flashfs`
+`ESPPORT=<PORT> make flashfs`
 
 to create **spiffs image** in *build* directory and **flash** it to ESP32
 
