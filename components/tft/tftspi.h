@@ -185,34 +185,64 @@
 
 // The pins configured here are the native spi pins for HSPI interface
 // Any other valid pin combination can be used
-#define PIN_NUM_MISO 19		// SPI MISO
-#define PIN_NUM_MOSI 23		// SPI MOSI
-#define PIN_NUM_CLK  18		// SPI CLOCK pin
-#define PIN_NUM_CS   5		// Display CS pin
-#define PIN_NUM_DC   26		// Display command/data pin
-#define PIN_NUM_TCS  25		// Touch screen CS pin (NOT used if USE_TOUCH=0)
 
-// --------------------------------------------------------------
-// ** Set Reset and Backlight pins to 0 if not used !
-// ** If you want to use them, set them to some valid GPIO number
+#if defined(CONFIG_TFT_PIN_NUM_MISO)
+#define PIN_NUM_MISO CONFIG_TFT_PIN_NUM_MISO
+#else
+#define PIN_NUM_MISO 19
+#endif
 
-// GPIO used for RESET control
+#if defined(CONFIG_TFT_PIN_NUM_MOSI)
+#define PIN_NUM_MOSI CONFIG_TFT_PIN_NUM_MOSI
+#else
+#define PIN_NUM_MOSI 23
+#endif
+
+#if defined(CONFIG_TFT_PIN_NUM_CLK)
+#define PIN_NUM_CLK CONFIG_TFT_PIN_NUM_CLK
+#else
+#define PIN_NUM_CLK 18
+#endif
+
+#if defined(CONFIG_TFT_PIN_NUM_CS)
+#define PIN_NUM_CS CONFIG_TFT_PIN_NUM_CS
+#else
+#define PIN_NUM_CS 5
+#endif
+
+#if defined(CONFIG_TFT_PIN_NUM_DC)
+#define PIN_NUM_DC CONFIG_TFT_PIN_NUM_DC
+#else
+#define PIN_NUM_DC 26
+#endif
+
+#if defined(CONFIG_TFT_PIN_NUM_TCS)
+#define PIN_NUM_TCS CONFIG_TFT_PIN_NUM_TCS
+#else
+#define PIN_NUM_TCS 25
+#endif
+
 #if defined(CONFIG_TFT_PIN_NUM_RST)
 #define PIN_NUM_RST CONFIG_TFT_PIN_NUM_RST
 #else
 #define PIN_NUM_RST 0
 #endif
 
-#define PIN_NUM_BCKL 0  	// GPIO used for backlight control
+#if defined(CONFIG_TFT_PIN_NUM_BCKL)
+#define PIN_NUM_BCKL CONFIG_TFT_PIN_NUM_BCKL
+#else
+#define PIN_NUM_BCKL 0
+#endif
+
 #define PIN_BCKL_ON  0  	// GPIO value for backlight ON
 #define PIN_BCKL_OFF 1  	// GPIO value for backlight OFF
 // --------------------------------------------------------------
 
-// #######################################################
-// Set this to 1 if you want to use touch screen functions
-// #######################################################
-#define USE_TOUCH	TOUCH_TYPE_NONE
-// #######################################################
+#if defined(CONFIG_TFT_ENABLE_TOUCH_SCREEN)
+#define USE_TOUCH CONFIG_TFT_ENABLE_TOUCH_SCREEN
+#else
+#define USE_TOUCH TOUCH_TYPE_NONE
+#endif
 
 // #######################################################################
 // Default display width (smaller dimension) and height (larger dimension)

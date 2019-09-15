@@ -162,6 +162,7 @@ To run the demo, attach ILI9341, ILI9488 or ST7735 based display module to ESP32
 *   DC: 26 (display DC)
 *  TCS: 25 (touch screen CS)
 
+**Custom PINS can be defined in `idf.py menuconfig` in Components -> TFT Display menu**
 ---
 
 #### Display Kits
@@ -178,8 +179,6 @@ Configurations are available for:
     "M5Stack TFT Display"
 
 ---
-
-**If you want to use different pins, change them in** *tftspi.h*
 
 **if you want to use the touch screen functions, set** `#define USE_TOUCH 1` in *tftspi.h*
 

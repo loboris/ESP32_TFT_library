@@ -61,11 +61,59 @@ config TFT_INVERT_ROTATION1
     help
     If text is backwards on your display, try enabling this.
 
+config TFT_PIN_NUM_MOSI
+    int "GPIO for MOSI (Master Out Slave In)"
+    default 23
+    help
+    If not using a predefined display type, configure the MOSI pin here.
+
+config TFT_PIN_NUM_MISO
+    int "GPIO for MISO (Master In Slave Out)"
+    default 19
+    help
+    If not using a predefined display type, configure the MISO pin here.
+
+config TFT_PIN_NUM_SCK
+    int "GPIO for SCK (Serial Clock)"
+    default 18
+    help
+    If not using a predefined display type, configure the SCK pin here.
+
+config TFT_PIN_NUM_CS
+    int "GPIO for CS (Slave Select)"
+    default 5
+    help
+    If not using a predefined display type, configure the CS pin here.
+
+config TFT_PIN_NUM_DC
+    int "GPIO for DC (Data \ Command)"
+    default 26
+    help
+    If not using a predefined display type, configure the DC pin here.
+
+config TFT_PIN_NUM_TCS
+    int "GPIO for TCS (Touchscreen)"
+    default 25
+    help
+    Optional. If not using a predefined display type, configure the TCS (touch screen) pin here.
+
 config TFT_PIN_NUM_RST
     int "GPIO for Reset"
     default 0
     help
-    If not using an EXAMPLE display type, configure the reset pin here.
+    Optional. If not using a predefined display type, configure the reset pin here.
+
+config TFT_PIN_NUM_BCKL
+    int "GPIO for Back-light control"
+    default 0
+    help
+    Optional. If not using a predefined display type, configure the blacklight pin here.
+
+config TFT_ENABLE_TOUCH_SCREEN
+    bool "Enable Touch Screen"
+    default "n"
+    help
+    Enables touch screen features.
 
 config TFT_DISPLAY_WIDTH
     int "TFT display width in pixels."
