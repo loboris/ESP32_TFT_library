@@ -111,14 +111,14 @@
   * **tft_font_transparent**  if not 0 draw fonts transparent
   * **tft_font_forceFixed**  if not zero force drawing proportional fonts with fixed width
   * **tft_text_wrap**  if not 0 wrap long text to the new line, else clip
-  * **tft__fg**  current foreground color for fonts
-  * **tft__bg**  current background for non transparent fonts
+  * **tft_fg**  current foreground color for fonts
+  * **tft_bg**  current background for non transparent fonts
   * **tft_dispWin** current display clip window
-  * **tft__angleOffset**  angle offset for arc, polygon and line by angle functions
+  * **tft_angleOffset**  angle offset for arc, polygon and line by angle functions
   * **tft_image_debug**  print debug messages during image decode if set to 1
   * **tft_cfont**  Currently used font structure
-  * **TFT_X**  X position of the next character after TFT_print() function
-  * **TFT_Y**  Y position of the next character after TFT_print() function
+  * **tft_x**  X position of the next character after TFT_print() function
+  * **tft_y**  Y position of the next character after TFT_print() function
   * **tft_tp_calx**  touch screen X calibration constant
   * **tft_tp_caly**  touch screen Y calibration constant
   * **tft_gray_scale**  convert all colors to gray scale if set to 1

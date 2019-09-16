@@ -72,8 +72,8 @@ uint8_t tft_image_debug = 0;
 
 float tft_angleOffset = DEFAULT_ANGLE_OFFSET;
 
-int	TFT_X = 0;
-int	TFT_Y = 0;
+int	tft_x = 0;
+int	tft_y = 0;
 
 uint32_t tft_tp_calx = 7472920;
 uint32_t tft_tp_caly = 122224794;
@@ -1750,8 +1750,8 @@ static void rotateChar(uint8_t c, int x, int y, int pos) {
   }
   disp_deselect();
   // calculate x,y for the next char
-  TFT_X = (int)(x + ((pos+1) * tft_cfont.x_size * cos_radian));
-  TFT_Y = (int)(y + ((pos+1) * tft_cfont.x_size * sin_radian));
+  tft_x = (int)(x + ((pos+1) * tft_cfont.x_size * cos_radian));
+  tft_y = (int)(y + ((pos+1) * tft_cfont.x_size * sin_radian));
 }
 
 //----------------------
@@ -1931,10 +1931,10 @@ void TFT_print(char *st, int x, int y) {
 
 	if ((x < LASTX) || (tft_font_rotate == 0)) TFT_OFFSET = 0;
 
-	if ((x >= LASTX) && (x < LASTY)) x = TFT_X + (x-LASTX);
+	if ((x >= LASTX) && (x < LASTY)) x = tft_x + (x-LASTX);
 	else if (x > CENTER) x += tft_dispWin.x1;
 
-	if (y >= LASTY) y = TFT_Y + (y-LASTY);
+	if (y >= LASTY) y = tft_y + (y-LASTY);
 	else if (y > CENTER) y += tft_dispWin.y1;
 
 	// ** Get number of characters in string to print
@@ -1958,8 +1958,8 @@ void TFT_print(char *st, int x, int y) {
 	if (y < tft_dispWin.y1) y = tft_dispWin.y1;
 	if ((x > tft_dispWin.x2) || (y > tft_dispWin.y2)) return;
 
-	TFT_X = x;
-	TFT_Y = y;
+	tft_x = x;
+	tft_y = y;
 
 	// ** Adjust y position
 	tmph = tft_cfont.y_size; // font height
@@ -1973,7 +1973,7 @@ void TFT_print(char *st, int x, int y) {
 	}
 	else TFT_OFFSET = 0;	// fixed font; offset not needed
 
-	if ((TFT_Y + tmph - 1) > tft_dispWin.y2) return;
+	if ((tft_y + tmph - 1) > tft_dispWin.y2) return;
 
 	int offset = TFT_OFFSET;
 
@@ -1981,14 +1981,14 @@ void TFT_print(char *st, int x, int y) {
 		ch = st[i]; // get string character
 
 		if (ch == 0x0D) { // === '\r', erase to eol ====
-			if ((!tft_font_transparent) && (tft_font_rotate==0)) _fillRect(TFT_X, TFT_Y,  tft_dispWin.x2+1-TFT_X, tmph, tft_bg);
+			if ((!tft_font_transparent) && (tft_font_rotate==0)) _fillRect(tft_x, tft_y,  tft_dispWin.x2+1-tft_x, tmph, tft_bg);
 		}
 
 		else if (ch == 0x0A) { // ==== '\n', new line ====
 			if (tft_cfont.bitmap == 1) {
-				TFT_Y += tmph + tft_font_line_space;
-				if (TFT_Y > (tft_dispWin.y2-tmph)) break;
-				TFT_X = tft_dispWin.x1;
+				tft_y += tmph + tft_font_line_space;
+				if (tft_y > (tft_dispWin.y2-tmph)) break;
+				tft_x = tft_dispWin.x1;
 			}
 		}
 
@@ -2000,17 +2000,17 @@ void TFT_print(char *st, int x, int y) {
 			}
 
 			// check if character can be displayed in the current line
-			if ((TFT_X+tmpw) > (tft_dispWin.x2)) {
+			if ((tft_x+tmpw) > (tft_dispWin.x2)) {
 				if (tft_text_wrap == 0) break;
-				TFT_Y += tmph + tft_font_line_space;
-				if (TFT_Y > (tft_dispWin.y2-tmph)) break;
-				TFT_X = tft_dispWin.x1;
+				tft_y += tmph + tft_font_line_space;
+				if (tft_y > (tft_dispWin.y2-tmph)) break;
+				tft_x = tft_dispWin.x1;
 			}
 
 			// Let's print the character
 			if (tft_cfont.x_size == 0) {
 				// == proportional font
-				if (tft_font_rotate == 0) TFT_X += printProportionalChar(TFT_X, TFT_Y) + 1;
+				if (tft_font_rotate == 0) tft_x += printProportionalChar(tft_x, tft_y) + 1;
 				else {
 					// rotated proportional font
 					offset += rotatePropChar(x, y, offset);
@@ -2022,15 +2022,15 @@ void TFT_print(char *st, int x, int y) {
 					// == fixed font
 					if ((ch < tft_cfont.offset) || ((ch-tft_cfont.offset) > tft_cfont.numchars)) ch = tft_cfont.offset;
 					if (tft_font_rotate == 0) {
-						printChar(ch, TFT_X, TFT_Y);
-						TFT_X += tmpw;
+						printChar(ch, tft_x, tft_y);
+						tft_x += tmpw;
 					}
 					else rotateChar(ch, x, y, i);
 				}
 				else if (tft_cfont.bitmap == 2) {
 					// == 7-segment font ==
-					_draw7seg(TFT_X, TFT_Y, ch, tft_cfont.y_size, tft_cfont.x_size, tft_fg);
-					TFT_X += (tmpw + 2);
+					_draw7seg(tft_x, tft_y, ch, tft_cfont.y_size, tft_cfont.x_size, tft_fg);
+					tft_x += (tmpw + 2);
 				}
 			}
 		}

@@ -53,8 +53,8 @@ extern uint8_t	  tft_image_debug;		// print debug messages during image decode i
 
 extern Font tft_cfont;					// Current font structure
 
-extern int	TFT_X;					// X position of the next character after TFT_print() function
-extern int	TFT_Y;					// Y position of the next character after TFT_print() function
+extern int	tft_x;					// X position of the next character after TFT_print() function
+extern int	tft_y;					// Y position of the next character after TFT_print() function
 
 extern uint32_t tft_tp_calx;			// touch screen X calibration constant
 extern uint32_t tft_tp_caly;			// touch screen Y calibration constant
