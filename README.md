@@ -3,13 +3,15 @@
 
 ---
 
-**This library must be built with the esp-idf release/v4.0 branch and xtensa toolchain**
+**This library must be built with the esp-idf release/v4.0 branch.**
 
+ESP-IDF 4.0 is currently in beta and instructions are found [here](
+https://docs.espressif.com/projects/esp-idf/en/v4.0-beta1/get-started/index.html)
 ---
 
 #### Features
 
-* Full support for **ILI9341**, **ILI9488**, **ST7789V** and **ST7735** based TFT modules in 4-wire SPI mode. Support for other controllers will be added later
+* Full support for **ILI9341**, **ILI9488**, **ST7789V** and **ST7735** based TFT modules in 4-wire SPI mode.
 * **18-bit (RGB)** color mode used
 * **SPI displays oriented SPI driver library** based on *spi-master* driver
 * Combined **DMA SPI** transfer mode and **direct SPI** for maximal speed
