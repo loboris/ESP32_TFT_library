@@ -55,6 +55,30 @@ config TFT_DISPLAY_CONTROLLER_MODEL
             bool "ST7735B"
     endchoice
 
+config TFT_DISPLAY_WIDTH
+    int "TFT display width in pixels."
+    default 240
+    help
+    The smaller dimension (in portrait).
+
+config TFT_DISPLAY_HEIGHT
+    int "TFT display height in pixels."
+    default 320
+    help
+    The smaller dimension (in portrait).
+
+config TFT_RGB_BGR
+    bool "RGB (Red Green Blue)"
+    default n
+    help
+    Is the display RGB rather than GBR?
+
+config TFT_ENABLE_TOUCH_SCREEN
+    bool "Enable Touch Screen"
+    default "n"
+    help
+    Enables touch screen features.
+
 config TFT_INVERT_ROTATION1
     bool "Invert rotation1."
     default n
@@ -108,23 +132,5 @@ config TFT_PIN_NUM_BCKL
     default 0
     help
     Optional. If not using a predefined display type, configure the blacklight pin here.
-
-config TFT_ENABLE_TOUCH_SCREEN
-    bool "Enable Touch Screen"
-    default "n"
-    help
-    Enables touch screen features.
-
-config TFT_DISPLAY_WIDTH
-    int "TFT display width in pixels."
-    default 240
-    help
-    The smaller dimension (in portrait).
-
-config TFT_DISPLAY_HEIGHT
-    int "TFT display height in pixels."
-    default 320
-    help
-    The smaller dimension (in portrait).
 
 endmenu

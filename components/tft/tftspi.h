@@ -160,10 +160,6 @@
 #define DISP_COLOR_BITS_24	0x66
 //#define DISP_COLOR_BITS_16	0x55  // Do not use!
 
-// #############################################
-// ### Set to 1 for some displays,           ###
-//     for example the one on ESP-WROWER-KIT ###
-// #############################################
 #define TFT_INVERT_ROTATION 0
 
 #if defined(CONFIG_TFT_INVERT_ROTATION1)
@@ -177,7 +173,12 @@
 // ### SET TO 0X08 FOR DISPLAYS WITH BGR MATRIX ###
 // ### For ESP-WROWER-KIT set to 0x00           ###
 // ################################################
+
+#if defined(CONFIG_TFT_RGB_BGR) && CONFIG_TFT_RGB_BGR
+#define TFT_RGB_BGR 0x00
+#else
 #define TFT_RGB_BGR 0x08
+#endif
 
 // ##############################################################
 // ### Define ESP32 SPI pins to which the display is attached ###
