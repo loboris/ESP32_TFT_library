@@ -248,8 +248,8 @@
 // #######################################################################
 // Default display width (smaller dimension) and height (larger dimension)
 // #######################################################################
-#define DEFAULT_TFT_DISPLAY_WIDTH  240
-#define DEFAULT_TFT_DISPLAY_HEIGHT 320
+#define DEFAULT_TFT_DISPLAY_WIDTH  CONFIG_TFT_DISPLAY_WIDTH
+#define DEFAULT_TFT_DISPLAY_HEIGHT CONFIG_TFT_DISPLAY_HEIGHT
 // #######################################################################
 
 #define DEFAULT_GAMMA_CURVE 0

@@ -10,9 +10,7 @@
 
 #include <string.h>
 #include "tftspi.h"
-#include "esp_system.h"
 #include "freertos/task.h"
-#include "esp_heap_caps.h"
 #include "soc/spi_reg.h"
 #include "driver/gpio.h"
 
@@ -26,8 +24,8 @@ uint8_t tft_gray_scale = 0;
 uint32_t tft_max_rdclock = 8000000;
 
 // Default display dimensions
-int tft_width = CONFIG_TFT_DISPLAY_WIDTH;
-int tft_height = CONFIG_TFT_DISPLAY_HEIGHT;
+int tft_width = DEFAULT_TFT_DISPLAY_WIDTH;
+int tft_height = DEFAULT_TFT_DISPLAY_HEIGHT;
 
 // Display type, DISP_TYPE_ILI9488 or DISP_TYPE_ILI9341
 uint8_t tft_disp_type = DEFAULT_DISP_TYPE;
