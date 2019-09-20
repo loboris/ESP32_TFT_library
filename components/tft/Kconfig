@@ -73,11 +73,25 @@ config TFT_RGB_BGR
     help
     Is the display RGB rather than GBR?
 
-config TFT_ENABLE_TOUCH_SCREEN
-    bool "Enable Touch Screen"
-    default "n"
-    help
-    Enables touch screen features.
+config TFT_TOUCH_CONTROLLER
+    int
+    default 0 if TFT_TOUCH_CONTROLLER0
+    default 1 if TFT_TOUCH_CONTROLLER1
+    default 2 if TFT_TOUCH_CONTROLLER2
+
+    choice
+        prompt "Select touch controller."
+        default TFT_TOUCH_CONTROLLER0
+        help
+            Select predefined display configuration
+
+        config TFT_TOUCH_CONTROLLER0
+            bool "None"
+        config TFT_TOUCH_CONTROLLER1
+            bool "XPT2046"
+        config TFT_TOUCH_CONTROLLER2
+            bool "STMPE610"
+    endchoice
 
 config TFT_INVERT_ROTATION1
     bool "Invert rotation1."
@@ -97,8 +111,8 @@ config TFT_PIN_NUM_MISO
     help
     If not using a predefined display type, configure the MISO pin here.
 
-config TFT_PIN_NUM_SCK
-    int "GPIO for SCK (Serial Clock)"
+config TFT_PIN_NUM_CLK
+    int "GPIO for CLK (SCK / Serial Clock)"
     default 18
     help
     If not using a predefined display type, configure the SCK pin here.

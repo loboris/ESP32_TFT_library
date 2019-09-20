@@ -161,12 +161,7 @@
 //#define DISP_COLOR_BITS_16	0x55  // Do not use!
 
 #define TFT_INVERT_ROTATION 0
-
-#if defined(CONFIG_TFT_INVERT_ROTATION1)
 #define TFT_INVERT_ROTATION1 CONFIG_TFT_INVERT_ROTATION1
-#else
-#define TFT_INVERT_ROTATION1 0
-#endif
 
 // ################################################
 // ### SET TO 0X00 FOR DISPLAYS WITH RGB MATRIX ###
@@ -174,7 +169,7 @@
 // ### For ESP-WROWER-KIT set to 0x00           ###
 // ################################################
 
-#if defined(CONFIG_TFT_RGB_BGR) && CONFIG_TFT_RGB_BGR
+#if CONFIG_TFT_RGB_BGR
 #define TFT_RGB_BGR 0x00
 #else
 #define TFT_RGB_BGR 0x08
@@ -187,63 +182,20 @@
 // The pins configured here are the native spi pins for HSPI interface
 // Any other valid pin combination can be used
 
-#if defined(CONFIG_TFT_PIN_NUM_MISO)
 #define PIN_NUM_MISO CONFIG_TFT_PIN_NUM_MISO
-#else
-#define PIN_NUM_MISO 19
-#endif
-
-#if defined(CONFIG_TFT_PIN_NUM_MOSI)
 #define PIN_NUM_MOSI CONFIG_TFT_PIN_NUM_MOSI
-#else
-#define PIN_NUM_MOSI 23
-#endif
-
-#if defined(CONFIG_TFT_PIN_NUM_CLK)
 #define PIN_NUM_CLK CONFIG_TFT_PIN_NUM_CLK
-#else
-#define PIN_NUM_CLK 18
-#endif
-
-#if defined(CONFIG_TFT_PIN_NUM_CS)
 #define PIN_NUM_CS CONFIG_TFT_PIN_NUM_CS
-#else
-#define PIN_NUM_CS 5
-#endif
-
-#if defined(CONFIG_TFT_PIN_NUM_DC)
 #define PIN_NUM_DC CONFIG_TFT_PIN_NUM_DC
-#else
-#define PIN_NUM_DC 26
-#endif
-
-#if defined(CONFIG_TFT_PIN_NUM_TCS)
 #define PIN_NUM_TCS CONFIG_TFT_PIN_NUM_TCS
-#else
-#define PIN_NUM_TCS 25
-#endif
-
-#if defined(CONFIG_TFT_PIN_NUM_RST)
 #define PIN_NUM_RST CONFIG_TFT_PIN_NUM_RST
-#else
-#define PIN_NUM_RST 0
-#endif
-
-#if defined(CONFIG_TFT_PIN_NUM_BCKL)
 #define PIN_NUM_BCKL CONFIG_TFT_PIN_NUM_BCKL
-#else
-#define PIN_NUM_BCKL 0
-#endif
 
 #define PIN_BCKL_ON  0  	// GPIO value for backlight ON
 #define PIN_BCKL_OFF 1  	// GPIO value for backlight OFF
 // --------------------------------------------------------------
 
-#if defined(CONFIG_TFT_ENABLE_TOUCH_SCREEN)
-#define USE_TOUCH CONFIG_TFT_ENABLE_TOUCH_SCREEN
-#else
-#define USE_TOUCH TOUCH_TYPE_NONE
-#endif
+#define USE_TOUCH CONFIG_TFT_TOUCH_CONTROLLER
 
 // #######################################################################
 // Default display width (smaller dimension) and height (larger dimension)
