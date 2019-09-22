@@ -81,8 +81,8 @@ uint32_t tft_tp_caly = 122224794;
 dispWin_t tft_dispWin = {
   .x1 = 0,
   .y1 = 0,
-  .x2 = CONFIG_TFT_DISPLAY_WIDTH,
-  .y2 = CONFIG_TFT_DISPLAY_HEIGHT,
+  .x2 = DEFAULT_TFT_DISPLAY_WIDTH,
+  .y2 = DEFAULT_TFT_DISPLAY_HEIGHT,
 };
 
 Font tft_cfont = {
