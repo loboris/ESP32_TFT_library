@@ -2068,16 +2068,22 @@ void TFT_setRotation(uint8_t rot) {
 // Input: i 0 to disable inversion; non-zero to enable inversion
 //==========================================
 void TFT_invertDisplay(const uint8_t mode) {
-  if ( mode == INVERT_ON ) disp_spi_transfer_cmd(TFT_INVONN);
-  else disp_spi_transfer_cmd(TFT_INVOFF);
+    if (disp_select() == ESP_OK) {
+        if ( mode == INVERT_ON ) disp_spi_transfer_cmd(TFT_INVONN);
+        else disp_spi_transfer_cmd(TFT_INVOFF);
+        disp_deselect();
+    }
 }
 
 // Select gamma curve
 // Input: gamma = 0~3
 //==================================
 void TFT_setGammaCurve(uint8_t gm) {
-  uint8_t gamma_curve = 1 << (gm & 0x03);
-  disp_spi_transfer_cmd_data(TFT_CMD_GAMMASET, &gamma_curve, 1);
+    uint8_t gamma_curve = (uint8_t)1 << (gm & (uint8_t)0x03);
+	if (disp_select() == ESP_OK) {
+		disp_spi_transfer_cmd_data(TFT_CMD_GAMMASET, &gamma_curve, 1);
+		disp_deselect();
+	}
 }
 
 //===========================================================
