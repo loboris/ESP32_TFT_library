@@ -67,7 +67,7 @@ Main driver's function is 'spi_lobo_transfer_data()'
 #include "driver/uart.h"
 #include "driver/gpio.h"
 #include "spi_master_lobo.h"
-
+#include "driver/periph_ctrl.h"
 
 static spi_lobo_host_t *spihost[3] = {NULL};
 
