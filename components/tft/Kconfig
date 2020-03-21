@@ -7,6 +7,7 @@ config TFT_PREDEFINED_DISPLAY_TYPE
     default 2 if TFT_PREDEFINED_DISPLAY_TYPE2
     default 3 if TFT_PREDEFINED_DISPLAY_TYPE3
     default 4 if TFT_PREDEFINED_DISPLAY_TYPE4
+    default 5 if TFT_PREDEFINED_DISPLAY_TYPE5
 
     choice
         prompt "Select predefined display configuration"
@@ -24,6 +25,8 @@ config TFT_PREDEFINED_DISPLAY_TYPE
             bool "Adafruit TFT Feather Display"
         config TFT_PREDEFINED_DISPLAY_TYPE3
             bool "M5Stack TFT Display"
+    	config TFT_PREDEFINED_DISPLAY_TYPE5
+            bool "TTGO T-DISPLAY (ST7789V)"
     endchoice
 
 if TFT_PREDEFINED_DISPLAY_TYPE0
