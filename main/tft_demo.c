@@ -1344,6 +1344,9 @@ void app_main()
 
 	printf("SPI: display init...\r\n");
 	TFT_display_init();
+#ifdef TFT_ALLWAYS_INVERTED
+	TFT_invertDisplay(1);
+#endif
     printf("OK\r\n");
     #if USE_TOUCH == TOUCH_TYPE_STMPE610
 	stmpe610_Init();
