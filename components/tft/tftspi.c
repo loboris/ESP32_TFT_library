@@ -936,7 +936,7 @@ void TFT_display_init()
 
 	// Clear screen
     _tft_setRotation(PORTRAIT);
-	TFT_pushColorRep(0, 0, tft_width-1, tft_height-1, (color_t){0,0,0}, (uint32_t)(tft_height*tft_width));
+	TFT_pushColorRep(TFT_STATIC_WIDTH_OFFSET, TFT_STATIC_HEIGHT_OFFSET, tft_width + TFT_STATIC_WIDTH_OFFSET -1, tft_height + TFT_STATIC_HEIGHT_OFFSET -1, (color_t){0,0,0}, (uint32_t)(tft_height*tft_width));
 
 	///Enable backlight
 #if PIN_NUM_BCKL
