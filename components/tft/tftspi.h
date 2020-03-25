@@ -171,7 +171,7 @@
 #define TFT_INVERT_ROTATION1        1
 #define TFT_RGB_BGR                 0x00
 //To be used by user application for initialization
-#define TFT_ALLWAYS_INVERTED
+#define TFT_START_COLORS_INVERTED
 
 #define USE_TOUCH	TOUCH_TYPE_NONE
 
