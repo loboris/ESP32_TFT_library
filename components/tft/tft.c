@@ -79,10 +79,10 @@ uint32_t tft_tp_calx = 7472920;
 uint32_t tft_tp_caly = 122224794;
 
 dispWin_t tft_dispWin = {
-  .x1 = 0,
-  .y1 = 0,
-  .x2 = DEFAULT_TFT_DISPLAY_WIDTH,
-  .y2 = DEFAULT_TFT_DISPLAY_HEIGHT,
+  .x1 = TFT_STATIC_WIDTH_OFFSET,
+  .y1 = TFT_STATIC_HEIGHT_OFFSET,
+  .x2 = DEFAULT_TFT_DISPLAY_WIDTH + TFT_STATIC_WIDTH_OFFSET,
+  .y2 = DEFAULT_TFT_DISPLAY_HEIGHT + TFT_STATIC_HEIGHT_OFFSET,
 };
 
 Font tft_cfont = {
@@ -296,7 +296,7 @@ void TFT_fillRect(int16_t x, int16_t y, int16_t w, int16_t h, color_t color) {
 
 //==================================
 void TFT_fillScreen(color_t color) {
-	TFT_pushColorRep(0, 0, tft_width-1, tft_height-1, color, (uint32_t)(tft_height*tft_width));
+	TFT_pushColorRep(TFT_STATIC_X_OFFSET, TFT_STATIC_Y_OFFSET, tft_width + TFT_STATIC_X_OFFSET -1, tft_height + TFT_STATIC_Y_OFFSET -1, color, (uint32_t)(tft_height*tft_width));
 }
 
 //==================================
@@ -2056,10 +2056,10 @@ void TFT_setRotation(uint8_t rot) {
         _tft_setRotation(rot);
 	}
 
-	tft_dispWin.x1 = 0;
-	tft_dispWin.y1 = 0;
-	tft_dispWin.x2 = tft_width-1;
-	tft_dispWin.y2 = tft_height-1;
+	tft_dispWin.x1 = TFT_STATIC_X_OFFSET;
+	tft_dispWin.y1 = TFT_STATIC_Y_OFFSET;
+	tft_dispWin.x2 = tft_width + TFT_STATIC_X_OFFSET -1;
+	tft_dispWin.y2 = tft_height + TFT_STATIC_Y_OFFSET -1;
 
 	TFT_fillScreen(tft_bg);
 }
@@ -2157,13 +2157,13 @@ color_t HSBtoRGB(float _hue, float _sat, float _brightness) {
 //=====================================================================
 void TFT_setclipwin(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2)
 {
-	tft_dispWin.x1 = x1;
-	tft_dispWin.y1 = y1;
-	tft_dispWin.x2 = x2;
-	tft_dispWin.y2 = y2;
+	tft_dispWin.x1 = x1 + TFT_STATIC_X_OFFSET;
+	tft_dispWin.y1 = y1 + TFT_STATIC_Y_OFFSET;
+	tft_dispWin.x2 = x2 + TFT_STATIC_X_OFFSET;
+	tft_dispWin.y2 = y2 + TFT_STATIC_Y_OFFSET;
 
-	if (tft_dispWin.x2 >= tft_width) tft_dispWin.x2 = tft_width-1;
-	if (tft_dispWin.y2 >= tft_height) tft_dispWin.y2 = tft_height-1;
+	if (tft_dispWin.x2 >= tft_width + TFT_STATIC_X_OFFSET) tft_dispWin.x2 = tft_width + TFT_STATIC_X_OFFSET -1;
+	if (tft_dispWin.y2 >= tft_height + TFT_STATIC_Y_OFFSET) tft_dispWin.y2 = tft_height + TFT_STATIC_Y_OFFSET -1;
 	if (tft_dispWin.x1 > tft_dispWin.x2) tft_dispWin.x1 = tft_dispWin.x2;
 	if (tft_dispWin.y1 > tft_dispWin.y2) tft_dispWin.y1 = tft_dispWin.y2;
 }
@@ -2171,10 +2171,10 @@ void TFT_setclipwin(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2)
 //=====================
 void TFT_resetclipwin()
 {
-	tft_dispWin.x2 = tft_width-1;
-	tft_dispWin.y2 = tft_height-1;
-	tft_dispWin.x1 = 0;
-	tft_dispWin.y1 = 0;
+	tft_dispWin.x2 = tft_width + TFT_STATIC_X_OFFSET -1;
+	tft_dispWin.y2 = tft_height + TFT_STATIC_Y_OFFSET -1;
+	tft_dispWin.x1 = TFT_STATIC_X_OFFSET;
+	tft_dispWin.y1 = TFT_STATIC_Y_OFFSET;
 }
 
 //==========================================================================

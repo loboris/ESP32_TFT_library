@@ -157,14 +157,21 @@
 #elif CONFIG_TFT_PREDEFINED_DISPLAY_TYPE == 5
 //CONFIG FOR TTGO T-DISPLAY
 #define DEFAULT_DISP_TYPE           DISP_TYPE_ST7789V
-#define DEFAULT_TFT_DISPLAY_WIDTH   240
-#define DEFAULT_TFT_DISPLAY_HEIGHT  320
+#define DEFAULT_TFT_DISPLAY_WIDTH   135
+#define DEFAULT_TFT_DISPLAY_HEIGHT  240
+
+//Need to be defined together so they can be swapped for x;y when rotating
+#define TFT_STATIC_WIDTH_OFFSET 53
+#define TFT_STATIC_HEIGHT_OFFSET 40
+
 #define DISP_COLOR_BITS_24          0x66
 #define DEFAULT_GAMMA_CURVE         0
 #define DEFAULT_SPI_CLOCK           20000000
 #define TFT_INVERT_ROTATION         0
 #define TFT_INVERT_ROTATION1        1
 #define TFT_RGB_BGR                 0x00
+//To be used by user application for initialization
+#define TFT_START_COLORS_INVERTED
 
 #define USE_TOUCH	TOUCH_TYPE_NONE
 
@@ -243,6 +250,17 @@
 //----------------------------------------------------------------------------
 
 #endif  // CONFIG_PREDEFINED_DISPLAY_TYPE
+
+// Define offset generation, or ignore offsets if none are needed
+#ifdef TFT_STATIC_WIDTH_OFFSET
+#define TFT_STATIC_X_OFFSET (tft_orientation & 1 ? TFT_STATIC_HEIGHT_OFFSET : TFT_STATIC_WIDTH_OFFSET)
+#define TFT_STATIC_Y_OFFSET (tft_orientation & 1 ? TFT_STATIC_WIDTH_OFFSET : TFT_STATIC_HEIGHT_OFFSET)
+#else
+#define TFT_STATIC_WIDTH_OFFSET 0
+#define TFT_STATIC_X_OFFSET 0
+#define TFT_STATIC_HEIGHT_OFFSET 0
+#define TFT_STATIC_Y_OFFSET 0
+#endif
 
 
 // ##############################################################

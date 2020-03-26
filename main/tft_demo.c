@@ -351,7 +351,7 @@ static void test_times() {
 			tstart = clock();
 			for (int n=0; n<1000; n++) {
 				if (gsline) memcpy(color_line, gsline, tft_width*3);
-				send_data(0, 40+(n&63), tft_dispWin.x2-tft_dispWin.x1, 40+(n&63), (uint32_t)(tft_dispWin.x2-tft_dispWin.x1+1), color_line);
+				send_data(0 + TFT_STATIC_X_OFFSET, 40+(n&63) + TFT_STATIC_Y_OFFSET, tft_dispWin.x2-tft_dispWin.x1 + TFT_STATIC_X_OFFSET , 40+(n&63) + TFT_STATIC_Y_OFFSET, (uint32_t)(tft_dispWin.x2-tft_dispWin.x1+1), color_line);
 				wait_trans_finish(1);
 			}
 			t2 = clock() - tstart;
@@ -1344,6 +1344,9 @@ void app_main()
 
 	printf("SPI: display init...\r\n");
 	TFT_display_init();
+#ifdef TFT_START_COLORS_INVERTED
+	TFT_invertDisplay(1);
+#endif
     printf("OK\r\n");
     #if USE_TOUCH == TOUCH_TYPE_STMPE610
 	stmpe610_Init();
