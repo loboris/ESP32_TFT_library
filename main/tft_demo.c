@@ -24,7 +24,7 @@
 #include "freertos/event_groups.h"
 #include "esp_sntp.h"
 #include "esp_log.h"
-#include "nvs_flash/include/nvs_flash.h"
+#include "nvs_flash.h"
 
 #endif
 
