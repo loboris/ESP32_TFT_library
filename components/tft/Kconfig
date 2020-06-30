@@ -8,6 +8,8 @@ config TFT_PREDEFINED_DISPLAY_TYPE
     default 3 if TFT_PREDEFINED_DISPLAY_TYPE3
     default 4 if TFT_PREDEFINED_DISPLAY_TYPE4
     default 5 if TFT_PREDEFINED_DISPLAY_TYPE5
+    default 6 if TFT_PREDEFINED_DISPLAY_TYPE6
+
 
     choice
         prompt "Select predefined display configuration"
@@ -27,6 +29,9 @@ config TFT_PREDEFINED_DISPLAY_TYPE
             bool "M5Stack TFT Display"
     	config TFT_PREDEFINED_DISPLAY_TYPE5
             bool "TTGO T-DISPLAY (ST7789V)"
+        config TFT_PREDEFINED_DISPLAY_TYPE6
+            bool "TTGO T-WRISTBAND (ST7735)"
+
     endchoice
 
 if TFT_PREDEFINED_DISPLAY_TYPE0
