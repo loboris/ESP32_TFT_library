@@ -488,7 +488,7 @@ int TFT_getfontheight();
 void TFT_print(char *st, int x, int y);
 
 /*
- * Set atributes for 7 segment vector font
+ * Set attributes for 7 segment vector font
  * == 7 segment font must be the current font to this function to have effect ==
  *
  * Params:
