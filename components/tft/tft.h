@@ -447,7 +447,7 @@ void TFT_setFont(uint8_t font, const char *font_file);
  *		height: pointer to returned font height
  */
 //-------------------------------------------
-int TFT_getfontsize(int *width, int* height);
+int TFT_getfontsize(int *width, int *height);
 
 
 /*
@@ -484,8 +484,8 @@ int TFT_getfontheight();
  *					LASTY, continues from last Y position; offset can be used: LASTY+n
  *
  */
-//-------------------------------------
-void TFT_print(char *st, int x, int y);
+//-------------------------------------------
+void TFT_print(const char *st, int x, int y);
 
 /*
  * Set atributes for 7 segment vector font
@@ -579,14 +579,15 @@ int TFT_compare_colors(color_t c1, color_t c2);
  * returns the string width in pixels.
  * Useful for positions strings on the screen.
  */
-//--------------------------------
-int TFT_getStringWidth(char* str);
+//--------------------------------------
+int TFT_getStringWidth(const char *str);
 
 
 /*
  * Fills the rectangle occupied by string with current background color
  */
-void TFT_clearStringRect(int x, int y, char *str);
+//------------------------------------------------------
+void TFT_clearStringRect(int x, int y, const char *str);
 
 /*
  * Converts the components of a color, as specified by the HSB model,
@@ -622,8 +623,8 @@ color_t HSBtoRGB(float _hue, float _sat, float _brightness);
  *    size: size of the memory buffer from which the image will be read; used if fname=NULL & buf!=NULL
  *
  */
-//-----------------------------------------------------------------------------------
-void TFT_jpg_image(int x, int y, uint8_t scale, char *fname, uint8_t *buf, int size);
+//-----------------------------------------------------------------------------------------
+void TFT_jpg_image(int x, int y, uint8_t scale, const char *fname, uint8_t *buf, int size);
 
 /*
  * Decodes and displays BMP image
@@ -639,8 +640,8 @@ void TFT_jpg_image(int x, int y, uint8_t scale, char *fname, uint8_t *buf, int s
  *    size: size of the memory buffer from which the image will be read; used if fname=NULL & imgbuf!=NULL
  *
  */
-//-------------------------------------------------------------------------------------
-int TFT_bmp_image(int x, int y, uint8_t scale, char *fname, uint8_t *imgbuf, int size);
+//-------------------------------------------------------------------------------------------
+int TFT_bmp_image(int x, int y, uint8_t scale, const char *fname, uint8_t *imgbuf, int size);
 
 /*
  * Get the touch panel coordinates.
@@ -673,8 +674,8 @@ int TFT_read_touch(int *x, int* y, uint8_t raw);
  * 		err no on error
  *
  */
-//------------------------------------------------
-int compile_font_file(char *fontfile, uint8_t dbg);
+//-------------------------------------------------------
+int compile_font_file(const char *fontfile, uint8_t dbg);
 
 /*
  * Get all font's characters to buffer
