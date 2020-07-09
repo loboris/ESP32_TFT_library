@@ -1011,8 +1011,8 @@ void TFT_drawStar(int cx, int cy, int diameter, color_t color, bool fill, float 
 
 // ================ Font and string functions ==================================
 
-//--------------------------------------------------------
-static int load_file_font(const char * fontfile, int info)
+//-------------------------------------------------------
+static int load_file_font(const char *fontfile, int info)
 {
 	int err = 0;
 	char err_msg[256] = {'\0'};
@@ -1142,8 +1142,8 @@ exit:
 	return err;
 }
 
-//------------------------------------------------
-int compile_font_file(char *fontfile, uint8_t dbg)
+//------------------------------------------------------
+int compile_font_file(const char *fontfile, uint8_t dbg)
 {
 	int err = 0;
 	char err_msg[128] = {'\0'};
@@ -1768,8 +1768,8 @@ static int _7seg_height()
 
 // Returns the string width in pixels.
 // Useful for positions strings on the screen.
-//===============================
-int TFT_getStringWidth(char* str)
+//=====================================
+int TFT_getStringWidth(const char *str)
 {
     int strWidth = 0;
 
@@ -1777,7 +1777,7 @@ int TFT_getStringWidth(char* str)
 	else if (tft_cfont.x_size != 0) strWidth = strlen(str) * tft_cfont.x_size;			// fixed width font
 	else {
 		// calculate the width of the string of proportional characters
-		char* tempStrptr = str;
+		char *tempStrptr = str;
 		while (*tempStrptr != 0) {
 			if (getCharPtr(*tempStrptr++)) {
 				strWidth += (((fontChar.width > fontChar.xDelta) ? fontChar.width : fontChar.xDelta) + 1);
@@ -1788,8 +1788,8 @@ int TFT_getStringWidth(char* str)
 	return strWidth;
 }
 
-//===============================================
-void TFT_clearStringRect(int x, int y, char *str)
+//=====================================================
+void TFT_clearStringRect(int x, int y, const char *str)
 {
 	int w = TFT_getStringWidth(str);
 	int h = TFT_getfontheight();
@@ -1919,8 +1919,8 @@ static void _draw7seg(int16_t x, int16_t y, int8_t num, int16_t w, int16_t l, co
 }
 //==============================================================================
 
-//======================================
-void TFT_print(char *st, int x, int y) {
+//============================================
+void TFT_print(const char *st, int x, int y) {
 	int stl, i, tmpw, tmph, fh;
 	uint8_t ch;
 
@@ -2372,8 +2372,8 @@ static UINT tjd_output (
 
 // tft.jpgimage(X, Y, scale, file_name, buf, size]
 // X & Y can be < 0 !
-//==================================================================================
-void TFT_jpg_image(int x, int y, uint8_t scale, char *fname, uint8_t *buf, int size)
+//========================================================================================
+void TFT_jpg_image(int x, int y, uint8_t scale, const char *fname, uint8_t *buf, int size)
 {
 	JPGIODEV dev;
     struct stat sb;
@@ -2469,8 +2469,8 @@ exit:
 }
 
 
-//====================================================================================
-int TFT_bmp_image(int x, int y, uint8_t scale, char *fname, uint8_t *imgbuf, int size)
+//==========================================================================================
+int TFT_bmp_image(int x, int y, uint8_t scale, const char *fname, uint8_t *imgbuf, int size)
 {
 	FILE *fhndl = NULL;
 	struct stat sb;
