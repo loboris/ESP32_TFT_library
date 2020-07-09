@@ -16,35 +16,35 @@ https://docs.espressif.com/projects/esp-idf/en/v4.0-beta1/get-started/index.html
 * **SPI displays oriented SPI driver library** based on *spi-master* driver
 * Combined **DMA SPI** transfer mode and **direct SPI** for maximal speed
 * **Grayscale mode** can be selected during runtime which converts all colors to gray scale
-* SPI speeds up to **40 MHz** are tested and works without problems
+* SPI speeds up to **40 MHz** are tested and work without problems
 * **Demo application** included which demonstrates most of the library features
 
 
 * **Graphics drawing functions**:
   * **TFT_drawPixel**  Draw pixel at given x,y coordinates
   * **TFT_drawLine**  Draw line between two points
-  * **TFT_drawFastVLine**, **TFT_drawFastHLine**  Draw vertical or horizontal line of given lenght
+  * **TFT_drawFastVLine**, **TFT_drawFastHLine**  Draw vertical or horizontal line of given length
   * **TFT_drawLineByAngle**  Draw line on screen from (x,y) point at given angle
   * **TFT_drawRect**, **TFT_fillRect**  Draw rectangle on screen or fill given rectangular screen region with color
   * **TFT_drawRoundRect**, **TFT_fillRoundRect**  Draw rectangle on screen or fill given rectangular screen region with color with rounded corners
   * **TFT_drawCircle**, **TFT_fillCircle**  Draw or fill circle on screen
   * **TFT_drawEllipse**, **TFT_fillEllipse**  Draw or fill ellipse on screen
-  * **TFT_drawTriangel**, **TFT_fillTriangle**  Draw or fill triangle on screen
+  * **TFT_drawTriangle**, **TFT_fillTriangle**  Draw or fill triangle on screen
   * **TFT_drawArc**  Draw circle arc on screen, from ~ to given angles, with given thickness. Can be outlined with different color
-  * **TFT_drawPolygon**  Draw poligon on screen with given number of sides (3~60). Can be outlined with different color and rotated by given angle.
+  * **TFT_drawPolygon**  Draw polygon on screen with given number of sides (3~60). Can be outlined with different color and rotated by given angle
 * **Fonts**:
-  * **fixed** width and proportional fonts are supported; 8 fonts embeded
+  * **fixed** width and proportional fonts are supported; 8 fonts embedded
   * unlimited number of **fonts from file**
   * **7-segment vector font** with variable width/height is included (only numbers and few characters)
-  * Proportional fonts can be used in fixed width mode.
+  * Proportional fonts can be used in fixed width mode
   * Related functions:
     * **TFT_setFont**  Set current font from one of embeded fonts or font file
-    * **TFT_getfontsize**  Returns current font height & width in pixels.
-    * **TFT_getfontheight**  Returns current font height in pixels.
-    * **set_7seg_font_atrib**  Set atributes for 7 segment vector font
+    * **TFT_getfontsize**  Returns current font height & width in pixels
+    * **TFT_getfontheight**  Returns current font height in pixels
+    * **set_7seg_font_atrib**  Set attributes for 7 segment vector font
     * **getFontCharacters**  Get all font's characters to buffer
 * **String write function**:
-  * **TFT_print**  Write text to display.
+  * **TFT_print**  Write text to display
     * Strings can be printed at **any angle**. Rotation of the displayed text depends on *tft_font_rotate* variable (0~360)
     * if *font_transparent* variable is set to 1, no background pixels will be printed
     * If the text does not fit the screen/window width it will be clipped ( if *text_wrap=0* ), or continued on next line ( if *text_wrap=1* )
@@ -57,15 +57,15 @@ https://docs.espressif.com/projects/esp-idf/en/v4.0-beta1/get-started/index.html
       * *CENTER*  centers the text verticaly
       * *BOTTOM*  bottom justifies the text
       * *LASTY*   continues from last Y position; offset can be used: *LASTY+n*
-  * **TFT_getStringWidth** Returns the string width in pixels based on current font characteristics. Useful for positioning strings on the screen.
+  * **TFT_getStringWidth** Returns the string width in pixels based on current font characteristics. Useful for positioning strings on the screen
   * **TFT_clearStringRect** Fills the rectangle occupied by string with current background color
 * **Images**:
-  * **TFT_jpg_image**  Decodes and displays JPG images
+  * **TFT_jpg_image**  Decodes and displays JPEG images
     * Limits:
-      * Baseline only. Progressive and Lossless JPEG format are not supported.
+      * Baseline only. Progressive and Lossless JPEG format are not supported
       * Image size: Up to 65520 x 65520 pixels
-      * Color space: YCbCr three components only. Gray scale image is not supported.
-      * Sampling factor: 4:4:4, 4:2:2 or 4:2:0.
+      * Color space: YCbCr three components only. Gray scale image is not supported
+      * Sampling factor: 4:4:4, 4:2:2 or 4:2:0
     * Can display the image **from file** or **memory buffer**
     * Image can be **scaled** by factor 0 ~ 3  (1/1, 1/2, 1/4 or 1/8)
     * Image is displayed from X,Y position on screen/window:
@@ -89,9 +89,9 @@ https://docs.espressif.com/projects/esp-idf/en/v4.0-beta1/get-started/index.html
     * **TFT_fillWindow**  Fill *window* area with color
 * **Touch screen** supported (for now only **XPT2046** controllers)
   * **TFT_read_touch**  Detect if touched and return X,Y coordinates. **Raw** touch screen or **calibrated** values can be returned.
-    * calibrated coordinates are adjusted for screen orientation.
+    * calibrated coordinates are adjusted for screen orientation
 * **Read from display memory** supported
-  * **TFT_readPixel**  Read pixel color value from display GRAM at given x,y coordinates.
+  * **TFT_readPixel**  Read pixel color value from display GRAM at given x,y coordinates
   * **TFT_readData**  Read color data from rectangular screen area
 * **Other display functions**:
   * **TFT_fillScreen**  Fill the whole screen with color
@@ -101,13 +101,13 @@ https://docs.espressif.com/projects/esp-idf/en/v4.0-beta1/get-started/index.html
   * **disp_select()**  Activate display's CS line
   * **disp_deselect()**  Deactivate display's CS line
   * **find_rd_speed()**  Find maximum spi clock for successful read from display RAM
-  * **TFT_display_init()**  Perform display initialization sequence. Sets orientation to landscape; clears the screen. SPI interface must already be setup, *tft_disp_type*, *tft_width*, *tft_height* variables must be set.
-  * **HSBtoRGB**  Converts the components of a color, as specified by the HSB model to an equivalent set of values for the default RGB model.
+  * **TFT_display_init()**  Perform display initialization sequence. Sets orientation to landscape; clears the screen. SPI interface must already be set up, *tft_disp_type*, *tft_width*, *tft_height* variables must be set.
+  * **HSBtoRGB**  Converts the components of a color, as specified by the HSB model to an equivalent set of values for the default RGB model
   * **TFT_setGammaCurve()** Select one of 4 Gamma curves
 * **compile_font_file**  Function which compiles font c source file to font file which can be used in *TFT_setFont()* function to select external font. Created file have the same name as source file and extension *.fnt*
 
 
-* **Global wariables**
+* **Global variables**
   * **tft_orientation**  current screen orientation
   * **tft_font_rotate**  current font rotate angle (0~395)
   * **tft_font_transparent**  if not 0 draw fonts transparent
@@ -146,7 +146,7 @@ Full **demo application**, well documented, is included, please **analyze it** t
 | Any output pin | SCK | SPI clock input on Display module |
 | Any output pin | CS  | SPI CS input on Display module |
 | Any output pin | DC  | DC (data/command) input on Display module |
-| Any output pin | TCS  | Touch pannel CS input (if touch panel is used |
+| Any output pin | TCS  | Touch pannel CS input (if touch panel is used) |
 | Any output pin | RST  | **optional**, reset input of the display module, if not used **pullup the reset input** to Vcc |
 | Any output pin | BL  | **optional**, backlight input of the display module, if not used connect to +3.3V (or +5V) |
 | GND | GND  | Power supply ground |
@@ -253,7 +253,7 @@ Deploy the SPIFFS image as below to make the image and font examples work.
 
 #### Prepare **SPIFFS** image
 
-*The demo uses some image and font files and it is necessary to flash the spiffs image*
+*The demo uses some image and font files and it is necessary to flash the spiffs image.*
 
 **To flash already prepared image to flash** execute:
 
