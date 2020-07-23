@@ -1777,7 +1777,7 @@ int TFT_getStringWidth(const char *str)
 	else if (tft_cfont.x_size != 0) strWidth = strlen(str) * tft_cfont.x_size;			// fixed width font
 	else {
 		// calculate the width of the string of proportional characters
-		char *tempStrptr = str;
+		const char *tempStrptr = str;
 		while (*tempStrptr != 0) {
 			if (getCharPtr(*tempStrptr++)) {
 				strWidth += (((fontChar.width > fontChar.xDelta) ? fontChar.width : fontChar.xDelta) + 1);
