@@ -14,7 +14,6 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-#include "tftspi.h"
 #include "tft.h"
 #include "spiffs_vfs.h"
 
