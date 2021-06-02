@@ -1,3 +1,13 @@
+## Not Maintained
+
+I'm not currently doing any ESP32 development at all, and so I'm unable to address issues in this library.
+If anyone will volunteer to maintain the active fork I'm happy to link to it from this README. Just open a PR with the README changes.
+
+For my own project I ended up using [LVGL](https://github.com/lvgl/lv_port_esp32) instead of this library.
+
+The license of this project is in complete doubt because upstream [never released it under an open source license](https://github.com/loboris/ESP32_TFT_library/issues/80).
+
+Technically it is not open source and no one can use it in their project without risk of a copyright infringement, though loboris clearly intended for people to use it freely.
 
 ### TFT library for ESP32
 
