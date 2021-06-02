@@ -10,21 +10,15 @@
 #include <sys/stat.h>
 #include <string.h>
 #include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "esp_system.h"
 #include "tft.h"
-#include "time.h"
 #include <math.h>
-#include "rom/tjpgd.h"
-#include "esp_heap_caps.h"
-#include "tftspi.h"
+#include "esp32/rom/tjpgd.h"
 
 
 #define DEG_TO_RAD 0.01745329252
-#define RAD_TO_DEG 57.295779513
 #define deg_to_rad 0.01745329252 + 3.14159265359
 #define swap(a, b) { int16_t t = a; a = b; b = t; }
-#define constrain(amt,low,high) ((amt)<(low)?(low):((amt)>(high)?(high):(amt)))
+
 #if !defined(max)
 #define max(A,B) ( (A) > (B) ? (A):(B))
 #endif
@@ -67,31 +61,31 @@ const color_t TFT_PINK        = { 252, 192, 202 };
 
 // ==============================================================
 // ==== Set default values of global variables ==================
-uint8_t orientation = LANDSCAPE;// screen orientation
-uint16_t font_rotate = 0;		// font rotation
-uint8_t	font_transparent = 0;
-uint8_t	font_forceFixed = 0;
-uint8_t	text_wrap = 0;			// character wrapping to new line
-color_t	_fg = {  0, 255,   0};
-color_t _bg = {  0,   0,   0};
-uint8_t image_debug = 0;
+uint8_t tft_orientation = LANDSCAPE;// screen tft_orientation
+uint16_t tft_font_rotate = 0;		// font rotation
+uint8_t	tft_font_transparent = 0;
+uint8_t	tft_font_forceFixed = 0;
+uint8_t	tft_text_wrap = 0;			// character wrapping to new line
+color_t	tft_fg = {  0, 255,   0};
+color_t tft_bg = {  0,   0,   0};
+uint8_t tft_image_debug = 0;
 
-float _angleOffset = DEFAULT_ANGLE_OFFSET;
+float tft_angleOffset = DEFAULT_ANGLE_OFFSET;
 
-int	TFT_X = 0;
-int	TFT_Y = 0;
+int	tft_x = 0;
+int	tft_y = 0;
 
-uint32_t tp_calx = 7472920;
-uint32_t tp_caly = 122224794;
+uint32_t tft_tp_calx = 7472920;
+uint32_t tft_tp_caly = 122224794;
 
-dispWin_t dispWin = {
-  .x1 = 0,
-  .y1 = 0,
-  .x2 = DEFAULT_TFT_DISPLAY_WIDTH,
-  .y2 = DEFAULT_TFT_DISPLAY_HEIGHT,
+dispWin_t tft_dispWin = {
+  .x1 = TFT_STATIC_WIDTH_OFFSET,
+  .y1 = TFT_STATIC_HEIGHT_OFFSET,
+  .x2 = DEFAULT_TFT_DISPLAY_WIDTH + TFT_STATIC_WIDTH_OFFSET,
+  .y2 = DEFAULT_TFT_DISPLAY_HEIGHT + TFT_STATIC_HEIGHT_OFFSET,
 };
 
-Font cfont = {
+Font tft_cfont = {
 	.font = tft_DefaultFont,
 	.x_size = 0,
 	.y_size = 0x0B,
@@ -100,8 +94,8 @@ Font cfont = {
 	.bitmap = 1,
 };
 
-uint8_t font_buffered_char = 1;
-uint8_t font_line_space = 0;
+uint8_t tft_font_buffered_char = 1;
+uint8_t tft_font_line_space = 0;
 // ==============================================================
 
 
@@ -124,7 +118,7 @@ static float _arcAngleMax = DEFAULT_ARC_ANGLE_MAX;
 
 
 // =========================================================================
-// ** All drawings are clipped to 'dispWin' **
+// ** All drawings are clipped to 'tft_dispWin' **
 // ** All x,y coordinates in public functions are relative to clip window **
 // =========== : Public functions
 // ----------- : Local functions
@@ -146,20 +140,20 @@ int TFT_compare_colors(color_t c1, color_t c2)
 //------------------------------------------------------------------------
 static void _drawPixel(int16_t x, int16_t y, color_t color, uint8_t sel) {
 
-	if ((x < dispWin.x1) || (y < dispWin.y1) || (x > dispWin.x2) || (y > dispWin.y2)) return;
+	if ((x < tft_dispWin.x1) || (y < tft_dispWin.y1) || (x > tft_dispWin.x2) || (y > tft_dispWin.y2)) return;
 	drawPixel(x, y, color, sel);
 }
 
 //====================================================================
 void TFT_drawPixel(int16_t x, int16_t y, color_t color, uint8_t sel) {
 
-	_drawPixel(x+dispWin.x1, y+dispWin.y1, color, sel);
+	_drawPixel(x+tft_dispWin.x1, y+tft_dispWin.y1, color, sel);
 }
 
 //===========================================
 color_t TFT_readPixel(int16_t x, int16_t y) {
 
-  if ((x < dispWin.x1) || (y < dispWin.y1) || (x > dispWin.x2) || (y > dispWin.y2)) return TFT_BLACK;
+  if ((x < tft_dispWin.x1) || (y < tft_dispWin.y1) || (x > tft_dispWin.x2) || (y > tft_dispWin.y2)) return TFT_BLACK;
 
   return readPixel(x, y);
 }
@@ -167,13 +161,13 @@ color_t TFT_readPixel(int16_t x, int16_t y) {
 //--------------------------------------------------------------------------
 static void _drawFastVLine(int16_t x, int16_t y, int16_t h, color_t color) {
 	// clipping
-	if ((x < dispWin.x1) || (x > dispWin.x2) || (y > dispWin.y2)) return;
-	if (y < dispWin.y1) {
-		h -= (dispWin.y1 - y);
-		y = dispWin.y1;
+	if ((x < tft_dispWin.x1) || (x > tft_dispWin.x2) || (y > tft_dispWin.y2)) return;
+	if (y < tft_dispWin.y1) {
+		h -= (tft_dispWin.y1 - y);
+		y = tft_dispWin.y1;
 	}
 	if (h < 0) h = 0;
-	if ((y + h) > (dispWin.y2+1)) h = dispWin.y2 - y + 1;
+	if ((y + h) > (tft_dispWin.y2+1)) h = tft_dispWin.y2 - y + 1;
 	if (h == 0) h = 1;
 	TFT_pushColorRep(x, y, x, y+h-1, color, (uint32_t)h);
 }
@@ -181,13 +175,13 @@ static void _drawFastVLine(int16_t x, int16_t y, int16_t h, color_t color) {
 //--------------------------------------------------------------------------
 static void _drawFastHLine(int16_t x, int16_t y, int16_t w, color_t color) {
 	// clipping
-	if ((y < dispWin.y1) || (x > dispWin.x2) || (y > dispWin.y2)) return;
-	if (x < dispWin.x1) {
-		w -= (dispWin.x1 - x);
-		x = dispWin.x1;
+	if ((y < tft_dispWin.y1) || (x > tft_dispWin.x2) || (y > tft_dispWin.y2)) return;
+	if (x < tft_dispWin.x1) {
+		w -= (tft_dispWin.x1 - x);
+		x = tft_dispWin.x1;
 	}
 	if (w < 0) w = 0;
-	if ((x + w) > (dispWin.x2+1)) w = dispWin.x2 - x + 1;
+	if ((x + w) > (tft_dispWin.x2+1)) w = tft_dispWin.x2 - x + 1;
 	if (w == 0) w = 1;
 
 	TFT_pushColorRep(x, y, x+w-1, y, color, (uint32_t)w);
@@ -195,12 +189,12 @@ static void _drawFastHLine(int16_t x, int16_t y, int16_t w, color_t color) {
 
 //======================================================================
 void TFT_drawFastVLine(int16_t x, int16_t y, int16_t h, color_t color) {
-	_drawFastVLine(x+dispWin.x1, y+dispWin.y1, h, color);
+	_drawFastVLine(x+tft_dispWin.x1, y+tft_dispWin.y1, h, color);
 }
 
 //======================================================================
 void TFT_drawFastHLine(int16_t x, int16_t y, int16_t w, color_t color) {
-	_drawFastHLine(x+dispWin.x1, y+dispWin.y1, w, color);
+	_drawFastHLine(x+tft_dispWin.x1, y+tft_dispWin.y1, w, color);
 }
 
 // Bresenham's algorithm - thx wikipedia - speed enhanced by Bodmer this uses
@@ -268,28 +262,28 @@ static void _drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, color_t co
 //==============================================================================
 void TFT_drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, color_t color)
 {
-	_drawLine(x0+dispWin.x1, y0+dispWin.y1, x1+dispWin.x1, y1+dispWin.y1, color);
+	_drawLine(x0+tft_dispWin.x1, y0+tft_dispWin.y1, x1+tft_dispWin.x1, y1+tft_dispWin.y1, color);
 }
 
 // fill a rectangle
 //--------------------------------------------------------------------------------
 static void _fillRect(int16_t x, int16_t y, int16_t w, int16_t h, color_t color) {
 	// clipping
-	if ((x >= dispWin.x2) || (y > dispWin.y2)) return;
+	if ((x >= tft_dispWin.x2) || (y > tft_dispWin.y2)) return;
 
-	if (x < dispWin.x1) {
-		w -= (dispWin.x1 - x);
-		x = dispWin.x1;
+	if (x < tft_dispWin.x1) {
+		w -= (tft_dispWin.x1 - x);
+		x = tft_dispWin.x1;
 	}
-	if (y < dispWin.y1) {
-		h -= (dispWin.y1 - y);
-		y = dispWin.y1;
+	if (y < tft_dispWin.y1) {
+		h -= (tft_dispWin.y1 - y);
+		y = tft_dispWin.y1;
 	}
 	if (w < 0) w = 0;
 	if (h < 0) h = 0;
 
-	if ((x + w) > (dispWin.x2+1)) w = dispWin.x2 - x + 1;
-	if ((y + h) > (dispWin.y2+1)) h = dispWin.y2 - y + 1;
+	if ((x + w) > (tft_dispWin.x2+1)) w = tft_dispWin.x2 - x + 1;
+	if ((y + h) > (tft_dispWin.y2+1)) h = tft_dispWin.y2 - y + 1;
 	if (w == 0) w = 1;
 	if (h == 0) h = 1;
 	TFT_pushColorRep(x, y, x+w-1, y+h-1, color, (uint32_t)(h*w));
@@ -297,18 +291,18 @@ static void _fillRect(int16_t x, int16_t y, int16_t w, int16_t h, color_t color)
 
 //============================================================================
 void TFT_fillRect(int16_t x, int16_t y, int16_t w, int16_t h, color_t color) {
-	_fillRect(x+dispWin.x1, y+dispWin.y1, w, h, color);
+	_fillRect(x+tft_dispWin.x1, y+tft_dispWin.y1, w, h, color);
 }
 
 //==================================
 void TFT_fillScreen(color_t color) {
-	TFT_pushColorRep(0, 0, _width-1, _height-1, color, (uint32_t)(_height*_width));
+	TFT_pushColorRep(TFT_STATIC_X_OFFSET, TFT_STATIC_Y_OFFSET, tft_width + TFT_STATIC_X_OFFSET -1, tft_height + TFT_STATIC_Y_OFFSET -1, color, (uint32_t)(tft_height*tft_width));
 }
 
 //==================================
 void TFT_fillWindow(color_t color) {
-	TFT_pushColorRep(dispWin.x1, dispWin.y1, dispWin.x2, dispWin.y2,
-			color, (uint32_t)((dispWin.x2-dispWin.x1+1) * (dispWin.y2-dispWin.y1+1)));
+	TFT_pushColorRep(tft_dispWin.x1, tft_dispWin.y1, tft_dispWin.x2, tft_dispWin.y2,
+			color, (uint32_t)((tft_dispWin.x2-tft_dispWin.x1+1) * (tft_dispWin.y2-tft_dispWin.y1+1)));
 }
 
 // ^^^============= Basics drawing functions ================================^^^
@@ -326,7 +320,7 @@ static void _drawRect(uint16_t x1,uint16_t y1,uint16_t w,uint16_t h, color_t col
 
 //===============================================================================
 void TFT_drawRect(uint16_t x1,uint16_t y1,uint16_t w,uint16_t h, color_t color) {
-	_drawRect(x1+dispWin.x1, y1+dispWin.y1, w, h, color);
+	_drawRect(x1+tft_dispWin.x1, y1+tft_dispWin.y1, w, h, color);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -403,8 +397,8 @@ static void fillCircleHelper(int16_t x0, int16_t y0, int16_t r,	uint8_t cornerna
 //=============================================================================================
 void TFT_drawRoundRect(int16_t x, int16_t y, uint16_t w, uint16_t h, uint16_t r, color_t color)
 {
-	x += dispWin.x1;
-	y += dispWin.y1;
+	x += tft_dispWin.x1;
+	y += tft_dispWin.y1;
 
 	// smarter version
 	_drawFastHLine(x + r, y, w - 2 * r, color);			// Top
@@ -423,8 +417,8 @@ void TFT_drawRoundRect(int16_t x, int16_t y, uint16_t w, uint16_t h, uint16_t r,
 //=============================================================================================
 void TFT_fillRoundRect(int16_t x, int16_t y, uint16_t w, uint16_t h, uint16_t r, color_t color)
 {
-	x += dispWin.x1;
-	y += dispWin.y1;
+	x += tft_dispWin.x1;
+	y += tft_dispWin.y1;
 
 	// smarter version
 	_fillRect(x + r, y, w - 2 * r, h, color);
@@ -443,25 +437,25 @@ static void _drawLineByAngle(int16_t x, int16_t y, int16_t angle, uint16_t lengt
 	_drawLine(
 		x,
 		y,
-		x + length * cos((angle + _angleOffset) * DEG_TO_RAD),
-		y + length * sin((angle + _angleOffset) * DEG_TO_RAD), color);
+		x + length * cos((angle + tft_angleOffset) * DEG_TO_RAD),
+		y + length * sin((angle + tft_angleOffset) * DEG_TO_RAD), color);
 }
 
 //---------------------------------------------------------------------------------------------------------------
 static void _DrawLineByAngle(int16_t x, int16_t y, int16_t angle, uint16_t start, uint16_t length, color_t color)
 {
 	_drawLine(
-		x + start * cos((angle + _angleOffset) * DEG_TO_RAD),
-		y + start * sin((angle + _angleOffset) * DEG_TO_RAD),
-		x + (start + length) * cos((angle + _angleOffset) * DEG_TO_RAD),
-		y + (start + length) * sin((angle + _angleOffset) * DEG_TO_RAD), color);
+		x + start * cos((angle + tft_angleOffset) * DEG_TO_RAD),
+		y + start * sin((angle + tft_angleOffset) * DEG_TO_RAD),
+		x + (start + length) * cos((angle + tft_angleOffset) * DEG_TO_RAD),
+		y + (start + length) * sin((angle + tft_angleOffset) * DEG_TO_RAD), color);
 }
 
 //===========================================================================================================
 void TFT_drawLineByAngle(uint16_t x, uint16_t y, uint16_t start, uint16_t len, uint16_t angle, color_t color)
 {
-	x += dispWin.x1;
-	y += dispWin.y1;
+	x += tft_dispWin.x1;
+	y += tft_dispWin.y1;
 
 	if (start == 0) _drawLineByAngle(x, y, angle, len, color);
 	else _DrawLineByAngle(x, y, angle, start, len, color);
@@ -480,12 +474,12 @@ static void _drawTriangle(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, ui
 //================================================================================================================
 void TFT_drawTriangle(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, color_t color)
 {
-	x0 += dispWin.x1;
-	y0 += dispWin.y1;
-	x1 += dispWin.x1;
-	y1 += dispWin.y1;
-	x2 += dispWin.x1;
-	y2 += dispWin.y1;
+	x0 += tft_dispWin.x1;
+	y0 += tft_dispWin.y1;
+	x1 += tft_dispWin.x1;
+	y1 += tft_dispWin.y1;
+	x2 += tft_dispWin.x1;
+	y2 += tft_dispWin.y1;
 
 	_drawLine(x0, y0, x1, y1, color);
 	_drawLine(x1, y1, x2, y2, color);
@@ -574,16 +568,16 @@ static void _fillTriangle(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, ui
 void TFT_fillTriangle(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, color_t color)
 {
 	_fillTriangle(
-			x0 + dispWin.x1, y0 + dispWin.y1,
-			x1 + dispWin.x1, y1 + dispWin.y1,
-			x2 + dispWin.x1, y2 + dispWin.y1,
+			x0 + tft_dispWin.x1, y0 + tft_dispWin.y1,
+			x1 + tft_dispWin.x1, y1 + tft_dispWin.y1,
+			x2 + tft_dispWin.x1, y2 + tft_dispWin.y1,
 			color);
 }
 
 //====================================================================
 void TFT_drawCircle(int16_t x, int16_t y, int radius, color_t color) {
-	x += dispWin.x1;
-	y += dispWin.y1;
+	x += tft_dispWin.x1;
+	y += tft_dispWin.y1;
 	int f = 1 - radius;
 	int ddF_x = 1;
 	int ddF_y = -2 * radius;
@@ -618,8 +612,8 @@ void TFT_drawCircle(int16_t x, int16_t y, int radius, color_t color) {
 
 //====================================================================
 void TFT_fillCircle(int16_t x, int16_t y, int radius, color_t color) {
-	x += dispWin.x1;
-	y += dispWin.y1;
+	x += tft_dispWin.x1;
+	y += tft_dispWin.y1;
 
 	_drawFastVLine(x, y-radius, 2*radius+1, color);
 	fillCircleHelper(x, y, radius, 3, 0, color);
@@ -643,8 +637,8 @@ static void _draw_ellipse_section(uint16_t x, uint16_t y, uint16_t x0, uint16_t 
 //=====================================================================================================
 void TFT_drawEllipse(uint16_t x0, uint16_t y0, uint16_t rx, uint16_t ry, color_t color, uint8_t option)
 {
-	x0 += dispWin.x1;
-	y0 += dispWin.y1;
+	x0 += tft_dispWin.x1;
+	y0 += tft_dispWin.y1;
 
 	uint16_t x, y;
 	int32_t xchg, ychg;
@@ -743,8 +737,8 @@ static void _draw_filled_ellipse_section(uint16_t x, uint16_t y, uint16_t x0, ui
 //=====================================================================================================
 void TFT_fillEllipse(uint16_t x0, uint16_t y0, uint16_t rx, uint16_t ry, color_t color, uint8_t option)
 {
-	x0 += dispWin.x1;
-	y0 += dispWin.y1;
+	x0 += tft_dispWin.x1;
+	y0 += tft_dispWin.y1;
 
 	uint16_t x, y;
 	int32_t xchg, ychg;
@@ -876,8 +870,8 @@ static void _fillArcOffsetted(uint16_t cx, uint16_t cy, uint16_t radius, uint16_
 //===========================================================================================================================
 void TFT_drawArc(uint16_t cx, uint16_t cy, uint16_t r, uint16_t th, float start, float end, color_t color, color_t fillcolor)
 {
-	cx += dispWin.x1;
-	cy += dispWin.y1;
+	cx += tft_dispWin.x1;
+	cy += tft_dispWin.y1;
 
 	if (th < 1) th = 1;
 	if (th > r) th = r;
@@ -887,8 +881,8 @@ void TFT_drawArc(uint16_t cx, uint16_t cy, uint16_t r, uint16_t th, float start,
 	float astart = fmodf(start, _arcAngleMax);
 	float aend = fmodf(end, _arcAngleMax);
 
-	astart += _angleOffset;
-	aend += _angleOffset;
+	astart += tft_angleOffset;
+	aend += tft_angleOffset;
 
 	if (astart < 0) astart += (float)360;
 	if (aend < 0) aend += (float)360;
@@ -923,10 +917,10 @@ void TFT_drawArc(uint16_t cx, uint16_t cy, uint16_t r, uint16_t th, float start,
 //=============================================================================================================
 void TFT_drawPolygon(int cx, int cy, int sides, int diameter, color_t color, color_t fill, int rot, uint8_t th)
 {
-	cx += dispWin.x1;
-	cy += dispWin.y1;
+	cx += tft_dispWin.x1;
+	cy += tft_dispWin.y1;
 
-	int deg = rot - _angleOffset;
+	int deg = rot - tft_angleOffset;
 	int f = TFT_compare_colors(fill, color);
 
 	if (sides < MIN_POLIGON_SIDES) sides = MIN_POLIGON_SIDES;	// This ensures the minimum side number
@@ -971,8 +965,8 @@ void TFT_drawPolygon(int cx, int cy, int sides, int diameter, color_t color, col
 //=====================================================================================
 void TFT_drawStar(int cx, int cy, int diameter, color_t color, bool fill, float factor)
 {
-	cx += dispWin.x1;
-	cy += dispWin.y1;
+	cx += tft_dispWin.x1;
+	cy += tft_dispWin.y1;
 
 	factor = constrain(factor, 1.0, 4.0);
 	uint8_t sides = 5;
@@ -1017,8 +1011,8 @@ void TFT_drawStar(int cx, int cy, int diameter, color_t color, bool fill, float 
 
 // ================ Font and string functions ==================================
 
-//--------------------------------------------------------
-static int load_file_font(const char * fontfile, int info)
+//-------------------------------------------------------
+static int load_file_font(const char *fontfile, int info)
 {
 	int err = 0;
 	char err_msg[256] = {'\0'};
@@ -1148,8 +1142,8 @@ exit:
 	return err;
 }
 
-//------------------------------------------------
-int compile_font_file(char *fontfile, uint8_t dbg)
+//------------------------------------------------------
+int compile_font_file(const char *fontfile, uint8_t dbg)
 {
 	int err = 0;
 	char err_msg[128] = {'\0'};
@@ -1330,14 +1324,14 @@ exit:
 // -----------------------------------------------------------------------------------------
 
 //---------------------------------------------------------------------------------------------
-// Character drawing rectangle is (0, 0) (xDelta-1, cfont.y_size-1)
+// Character drawing rectangle is (0, 0) (xDelta-1, tft_cfont.y_size-1)
 // Character visible pixels rectangle is (xOffset, yOffset) (xOffset+Width-1, yOffset+Height-1)
 //---------------------------------------------------------------------------------------------
 
 //----------------------------------
 void getFontCharacters(uint8_t *buf)
 {
-    if (cfont.bitmap == 2) {
+    if (tft_cfont.bitmap == 2) {
     	//For 7 segment font only characters 0,1,2,3,4,5,6,7,8,9, . , - , : , / are available.
 		for (uint8_t n=0; n < 11; n++) {
 			buf[n] = n + 0x30;
@@ -1349,11 +1343,11 @@ void getFontCharacters(uint8_t *buf)
     	return;
     }
 
-    if (cfont.x_size > 0) {
-		for (uint8_t n=0; n < cfont.numchars; n++) {
-			buf[n] = cfont.offset + n;
+    if (tft_cfont.x_size > 0) {
+		for (uint8_t n=0; n < tft_cfont.numchars; n++) {
+			buf[n] = tft_cfont.offset + n;
 		}
-		buf[cfont.numchars] = '\0';
+		buf[tft_cfont.numchars] = '\0';
 		return;
 	}
 
@@ -1361,12 +1355,12 @@ void getFontCharacters(uint8_t *buf)
 	uint8_t cc, cw, ch, n;
 
 	n = 0;
-    cc = cfont.font[tempPtr++];
+    cc = tft_cfont.font[tempPtr++];
     while (cc != 0xFF)  {
-    	cfont.numchars++;
+    	tft_cfont.numchars++;
         tempPtr++;
-        cw = cfont.font[tempPtr++];
-        ch = cfont.font[tempPtr++];
+        cw = tft_cfont.font[tempPtr++];
+        ch = tft_cfont.font[tempPtr++];
         tempPtr++;
         tempPtr++;
 		if (cw != 0) {
@@ -1374,7 +1368,7 @@ void getFontCharacters(uint8_t *buf)
 			tempPtr += (((cw * ch)-1) / 8) + 1;
 		}
 		buf[n++] = cc;
-	    cc = cfont.font[tempPtr++];
+	    cc = tft_cfont.font[tempPtr++];
 	}
 	buf[n] = '\0';
 }
@@ -1386,29 +1380,29 @@ static void getMaxWidthHeight()
 	uint16_t tempPtr = 4; // point at first char data
 	uint8_t cc, cw, ch, cd, cy;
 
-	cfont.numchars = 0;
-	cfont.max_x_size = 0;
+	tft_cfont.numchars = 0;
+	tft_cfont.max_x_size = 0;
 
-    cc = cfont.font[tempPtr++];
+    cc = tft_cfont.font[tempPtr++];
     while (cc != 0xFF)  {
-    	cfont.numchars++;
-        cy = cfont.font[tempPtr++];
-        cw = cfont.font[tempPtr++];
-        ch = cfont.font[tempPtr++];
+    	tft_cfont.numchars++;
+        cy = tft_cfont.font[tempPtr++];
+        cw = tft_cfont.font[tempPtr++];
+        ch = tft_cfont.font[tempPtr++];
         tempPtr++;
-        cd = cfont.font[tempPtr++];
+        cd = tft_cfont.font[tempPtr++];
         cy += ch;
-		if (cw > cfont.max_x_size) cfont.max_x_size = cw;
-		if (cd > cfont.max_x_size) cfont.max_x_size = cd;
-		if (ch > cfont.y_size) cfont.y_size = ch;
-		if (cy > cfont.y_size) cfont.y_size = cy;
+		if (cw > tft_cfont.max_x_size) tft_cfont.max_x_size = cw;
+		if (cd > tft_cfont.max_x_size) tft_cfont.max_x_size = cd;
+		if (ch > tft_cfont.y_size) tft_cfont.y_size = ch;
+		if (cy > tft_cfont.y_size) tft_cfont.y_size = cy;
 		if (cw != 0) {
 			// packed bits
 			tempPtr += (((cw * ch)-1) / 8) + 1;
 		}
-	    cc = cfont.font[tempPtr++];
+	    cc = tft_cfont.font[tempPtr++];
 	}
-    cfont.size = tempPtr;
+    tft_cfont.size = tempPtr;
 }
 
 // Return the Glyph data for an individual character in the proportional font
@@ -1417,15 +1411,15 @@ static uint8_t getCharPtr(uint8_t c) {
   uint16_t tempPtr = 4; // point at first char data
 
   do {
-	fontChar.charCode = cfont.font[tempPtr++];
+	fontChar.charCode = tft_cfont.font[tempPtr++];
     if (fontChar.charCode == 0xFF) return 0;
 
-    fontChar.adjYOffset = cfont.font[tempPtr++];
-    fontChar.width = cfont.font[tempPtr++];
-    fontChar.height = cfont.font[tempPtr++];
-    fontChar.xOffset = cfont.font[tempPtr++];
+    fontChar.adjYOffset = tft_cfont.font[tempPtr++];
+    fontChar.width = tft_cfont.font[tempPtr++];
+    fontChar.height = tft_cfont.font[tempPtr++];
+    fontChar.xOffset = tft_cfont.font[tempPtr++];
     fontChar.xOffset = fontChar.xOffset < 0x80 ? fontChar.xOffset : -(0xFF - fontChar.xOffset);
-    fontChar.xDelta = cfont.font[tempPtr++];
+    fontChar.xDelta = tft_cfont.font[tempPtr++];
 
     if (c != fontChar.charCode && fontChar.charCode != 0xFF) {
       if (fontChar.width != 0) {
@@ -1437,9 +1431,9 @@ static uint8_t getCharPtr(uint8_t c) {
 
   fontChar.dataPtr = tempPtr;
   if (c == fontChar.charCode) {
-    if (font_forceFixed > 0) {
+    if (tft_font_forceFixed > 0) {
       // fix width & offset for forced fixed width
-      fontChar.xDelta = cfont.max_x_size;
+      fontChar.xDelta = tft_cfont.max_x_size;
       fontChar.xOffset = (fontChar.xDelta - fontChar.width) / 2;
     }
   }
@@ -1451,26 +1445,26 @@ static uint8_t getCharPtr(uint8_t c) {
 /*
 //-----------------------
 static void _testFont() {
-  if (cfont.x_size) {
+  if (tft_cfont.x_size) {
 	  printf("FONT TEST: fixed font\r\n");
 	  return;
   }
   uint16_t tempPtr = 4; // point at first char data
   uint8_t c = 0x20;
   for (c=0x20; c <0xFF; c++) {
-	fontChar.charCode = cfont.font[tempPtr++];
+	fontChar.charCode = tft_cfont.font[tempPtr++];
     if (fontChar.charCode == 0xFF) break;
     if (fontChar.charCode != c) {
     	printf("FONT TEST: last sequential char: %d, expected %d\r\n", fontChar.charCode, c);
     	break;
     }
     c = fontChar.charCode;
-    fontChar.adjYOffset = cfont.font[tempPtr++];
-    fontChar.width = cfont.font[tempPtr++];
-    fontChar.height = cfont.font[tempPtr++];
-    fontChar.xOffset = cfont.font[tempPtr++];
+    fontChar.adjYOffset = tft_cfont.font[tempPtr++];
+    fontChar.width = tft_cfont.font[tempPtr++];
+    fontChar.height = tft_cfont.font[tempPtr++];
+    fontChar.xOffset = tft_cfont.font[tempPtr++];
     fontChar.xOffset = fontChar.xOffset < 0x80 ? fontChar.xOffset : -(0xFF - fontChar.xOffset);
-    fontChar.xDelta = cfont.font[tempPtr++];
+    fontChar.xDelta = tft_cfont.font[tempPtr++];
 
     if (fontChar.charCode != 0xFF) {
       if (fontChar.width != 0) {
@@ -1479,47 +1473,47 @@ static void _testFont() {
       }
     }
   }
-  printf("FONT TEST: W=%d  H=%d last char: %d [%c]; length: %d\r\n", cfont.max_x_size, cfont.y_size, c, c, tempPtr);
+  printf("FONT TEST: W=%d  H=%d last char: %d [%c]; length: %d\r\n", tft_cfont.max_x_size, tft_cfont.y_size, c, c, tempPtr);
 }
 */
 
 //===================================================
 void TFT_setFont(uint8_t font, const char *font_file)
 {
-  cfont.font = NULL;
+  tft_cfont.font = NULL;
 
   if (font == FONT_7SEG) {
-    cfont.bitmap = 2;
-    cfont.x_size = 24;
-    cfont.y_size = 6;
-    cfont.offset = 0;
-    cfont.color  = _fg;
+    tft_cfont.bitmap = 2;
+    tft_cfont.x_size = 24;
+    tft_cfont.y_size = 6;
+    tft_cfont.offset = 0;
+    tft_cfont.color  = tft_fg;
   }
   else {
 	  if (font == USER_FONT) {
-		  if (load_file_font(font_file, 0) != 0) cfont.font = tft_DefaultFont;
-		  else cfont.font = userfont;
+		  if (load_file_font(font_file, 0) != 0) tft_cfont.font = tft_DefaultFont;
+		  else tft_cfont.font = userfont;
 	  }
-	  else if (font == DEJAVU18_FONT) cfont.font = tft_Dejavu18;
-	  else if (font == DEJAVU24_FONT) cfont.font = tft_Dejavu24;
-	  else if (font == UBUNTU16_FONT) cfont.font = tft_Ubuntu16;
-	  else if (font == COMIC24_FONT) cfont.font = tft_Comic24;
-	  else if (font == MINYA24_FONT) cfont.font = tft_minya24;
-	  else if (font == TOONEY32_FONT) cfont.font = tft_tooney32;
-	  else if (font == SMALL_FONT) cfont.font = tft_SmallFont;
-	  else if (font == DEF_SMALL_FONT) cfont.font = tft_def_small;
-	  else cfont.font = tft_DefaultFont;
+	  else if (font == DEJAVU18_FONT) tft_cfont.font = tft_Dejavu18;
+	  else if (font == DEJAVU24_FONT) tft_cfont.font = tft_Dejavu24;
+	  else if (font == UBUNTU16_FONT) tft_cfont.font = tft_Ubuntu16;
+	  else if (font == COMIC24_FONT) tft_cfont.font = tft_Comic24;
+	  else if (font == MINYA24_FONT) tft_cfont.font = tft_minya24;
+	  else if (font == TOONEY32_FONT) tft_cfont.font = tft_tooney32;
+	  else if (font == SMALL_FONT) tft_cfont.font = tft_SmallFont;
+	  else if (font == DEF_SMALL_FONT) tft_cfont.font = tft_def_small;
+	  else tft_cfont.font = tft_DefaultFont;
 
-	  cfont.bitmap = 1;
-	  cfont.x_size = cfont.font[0];
-	  cfont.y_size = cfont.font[1];
-	  if (cfont.x_size > 0) {
-		  cfont.offset = cfont.font[2];
-		  cfont.numchars = cfont.font[3];
-		  cfont.size = cfont.x_size * cfont.y_size * cfont.numchars;
+	  tft_cfont.bitmap = 1;
+	  tft_cfont.x_size = tft_cfont.font[0];
+	  tft_cfont.y_size = tft_cfont.font[1];
+	  if (tft_cfont.x_size > 0) {
+		  tft_cfont.offset = tft_cfont.font[2];
+		  tft_cfont.numchars = tft_cfont.font[3];
+		  tft_cfont.size = tft_cfont.x_size * tft_cfont.y_size * tft_cfont.numchars;
 	  }
 	  else {
-		  cfont.offset = 4;
+		  tft_cfont.offset = 4;
 		  getMaxWidthHeight();
 	  }
 	  //_testFont();
@@ -1538,7 +1532,7 @@ void TFT_setFont(uint8_t font, const char *font_file)
 // Data[n]
 // -----------------------------------------------------------------------------------------
 //---------------------------------------------------------------------------------------------
-// Character drawing rectangle is (0, 0) (xDelta-1, cfont.y_size-1)
+// Character drawing rectangle is (0, 0) (xDelta-1, tft_cfont.y_size-1)
 // Character visible pixels rectangle is (xOffset, yOffset) (xOffset+Width-1, yOffset+Height-1)
 //---------------------------------------------------------------------------------------------
 
@@ -1551,16 +1545,16 @@ static int printProportionalChar(int x, int y) {
 
 	char_width = ((fontChar.width > fontChar.xDelta) ? fontChar.width : fontChar.xDelta);
 
-	if ((font_buffered_char) && (!font_transparent)) {
+	if ((tft_font_buffered_char) && (!tft_font_transparent)) {
 		int len, bufPos;
 
 		// === buffer Glyph data for faster sending ===
-		len = char_width * cfont.y_size;
+		len = char_width * tft_cfont.y_size;
 		color_t *color_line = heap_caps_malloc(len*3, MALLOC_CAP_DMA);
 		if (color_line) {
 			// fill with background color
 			for (int n = 0; n < len; n++) {
-				color_line[n] = _bg;
+				color_line[n] = tft_bg;
 			}
 			// set character pixels to foreground color
 			uint8_t mask = 0x80;
@@ -1568,12 +1562,12 @@ static int printProportionalChar(int x, int y) {
 				for (i=0; i < fontChar.width; i++) {
 					if (((i + (j*fontChar.width)) % 8) == 0) {
 						mask = 0x80;
-						ch = cfont.font[fontChar.dataPtr++];
+						ch = tft_cfont.font[fontChar.dataPtr++];
 					}
 					if ((ch & mask) != 0) {
 						// visible pixel
 						bufPos = ((j + fontChar.adjYOffset) * char_width) + (fontChar.xOffset + i);  // bufY + bufX
-						color_line[bufPos] = _fg;
+						color_line[bufPos] = tft_fg;
 						/*
 						bufY = (j + fontChar.adjYOffset) * char_width;
 						bufX = fontChar.xOffset + i;
@@ -1581,9 +1575,9 @@ static int printProportionalChar(int x, int y) {
 							printf("[%c] X ERR: %d\r\n", fontChar.charCode, bufX);
 						}
 						bufPos = bufY + bufX;
-						if ((bufPos < len) && (bufPos > 0)) color_line[bufPos] = _fg;
+						if ((bufPos < len) && (bufPos > 0)) color_line[bufPos] = tft_fg;
 						else printf("[%c] ERR: %d > %d  W=%d  H=%d  bufX=%d  bufY=%d  X=%d  Y=%d\r\n",
-								fontChar.charCode, bufPos, len, char_width, cfont.y_size, bufX, bufY, fontChar.xOffset + i, j + fontChar.adjYOffset);
+								fontChar.charCode, bufPos, len, char_width, tft_cfont.y_size, bufX, bufY, fontChar.xOffset + i, j + fontChar.adjYOffset);
 						*/
 					}
 					mask >>= 1;
@@ -1591,7 +1585,7 @@ static int printProportionalChar(int x, int y) {
 			}
 			// send to display in one transaction
 			disp_select();
-			send_data(x, y, x+char_width-1, y+cfont.y_size-1, len, color_line);
+			send_data(x, y, x+char_width-1, y+tft_cfont.y_size-1, len, color_line);
 			disp_deselect();
 			free(color_line);
 
@@ -1601,7 +1595,7 @@ static int printProportionalChar(int x, int y) {
 
 	int cx, cy;
 
-	if (!font_transparent) _fillRect(x, y, char_width+1, cfont.y_size, _bg);
+	if (!tft_font_transparent) _fillRect(x, y, char_width+1, tft_cfont.y_size, tft_bg);
 
 	// draw Glyph
 	uint8_t mask = 0x80;
@@ -1610,13 +1604,13 @@ static int printProportionalChar(int x, int y) {
 		for (i=0; i < fontChar.width; i++) {
 			if (((i + (j*fontChar.width)) % 8) == 0) {
 				mask = 0x80;
-				ch = cfont.font[fontChar.dataPtr++];
+				ch = tft_cfont.font[fontChar.dataPtr++];
 			}
 
 			if ((ch & mask) !=0) {
 				cx = (uint16_t)(x+fontChar.xOffset+i);
 				cy = (uint16_t)(y+j+fontChar.adjYOffset);
-				_drawPixel(cx, cy, _fg, 0);
+				_drawPixel(cx, cy, tft_fg, 0);
 			}
 			mask >>= 1;
 		}
@@ -1633,28 +1627,28 @@ static void printChar(uint8_t c, int x, int y) {
 	uint16_t k, temp, cx, cy, len;
 
 	// fz = bytes per char row
-	fz = cfont.x_size/8;
-	if (cfont.x_size % 8) fz++;
+	fz = tft_cfont.x_size/8;
+	if (tft_cfont.x_size % 8) fz++;
 
 	// get character position in buffer
-	temp = ((c-cfont.offset)*((fz)*cfont.y_size))+4;
+	temp = ((c-tft_cfont.offset)*((fz)*tft_cfont.y_size))+4;
 
-	if ((font_buffered_char) && (!font_transparent)) {
+	if ((tft_font_buffered_char) && (!tft_font_transparent)) {
 		// === buffer Glyph data for faster sending ===
-		len = cfont.x_size * cfont.y_size;
+		len = tft_cfont.x_size * tft_cfont.y_size;
 		color_t *color_line = heap_caps_malloc(len*3, MALLOC_CAP_DMA);
 		if (color_line) {
 			// fill with background color
 			for (int n = 0; n < len; n++) {
-				color_line[n] = _bg;
+				color_line[n] = tft_bg;
 			}
 			// set character pixels to foreground color
-			for (j=0; j<cfont.y_size; j++) {
+			for (j=0; j<tft_cfont.y_size; j++) {
 				for (k=0; k < fz; k++) {
-					ch = cfont.font[temp+k];
+					ch = tft_cfont.font[temp+k];
 					mask=0x80;
 					for (i=0; i<8; i++) {
-						if ((ch & mask) !=0) color_line[(j*cfont.x_size) + (i+(k*8))] = _fg;
+						if ((ch & mask) !=0) color_line[(j*tft_cfont.x_size) + (i+(k*8))] = tft_fg;
 						mask >>= 1;
 					}
 				}
@@ -1662,7 +1656,7 @@ static void printChar(uint8_t c, int x, int y) {
 			}
 			// send to display in one transaction
 			disp_select();
-			send_data(x, y, x+cfont.x_size-1, y+cfont.y_size-1, len, color_line);
+			send_data(x, y, x+tft_cfont.x_size-1, y+tft_cfont.y_size-1, len, color_line);
 			disp_deselect();
 			free(color_line);
 
@@ -1670,18 +1664,18 @@ static void printChar(uint8_t c, int x, int y) {
 		}
 	}
 
-	if (!font_transparent) _fillRect(x, y, cfont.x_size, cfont.y_size, _bg);
+	if (!tft_font_transparent) _fillRect(x, y, tft_cfont.x_size, tft_cfont.y_size, tft_bg);
 
 	disp_select();
-	for (j=0; j<cfont.y_size; j++) {
+	for (j=0; j<tft_cfont.y_size; j++) {
 		for (k=0; k < fz; k++) {
-			ch = cfont.font[temp+k];
+			ch = tft_cfont.font[temp+k];
 			mask=0x80;
 			for (i=0; i<8; i++) {
 				if ((ch & mask) !=0) {
 					cx = (uint16_t)(x+i+(k*8));
 					cy = (uint16_t)(y+j);
-					_drawPixel(cx, cy, _fg, 0);
+					_drawPixel(cx, cy, tft_fg, 0);
 				}
 				mask >>= 1;
 			}
@@ -1696,7 +1690,7 @@ static void printChar(uint8_t c, int x, int y) {
 //---------------------------------------------------
 static int rotatePropChar(int x, int y, int offset) {
   uint8_t ch = 0;
-  double radian = font_rotate * DEG_TO_RAD;
+  double radian = tft_font_rotate * DEG_TO_RAD;
   float cos_radian = cos(radian);
   float sin_radian = sin(radian);
 
@@ -1706,14 +1700,14 @@ static int rotatePropChar(int x, int y, int offset) {
     for (int i=0; i < fontChar.width; i++) {
       if (((i + (j*fontChar.width)) % 8) == 0) {
         mask = 0x80;
-        ch = cfont.font[fontChar.dataPtr++];
+        ch = tft_cfont.font[fontChar.dataPtr++];
       }
 
       int newX = (int)(x + (((offset + i) * cos_radian) - ((j+fontChar.adjYOffset)*sin_radian)));
       int newY = (int)(y + (((j+fontChar.adjYOffset) * cos_radian) + ((offset + i) * sin_radian)));
 
-      if ((ch & mask) != 0) _drawPixel(newX,newY,_fg, 0);
-      else if (!font_transparent) _drawPixel(newX,newY,_bg, 0);
+      if ((ch & mask) != 0) _drawPixel(newX,newY,tft_fg, 0);
+      else if (!tft_font_transparent) _drawPixel(newX,newY,tft_bg, 0);
 
       mask >>= 1;
     }
@@ -1729,26 +1723,26 @@ static void rotateChar(uint8_t c, int x, int y, int pos) {
   uint8_t i,j,ch,fz,mask;
   uint16_t temp;
   int newx,newy;
-  double radian = font_rotate*0.0175;
+  double radian = tft_font_rotate*0.0175;
   float cos_radian = cos(radian);
   float sin_radian = sin(radian);
   int zz;
 
-  if( cfont.x_size < 8 ) fz = cfont.x_size;
-  else fz = cfont.x_size/8;
-  temp=((c-cfont.offset)*((fz)*cfont.y_size))+4;
+  if( tft_cfont.x_size < 8 ) fz = tft_cfont.x_size;
+  else fz = tft_cfont.x_size/8;
+  temp=((c-tft_cfont.offset)*((fz)*tft_cfont.y_size))+4;
 
   disp_select();
-  for (j=0; j<cfont.y_size; j++) {
+  for (j=0; j<tft_cfont.y_size; j++) {
     for (zz=0; zz<(fz); zz++) {
-      ch = cfont.font[temp+zz];
+      ch = tft_cfont.font[temp+zz];
       mask = 0x80;
       for (i=0; i<8; i++) {
-        newx=(int)(x+(((i+(zz*8)+(pos*cfont.x_size))*cos_radian)-((j)*sin_radian)));
-        newy=(int)(y+(((j)*cos_radian)+((i+(zz*8)+(pos*cfont.x_size))*sin_radian)));
+        newx=(int)(x+(((i+(zz*8)+(pos*tft_cfont.x_size))*cos_radian)-((j)*sin_radian)));
+        newy=(int)(y+(((j)*cos_radian)+((i+(zz*8)+(pos*tft_cfont.x_size))*sin_radian)));
 
-        if ((ch & mask) != 0) _drawPixel(newx,newy,_fg, 0);
-        else if (!font_transparent) _drawPixel(newx,newy,_bg, 0);
+        if ((ch & mask) != 0) _drawPixel(newx,newy,tft_fg, 0);
+        else if (!tft_font_transparent) _drawPixel(newx,newy,tft_bg, 0);
         mask >>= 1;
       }
     }
@@ -1756,34 +1750,34 @@ static void rotateChar(uint8_t c, int x, int y, int pos) {
   }
   disp_deselect();
   // calculate x,y for the next char
-  TFT_X = (int)(x + ((pos+1) * cfont.x_size * cos_radian));
-  TFT_Y = (int)(y + ((pos+1) * cfont.x_size * sin_radian));
+  tft_x = (int)(x + ((pos+1) * tft_cfont.x_size * cos_radian));
+  tft_y = (int)(y + ((pos+1) * tft_cfont.x_size * sin_radian));
 }
 
 //----------------------
 static int _7seg_width()
 {
-	return (2 * (2 * cfont.y_size + 1)) + cfont.x_size;
+	return (2 * (2 * tft_cfont.y_size + 1)) + tft_cfont.x_size;
 }
 
 //-----------------------
 static int _7seg_height()
 {
-	return (3 * (2 * cfont.y_size + 1)) + (2 * cfont.x_size);
+	return (3 * (2 * tft_cfont.y_size + 1)) + (2 * tft_cfont.x_size);
 }
 
 // Returns the string width in pixels.
 // Useful for positions strings on the screen.
-//===============================
-int TFT_getStringWidth(char* str)
+//=====================================
+int TFT_getStringWidth(const char *str)
 {
     int strWidth = 0;
 
-	if (cfont.bitmap == 2) strWidth = ((_7seg_width()+2) * strlen(str)) - 2;	// 7-segment font
-	else if (cfont.x_size != 0) strWidth = strlen(str) * cfont.x_size;			// fixed width font
+	if (tft_cfont.bitmap == 2) strWidth = ((_7seg_width()+2) * strlen(str)) - 2;	// 7-segment font
+	else if (tft_cfont.x_size != 0) strWidth = strlen(str) * tft_cfont.x_size;			// fixed width font
 	else {
 		// calculate the width of the string of proportional characters
-		char* tempStrptr = str;
+		const char *tempStrptr = str;
 		while (*tempStrptr != 0) {
 			if (getCharPtr(*tempStrptr++)) {
 				strWidth += (((fontChar.width > fontChar.xDelta) ? fontChar.width : fontChar.xDelta) + 1);
@@ -1794,12 +1788,12 @@ int TFT_getStringWidth(char* str)
 	return strWidth;
 }
 
-//===============================================
-void TFT_clearStringRect(int x, int y, char *str)
+//=====================================================
+void TFT_clearStringRect(int x, int y, const char *str)
 {
 	int w = TFT_getStringWidth(str);
 	int h = TFT_getfontheight();
-	TFT_fillRect(x+dispWin.x1, y+dispWin.y1, w, h, _bg);
+	TFT_fillRect(x+tft_dispWin.x1, y+tft_dispWin.y1, w, h, tft_bg);
 }
 
 //==============================================================================
@@ -1836,7 +1830,7 @@ static void barVert(int16_t x, int16_t y, int16_t w, int16_t l, color_t color, c
   _fillTriangle(x+1, y+2*w, x+w, y+w+1, x+2*w-1, y+2*w, color);
   _fillTriangle(x+1, y+2*w+l+1, x+w, y+3*w+l, x+2*w-1, y+2*w+l+1, color);
   _fillRect(x, y+2*w+1, 2*w+1, l, color);
-  if (cfont.offset) {
+  if (tft_cfont.offset) {
     _drawTriangle(x+1, y+2*w, x+w, y+w+1, x+2*w-1, y+2*w, outline);
     _drawTriangle(x+1, y+2*w+l+1, x+w, y+3*w+l, x+2*w-1, y+2*w+l+1, outline);
     _drawRect(x, y+2*w+1, 2*w+1, l, outline);
@@ -1848,7 +1842,7 @@ static void barHor(int16_t x, int16_t y, int16_t w, int16_t l, color_t color, co
   _fillTriangle(x+2*w, y+2*w-1, x+w+1, y+w, x+2*w, y+1, color);
   _fillTriangle(x+2*w+l+1, y+2*w-1, x+3*w+l, y+w, x+2*w+l+1, y+1, color);
   _fillRect(x+2*w+1, y, l, 2*w+1, color);
-  if (cfont.offset) {
+  if (tft_cfont.offset) {
     _drawTriangle(x+2*w, y+2*w-1, x+w+1, y+w, x+2*w, y+1, outline);
     _drawTriangle(x+2*w+l+1, y+2*w-1, x+3*w+l, y+w, x+2*w+l+1, y+1, outline);
     _drawRect(x+2*w+1, y, l, 2*w+1, outline);
@@ -1864,122 +1858,122 @@ static void _draw7seg(int16_t x, int16_t y, int8_t num, int16_t w, int16_t l, co
   int16_t d = 2*w+l+1;
 
   // === Clear unused segments ===
-  if (!(c & 0x001)) barVert(x+d, y+d, w, l, _bg, _bg);
-  if (!(c & 0x002)) barVert(x,   y+d, w, l, _bg, _bg);
-  if (!(c & 0x004)) barVert(x+d, y, w, l, _bg, _bg);
-  if (!(c & 0x008)) barVert(x,   y, w, l, _bg, _bg);
-  if (!(c & 0x010)) barHor(x, y+2*d, w, l, _bg, _bg);
-  if (!(c & 0x020)) barHor(x, y+d, w, l, _bg, _bg);
-  if (!(c & 0x040)) barHor(x, y, w, l, _bg, _bg);
+  if (!(c & 0x001)) barVert(x+d, y+d, w, l, tft_bg, tft_bg);
+  if (!(c & 0x002)) barVert(x,   y+d, w, l, tft_bg, tft_bg);
+  if (!(c & 0x004)) barVert(x+d, y, w, l, tft_bg, tft_bg);
+  if (!(c & 0x008)) barVert(x,   y, w, l, tft_bg, tft_bg);
+  if (!(c & 0x010)) barHor(x, y+2*d, w, l, tft_bg, tft_bg);
+  if (!(c & 0x020)) barHor(x, y+d, w, l, tft_bg, tft_bg);
+  if (!(c & 0x040)) barHor(x, y, w, l, tft_bg, tft_bg);
 
   if (!(c & 0x080)) {
     // low point
-    _fillRect(x+(d/2), y+2*d, 2*w+1, 2*w+1, _bg);
-    if (cfont.offset) _drawRect(x+(d/2), y+2*d, 2*w+1, 2*w+1, _bg);
+    _fillRect(x+(d/2), y+2*d, 2*w+1, 2*w+1, tft_bg);
+    if (tft_cfont.offset) _drawRect(x+(d/2), y+2*d, 2*w+1, 2*w+1, tft_bg);
   }
   if (!(c & 0x100)) {
     // down middle point
-    _fillRect(x+(d/2), y+d+2*w+1, 2*w+1, l/2, _bg);
-    if (cfont.offset) _drawRect(x+(d/2), y+d+2*w+1, 2*w+1, l/2, _bg);
+    _fillRect(x+(d/2), y+d+2*w+1, 2*w+1, l/2, tft_bg);
+    if (tft_cfont.offset) _drawRect(x+(d/2), y+d+2*w+1, 2*w+1, l/2, tft_bg);
   }
   if (!(c & 0x800)) {
 	// up middle point
-    _fillRect(x+(d/2), y+(2*w)+1+(l/2), 2*w+1, l/2, _bg);
-    if (cfont.offset) _drawRect(x+(d/2), y+(2*w)+1+(l/2), 2*w+1, l/2, _bg);
+    _fillRect(x+(d/2), y+(2*w)+1+(l/2), 2*w+1, l/2, tft_bg);
+    if (tft_cfont.offset) _drawRect(x+(d/2), y+(2*w)+1+(l/2), 2*w+1, l/2, tft_bg);
   }
   if (!(c & 0x200)) {
     // middle, minus
-    _fillRect(x+2*w+1, y+d, l, 2*w+1, _bg);
-    if (cfont.offset) _drawRect(x+2*w+1, y+d, l, 2*w+1, _bg);
+    _fillRect(x+2*w+1, y+d, l, 2*w+1, tft_bg);
+    if (tft_cfont.offset) _drawRect(x+2*w+1, y+d, l, 2*w+1, tft_bg);
   }
 
   // === Draw used segments ===
-  if (c & 0x001) barVert(x+d, y+d, w, l, color, cfont.color);	// down right
-  if (c & 0x002) barVert(x,   y+d, w, l, color, cfont.color);	// down left
-  if (c & 0x004) barVert(x+d, y, w, l, color, cfont.color);		// up right
-  if (c & 0x008) barVert(x,   y, w, l, color, cfont.color);		// up left
-  if (c & 0x010) barHor(x, y+2*d, w, l, color, cfont.color);	// down
-  if (c & 0x020) barHor(x, y+d, w, l, color, cfont.color);		// middle
-  if (c & 0x040) barHor(x, y, w, l, color, cfont.color);		// up
+  if (c & 0x001) barVert(x+d, y+d, w, l, color, tft_cfont.color);	// down right
+  if (c & 0x002) barVert(x,   y+d, w, l, color, tft_cfont.color);	// down left
+  if (c & 0x004) barVert(x+d, y, w, l, color, tft_cfont.color);		// up right
+  if (c & 0x008) barVert(x,   y, w, l, color, tft_cfont.color);		// up left
+  if (c & 0x010) barHor(x, y+2*d, w, l, color, tft_cfont.color);	// down
+  if (c & 0x020) barHor(x, y+d, w, l, color, tft_cfont.color);		// middle
+  if (c & 0x040) barHor(x, y, w, l, color, tft_cfont.color);		// up
 
   if (c & 0x080) {
     // low point
     _fillRect(x+(d/2), y+2*d, 2*w+1, 2*w+1, color);
-    if (cfont.offset) _drawRect(x+(d/2), y+2*d, 2*w+1, 2*w+1, cfont.color);
+    if (tft_cfont.offset) _drawRect(x+(d/2), y+2*d, 2*w+1, 2*w+1, tft_cfont.color);
   }
   if (c & 0x100) {
     // down middle point
     _fillRect(x+(d/2), y+d+2*w+1, 2*w+1, l/2, color);
-    if (cfont.offset) _drawRect(x+(d/2), y+d+2*w+1, 2*w+1, l/2, cfont.color);
+    if (tft_cfont.offset) _drawRect(x+(d/2), y+d+2*w+1, 2*w+1, l/2, tft_cfont.color);
   }
   if (c & 0x800) {
 	// up middle point
     _fillRect(x+(d/2), y+(2*w)+1+(l/2), 2*w+1, l/2, color);
-    if (cfont.offset) _drawRect(x+(d/2), y+(2*w)+1+(l/2), 2*w+1, l/2, cfont.color);
+    if (tft_cfont.offset) _drawRect(x+(d/2), y+(2*w)+1+(l/2), 2*w+1, l/2, tft_cfont.color);
   }
   if (c & 0x200) {
     // middle, minus
     _fillRect(x+2*w+1, y+d, l, 2*w+1, color);
-    if (cfont.offset) _drawRect(x+2*w+1, y+d, l, 2*w+1, cfont.color);
+    if (tft_cfont.offset) _drawRect(x+2*w+1, y+d, l, 2*w+1, tft_cfont.color);
   }
 }
 //==============================================================================
 
-//======================================
-void TFT_print(char *st, int x, int y) {
+//============================================
+void TFT_print(const char *st, int x, int y) {
 	int stl, i, tmpw, tmph, fh;
 	uint8_t ch;
 
-	if (cfont.bitmap == 0) return; // wrong font selected
+	if (tft_cfont.bitmap == 0) return; // wrong font selected
 
 	// ** Rotated strings cannot be aligned
-	if ((font_rotate != 0) && ((x <= CENTER) || (y <= CENTER))) return;
+	if ((tft_font_rotate != 0) && ((x <= CENTER) || (y <= CENTER))) return;
 
-	if ((x < LASTX) || (font_rotate == 0)) TFT_OFFSET = 0;
+	if ((x < LASTX) || (tft_font_rotate == 0)) TFT_OFFSET = 0;
 
-	if ((x >= LASTX) && (x < LASTY)) x = TFT_X + (x-LASTX);
-	else if (x > CENTER) x += dispWin.x1;
+	if ((x >= LASTX) && (x < LASTY)) x = tft_x + (x-LASTX);
+	else if (x > CENTER) x += tft_dispWin.x1;
 
-	if (y >= LASTY) y = TFT_Y + (y-LASTY);
-	else if (y > CENTER) y += dispWin.y1;
+	if (y >= LASTY) y = tft_y + (y-LASTY);
+	else if (y > CENTER) y += tft_dispWin.y1;
 
 	// ** Get number of characters in string to print
 	stl = strlen(st);
 
 	// ** Calculate CENTER, RIGHT or BOTTOM position
 	tmpw = TFT_getStringWidth(st);	// string width in pixels
-	fh = cfont.y_size;			// font height
-	if ((cfont.x_size != 0) && (cfont.bitmap == 2)) {
+	fh = tft_cfont.y_size;			// font height
+	if ((tft_cfont.x_size != 0) && (tft_cfont.bitmap == 2)) {
 		// 7-segment font
-		fh = (3 * (2 * cfont.y_size + 1)) + (2 * cfont.x_size);  // 7-seg character height
+		fh = (3 * (2 * tft_cfont.y_size + 1)) + (2 * tft_cfont.x_size);  // 7-seg character height
 	}
 
-	if (x == RIGHT) x = dispWin.x2 - tmpw + dispWin.x1;
-	else if (x == CENTER) x = (((dispWin.x2 - dispWin.x1 + 1) - tmpw) / 2) + dispWin.x1;
+	if (x == RIGHT) x = tft_dispWin.x2 - tmpw + tft_dispWin.x1;
+	else if (x == CENTER) x = (((tft_dispWin.x2 - tft_dispWin.x1 + 1) - tmpw) / 2) + tft_dispWin.x1;
 
-	if (y == BOTTOM) y = dispWin.y2 - fh + dispWin.y1;
-	else if (y==CENTER) y = (((dispWin.y2 - dispWin.y1 + 1) - (fh/2)) / 2) + dispWin.y1;
+	if (y == BOTTOM) y = tft_dispWin.y2 - fh + tft_dispWin.y1;
+	else if (y==CENTER) y = (((tft_dispWin.y2 - tft_dispWin.y1 + 1) - (fh/2)) / 2) + tft_dispWin.y1;
 
-	if (x < dispWin.x1) x = dispWin.x1;
-	if (y < dispWin.y1) y = dispWin.y1;
-	if ((x > dispWin.x2) || (y > dispWin.y2)) return;
+	if (x < tft_dispWin.x1) x = tft_dispWin.x1;
+	if (y < tft_dispWin.y1) y = tft_dispWin.y1;
+	if ((x > tft_dispWin.x2) || (y > tft_dispWin.y2)) return;
 
-	TFT_X = x;
-	TFT_Y = y;
+	tft_x = x;
+	tft_y = y;
 
 	// ** Adjust y position
-	tmph = cfont.y_size; // font height
+	tmph = tft_cfont.y_size; // font height
 	// for non-proportional fonts, char width is the same for all chars
-	tmpw = cfont.x_size;
-	if (cfont.x_size != 0) {
-		if (cfont.bitmap == 2) {	// 7-segment font
+	tmpw = tft_cfont.x_size;
+	if (tft_cfont.x_size != 0) {
+		if (tft_cfont.bitmap == 2) {	// 7-segment font
 			tmpw = _7seg_width();	// character width
 			tmph = _7seg_height();	// character height
 		}
 	}
 	else TFT_OFFSET = 0;	// fixed font; offset not needed
 
-	if ((TFT_Y + tmph - 1) > dispWin.y2) return;
+	if ((tft_y + tmph - 1) > tft_dispWin.y2) return;
 
 	int offset = TFT_OFFSET;
 
@@ -1987,36 +1981,36 @@ void TFT_print(char *st, int x, int y) {
 		ch = st[i]; // get string character
 
 		if (ch == 0x0D) { // === '\r', erase to eol ====
-			if ((!font_transparent) && (font_rotate==0)) _fillRect(TFT_X, TFT_Y,  dispWin.x2+1-TFT_X, tmph, _bg);
+			if ((!tft_font_transparent) && (tft_font_rotate==0)) _fillRect(tft_x, tft_y,  tft_dispWin.x2+1-tft_x, tmph, tft_bg);
 		}
 
 		else if (ch == 0x0A) { // ==== '\n', new line ====
-			if (cfont.bitmap == 1) {
-				TFT_Y += tmph + font_line_space;
-				if (TFT_Y > (dispWin.y2-tmph)) break;
-				TFT_X = dispWin.x1;
+			if (tft_cfont.bitmap == 1) {
+				tft_y += tmph + tft_font_line_space;
+				if (tft_y > (tft_dispWin.y2-tmph)) break;
+				tft_x = tft_dispWin.x1;
 			}
 		}
 
 		else { // ==== other characters ====
-			if (cfont.x_size == 0) {
+			if (tft_cfont.x_size == 0) {
 				// for proportional font get character data to 'fontChar'
 				if (getCharPtr(ch)) tmpw = fontChar.xDelta;
 				else continue;
 			}
 
 			// check if character can be displayed in the current line
-			if ((TFT_X+tmpw) > (dispWin.x2)) {
-				if (text_wrap == 0) break;
-				TFT_Y += tmph + font_line_space;
-				if (TFT_Y > (dispWin.y2-tmph)) break;
-				TFT_X = dispWin.x1;
+			if ((tft_x+tmpw) > (tft_dispWin.x2)) {
+				if (tft_text_wrap == 0) break;
+				tft_y += tmph + tft_font_line_space;
+				if (tft_y > (tft_dispWin.y2-tmph)) break;
+				tft_x = tft_dispWin.x1;
 			}
 
 			// Let's print the character
-			if (cfont.x_size == 0) {
+			if (tft_cfont.x_size == 0) {
 				// == proportional font
-				if (font_rotate == 0) TFT_X += printProportionalChar(TFT_X, TFT_Y) + 1;
+				if (tft_font_rotate == 0) tft_x += printProportionalChar(tft_x, tft_y) + 1;
 				else {
 					// rotated proportional font
 					offset += rotatePropChar(x, y, offset);
@@ -2024,19 +2018,19 @@ void TFT_print(char *st, int x, int y) {
 				}
 			}
 			else {
-				if (cfont.bitmap == 1) {
+				if (tft_cfont.bitmap == 1) {
 					// == fixed font
-					if ((ch < cfont.offset) || ((ch-cfont.offset) > cfont.numchars)) ch = cfont.offset;
-					if (font_rotate == 0) {
-						printChar(ch, TFT_X, TFT_Y);
-						TFT_X += tmpw;
+					if ((ch < tft_cfont.offset) || ((ch-tft_cfont.offset) > tft_cfont.numchars)) ch = tft_cfont.offset;
+					if (tft_font_rotate == 0) {
+						printChar(ch, tft_x, tft_y);
+						tft_x += tmpw;
 					}
 					else rotateChar(ch, x, y, i);
 				}
-				else if (cfont.bitmap == 2) {
+				else if (tft_cfont.bitmap == 2) {
 					// == 7-segment font ==
-					_draw7seg(TFT_X, TFT_Y, ch, cfont.y_size, cfont.x_size, _fg);
-					TFT_X += (tmpw + 2);
+					_draw7seg(tft_x, tft_y, ch, tft_cfont.y_size, tft_cfont.x_size, tft_fg);
+					tft_x += (tmpw + 2);
 				}
 			}
 		}
@@ -2058,32 +2052,38 @@ void TFT_setRotation(uint8_t rot) {
 		}
     }
 	else {
-		orientation = rot;
+		tft_orientation = rot;
         _tft_setRotation(rot);
 	}
 
-	dispWin.x1 = 0;
-	dispWin.y1 = 0;
-	dispWin.x2 = _width-1;
-	dispWin.y2 = _height-1;
+	tft_dispWin.x1 = TFT_STATIC_X_OFFSET;
+	tft_dispWin.y1 = TFT_STATIC_Y_OFFSET;
+	tft_dispWin.x2 = tft_width + TFT_STATIC_X_OFFSET -1;
+	tft_dispWin.y2 = tft_height + TFT_STATIC_Y_OFFSET -1;
 
-	TFT_fillScreen(_bg);
+	TFT_fillScreen(tft_bg);
 }
 
 // Send the command to invert all of the colors.
 // Input: i 0 to disable inversion; non-zero to enable inversion
 //==========================================
 void TFT_invertDisplay(const uint8_t mode) {
-  if ( mode == INVERT_ON ) disp_spi_transfer_cmd(TFT_INVONN);
-  else disp_spi_transfer_cmd(TFT_INVOFF);
+    if (disp_select() == ESP_OK) {
+        if ( mode == INVERT_ON ) disp_spi_transfer_cmd(TFT_INVONN);
+        else disp_spi_transfer_cmd(TFT_INVOFF);
+        disp_deselect();
+    }
 }
 
 // Select gamma curve
 // Input: gamma = 0~3
 //==================================
 void TFT_setGammaCurve(uint8_t gm) {
-  uint8_t gamma_curve = 1 << (gm & 0x03);
-  disp_spi_transfer_cmd_data(TFT_CMD_GAMMASET, &gamma_curve, 1);
+    uint8_t gamma_curve = (uint8_t)1 << (gm & (uint8_t)0x03);
+	if (disp_select() == ESP_OK) {
+		disp_spi_transfer_cmd_data(TFT_CMD_GAMMASET, &gamma_curve, 1);
+		disp_deselect();
+	}
 }
 
 //===========================================================
@@ -2157,29 +2157,29 @@ color_t HSBtoRGB(float _hue, float _sat, float _brightness) {
 //=====================================================================
 void TFT_setclipwin(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2)
 {
-	dispWin.x1 = x1;
-	dispWin.y1 = y1;
-	dispWin.x2 = x2;
-	dispWin.y2 = y2;
+	tft_dispWin.x1 = x1 + TFT_STATIC_X_OFFSET;
+	tft_dispWin.y1 = y1 + TFT_STATIC_Y_OFFSET;
+	tft_dispWin.x2 = x2 + TFT_STATIC_X_OFFSET;
+	tft_dispWin.y2 = y2 + TFT_STATIC_Y_OFFSET;
 
-	if (dispWin.x2 >= _width) dispWin.x2 = _width-1;
-	if (dispWin.y2 >= _height) dispWin.y2 = _height-1;
-	if (dispWin.x1 > dispWin.x2) dispWin.x1 = dispWin.x2;
-	if (dispWin.y1 > dispWin.y2) dispWin.y1 = dispWin.y2;
+	if (tft_dispWin.x2 >= tft_width + TFT_STATIC_X_OFFSET) tft_dispWin.x2 = tft_width + TFT_STATIC_X_OFFSET -1;
+	if (tft_dispWin.y2 >= tft_height + TFT_STATIC_Y_OFFSET) tft_dispWin.y2 = tft_height + TFT_STATIC_Y_OFFSET -1;
+	if (tft_dispWin.x1 > tft_dispWin.x2) tft_dispWin.x1 = tft_dispWin.x2;
+	if (tft_dispWin.y1 > tft_dispWin.y2) tft_dispWin.y1 = tft_dispWin.y2;
 }
 
 //=====================
 void TFT_resetclipwin()
 {
-	dispWin.x2 = _width-1;
-	dispWin.y2 = _height-1;
-	dispWin.x1 = 0;
-	dispWin.y1 = 0;
+	tft_dispWin.x2 = tft_width + TFT_STATIC_X_OFFSET -1;
+	tft_dispWin.y2 = tft_height + TFT_STATIC_Y_OFFSET -1;
+	tft_dispWin.x1 = TFT_STATIC_X_OFFSET;
+	tft_dispWin.y1 = TFT_STATIC_Y_OFFSET;
 }
 
 //==========================================================================
 void set_7seg_font_atrib(uint8_t l, uint8_t w, int outline, color_t color) {
-	if (cfont.bitmap != 2) return;
+	if (tft_cfont.bitmap != 2) return;
 
 	if (l < 6) l = 6;
     if (l > 40) l = 40;
@@ -2187,21 +2187,21 @@ void set_7seg_font_atrib(uint8_t l, uint8_t w, int outline, color_t color) {
     if (w > (l/2)) w = l/2;
     if (w > 12) w = 12;
 
-    cfont.x_size = l;
-	cfont.y_size = w;
-	cfont.offset = outline;
-	cfont.color  = color;
+    tft_cfont.x_size = l;
+	tft_cfont.y_size = w;
+	tft_cfont.offset = outline;
+	tft_cfont.color  = color;
 }
 
 //==========================================
 int TFT_getfontsize(int *width, int* height)
 {
-  if (cfont.bitmap == 1) {
-    if (cfont.x_size != 0) *width = cfont.x_size;	// fixed width font
-    else *width = cfont.max_x_size;					// proportional font
-    *height = cfont.y_size;
+  if (tft_cfont.bitmap == 1) {
+    if (tft_cfont.x_size != 0) *width = tft_cfont.x_size;	// fixed width font
+    else *width = tft_cfont.max_x_size;					// proportional font
+    *height = tft_cfont.y_size;
   }
-  else if (cfont.bitmap == 2) {
+  else if (tft_cfont.bitmap == 2) {
 	// 7-segment font
     *width = _7seg_width();
     *height = _7seg_height();
@@ -2217,27 +2217,27 @@ int TFT_getfontsize(int *width, int* height)
 //=====================
 int TFT_getfontheight()
 {
-  if (cfont.bitmap == 1) return cfont.y_size;			// Bitmap font
-  else if (cfont.bitmap == 2) return _7seg_height();	// 7-segment font
+  if (tft_cfont.bitmap == 1) return tft_cfont.y_size;			// Bitmap font
+  else if (tft_cfont.bitmap == 2) return _7seg_height();	// 7-segment font
   return 0;
 }
 
 //====================
 void TFT_saveClipWin()
 {
-	dispWinTemp.x1 = dispWin.x1;
-	dispWinTemp.y1 = dispWin.y1;
-	dispWinTemp.x2 = dispWin.x2;
-	dispWinTemp.y2 = dispWin.y2;
+	dispWinTemp.x1 = tft_dispWin.x1;
+	dispWinTemp.y1 = tft_dispWin.y1;
+	dispWinTemp.x2 = tft_dispWin.x2;
+	dispWinTemp.y2 = tft_dispWin.y2;
 }
 
 //=======================
 void TFT_restoreClipWin()
 {
-	dispWin.x1 = dispWinTemp.x1;
-	dispWin.y1 = dispWinTemp.y1;
-	dispWin.x2 = dispWinTemp.x2;
-	dispWin.y2 = dispWinTemp.y2;
+	tft_dispWin.x1 = dispWinTemp.x1;
+	tft_dispWin.y1 = dispWinTemp.y1;
+	tft_dispWin.x2 = dispWinTemp.x2;
+	tft_dispWin.y2 = dispWinTemp.y2;
 }
 
 
@@ -2325,20 +2325,20 @@ static UINT tjd_output (
 	int right = rect->right + dev->x;
 	int bottom = rect->bottom + dev->y;
 
-	if ((left > dispWin.x2) || (top > dispWin.y2)) return 1;	// out of screen area, return
-	if ((right < dispWin.x1) || (bottom < dispWin.y1)) return 1;// out of screen area, return
+	if ((left > tft_dispWin.x2) || (top > tft_dispWin.y2)) return 1;	// out of screen area, return
+	if ((right < tft_dispWin.x1) || (bottom < tft_dispWin.y1)) return 1;// out of screen area, return
 
-	if (left < dispWin.x1) dleft = dispWin.x1;
+	if (left < tft_dispWin.x1) dleft = tft_dispWin.x1;
 	else dleft = left;
-	if (top < dispWin.y1) dtop = dispWin.y1;
+	if (top < tft_dispWin.y1) dtop = tft_dispWin.y1;
 	else dtop = top;
-	if (right > dispWin.x2) dright = dispWin.x2;
+	if (right > tft_dispWin.x2) dright = tft_dispWin.x2;
 	else dright = right;
-	if (bottom > dispWin.y2) dbottom = dispWin.y2;
+	if (bottom > tft_dispWin.y2) dbottom = tft_dispWin.y2;
 	else dbottom = bottom;
 
-	if ((dleft > dispWin.x2) || (dtop > dispWin.y2)) return 1;		// out of screen area, return
-	if ((dright < dispWin.x1) || (dbottom < dispWin.y1)) return 1;	// out of screen area, return
+	if ((dleft > tft_dispWin.x2) || (dtop > tft_dispWin.y2)) return 1;		// out of screen area, return
+	if ((dright < tft_dispWin.x1) || (dbottom < tft_dispWin.y1)) return 1;	// out of screen area, return
 
 	uint32_t len = ((dright-dleft+1) * (dbottom-dtop+1));	// calculate length of data
 
@@ -2372,8 +2372,8 @@ static UINT tjd_output (
 
 // tft.jpgimage(X, Y, scale, file_name, buf, size]
 // X & Y can be < 0 !
-//==================================================================================
-void TFT_jpg_image(int x, int y, uint8_t scale, char *fname, uint8_t *buf, int size)
+//========================================================================================
+void TFT_jpg_image(int x, int y, uint8_t scale, const char *fname, uint8_t *buf, int size)
 {
 	JPGIODEV dev;
     struct stat sb;
@@ -2400,13 +2400,13 @@ void TFT_jpg_image(int x, int y, uint8_t scale, char *fname, uint8_t *buf, int s
         dev.bufptr = 0;
 
         if (stat(fname, &sb) != 0) {
-        	if (image_debug) printf("File error: %ss\r\n", strerror(errno));
+        	if (tft_image_debug) printf("File error: %ss\r\n", strerror(errno));
             goto exit;
         }
 
         dev.fhndl = fopen(fname, "r");
         if (!dev.fhndl) {
-        	if (image_debug) printf("Error opening file: %s\r\n", strerror(errno));
+        	if (tft_image_debug) printf("Error opening file: %s\r\n", strerror(errno));
             goto exit;
         }
     }
@@ -2418,28 +2418,28 @@ void TFT_jpg_image(int x, int y, uint8_t scale, char *fname, uint8_t *buf, int s
 		if (dev.membuff) rc = jd_prepare(&jd, tjd_buf_input, (void *)work, sz_work, &dev);
 		else rc = jd_prepare(&jd, tjd_input, (void *)work, sz_work, &dev);
 		if (rc == JDR_OK) {
-			if (x == CENTER) x = ((dispWin.x2 - dispWin.x1 + 1 - (int)(jd.width >> scale)) / 2) + dispWin.x1;
-			else if (x == RIGHT) x = dispWin.x2 + 1 - (int)(jd.width >> scale);
+			if (x == CENTER) x = ((tft_dispWin.x2 - tft_dispWin.x1 + 1 - (int)(jd.width >> scale)) / 2) + tft_dispWin.x1;
+			else if (x == RIGHT) x = tft_dispWin.x2 + 1 - (int)(jd.width >> scale);
 
-			if (y == CENTER) y = ((dispWin.y2 - dispWin.y1 + 1 - (int)(jd.height >> scale)) / 2) + dispWin.y1;
-			else if (y == BOTTOM) y = dispWin.y2 + 1 - (int)(jd.height >> scale);
+			if (y == CENTER) y = ((tft_dispWin.y2 - tft_dispWin.y1 + 1 - (int)(jd.height >> scale)) / 2) + tft_dispWin.y1;
+			else if (y == BOTTOM) y = tft_dispWin.y2 + 1 - (int)(jd.height >> scale);
 
-			if (x < ((dispWin.x2-1) * -1)) x = (dispWin.x2-1) * -1;
-			if (y < ((dispWin.y2-1)) * -1) y = (dispWin.y2-1) * -1;
-			if (x > (dispWin.x2-1)) x = dispWin.x2 - 1;
-			if (y > (dispWin.y2-1)) y = dispWin.y2-1;
+			if (x < ((tft_dispWin.x2-1) * -1)) x = (tft_dispWin.x2-1) * -1;
+			if (y < ((tft_dispWin.y2-1)) * -1) y = (tft_dispWin.y2-1) * -1;
+			if (x > (tft_dispWin.x2-1)) x = tft_dispWin.x2 - 1;
+			if (y > (tft_dispWin.y2-1)) y = tft_dispWin.y2-1;
 
 			dev.x = x;
 			dev.y = y;
 
 			dev.linbuf[0] = heap_caps_malloc(JPG_IMAGE_LINE_BUF_SIZE*3, MALLOC_CAP_DMA);
 			if (dev.linbuf[0] == NULL) {
-				if (image_debug) printf("Error allocating line buffer #0\r\n");
+				if (tft_image_debug) printf("Error allocating line buffer #0\r\n");
 				goto exit;
 			}
 			dev.linbuf[1] = heap_caps_malloc(JPG_IMAGE_LINE_BUF_SIZE*3, MALLOC_CAP_DMA);
 			if (dev.linbuf[1] == NULL) {
-				if (image_debug) printf("Error allocating line buffer #1\r\n");
+				if (tft_image_debug) printf("Error allocating line buffer #1\r\n");
 				goto exit;
 			}
 
@@ -2449,16 +2449,16 @@ void TFT_jpg_image(int x, int y, uint8_t scale, char *fname, uint8_t *buf, int s
 			disp_deselect();
 
 			if (rc != JDR_OK) {
-				if (image_debug) printf("jpg decompression error %d\r\n", rc);
+				if (tft_image_debug) printf("jpg decompression error %d\r\n", rc);
 			}
-			if (image_debug) printf("Jpg size: %dx%d, position; %d,%d, scale: %d, bytes used: %d\r\n", jd.width, jd.height, x, y, scale, jd.sz_pool);
+			if (tft_image_debug) printf("Jpg size: %dx%d, position; %d,%d, scale: %d, bytes used: %d\r\n", jd.width, jd.height, x, y, scale, jd.sz_pool);
 		}
 		else {
-			if (image_debug) printf("jpg prepare error %d\r\n", rc);
+			if (tft_image_debug) printf("jpg prepare error %d\r\n", rc);
 		}
 	}
 	else {
-		if (image_debug) printf("work buffer allocation error\r\n");
+		if (tft_image_debug) printf("work buffer allocation error\r\n");
 	}
 
 exit:
@@ -2469,8 +2469,8 @@ exit:
 }
 
 
-//====================================================================================
-int TFT_bmp_image(int x, int y, uint8_t scale, char *fname, uint8_t *imgbuf, int size)
+//==========================================================================================
+int TFT_bmp_image(int x, int y, uint8_t scale, const char *fname, uint8_t *imgbuf, int size)
 {
 	FILE *fhndl = NULL;
 	struct stat sb;
@@ -2551,21 +2551,21 @@ int TFT_bmp_image(int x, int y, uint8_t scale, char *fname, uint8_t *imgbuf, int
 	img_xlen = img_xsize / scale_pix;		// image display horizontal size
 	img_ylen = img_ysize / scale_pix;		// image display vertical size
 
-	if (x == CENTER) x = ((dispWin.x2 - dispWin.x1 + 1 - img_xlen) / 2) + dispWin.x1;
-	else if (x == RIGHT) x = dispWin.x2 + 1 - img_xlen;
+	if (x == CENTER) x = ((tft_dispWin.x2 - tft_dispWin.x1 + 1 - img_xlen) / 2) + tft_dispWin.x1;
+	else if (x == RIGHT) x = tft_dispWin.x2 + 1 - img_xlen;
 
-	if (y == CENTER) y = ((dispWin.y2 - dispWin.y1 + 1 - img_ylen) / 2) + dispWin.y1;
-	else if (y == BOTTOM) y = dispWin.y2 + 1 - img_ylen;
+	if (y == CENTER) y = ((tft_dispWin.y2 - tft_dispWin.y1 + 1 - img_ylen) / 2) + tft_dispWin.y1;
+	else if (y == BOTTOM) y = tft_dispWin.y2 + 1 - img_ylen;
 
-	if ((x < ((dispWin.x2 + 1) * -1)) || (x > (dispWin.x2 + 1)) || (y < ((dispWin.y2 + 1) * -1)) || (y > (dispWin.y2 + 1))) {
+	if ((x < ((tft_dispWin.x2 + 1) * -1)) || (x > (tft_dispWin.x2 + 1)) || (y < ((tft_dispWin.y2 + 1) * -1)) || (y > (tft_dispWin.y2 + 1))) {
 		sprintf(err_buf, "out of display area (%d,%d", x, y);
 		err = -10;
 		goto exit;
 	}
 
 	// ** set display and image areas
-	if (x < dispWin.x1) {
-		disp_xstart = dispWin.x1;
+	if (x < tft_dispWin.x1) {
+		disp_xstart = tft_dispWin.x1;
 		img_xstart = -x;	// image pixel line X offset
 		img_xlen += x;
 	}
@@ -2573,8 +2573,8 @@ int TFT_bmp_image(int x, int y, uint8_t scale, char *fname, uint8_t *imgbuf, int
 		disp_xstart = x;
 		img_xstart = 0;
 	}
-	if (y < dispWin.y1) {
-		disp_ystart = dispWin.y1;
+	if (y < tft_dispWin.y1) {
+		disp_ystart = tft_dispWin.y1;
 		img_ystart = -y;	// image pixel line Y offset
 		img_ylen += y;
 	}
@@ -2584,12 +2584,12 @@ int TFT_bmp_image(int x, int y, uint8_t scale, char *fname, uint8_t *imgbuf, int
 	}
 	disp_xend = disp_xstart + img_xlen - 1;
 	disp_yend = disp_ystart + img_ylen - 1;
-	if (disp_xend > dispWin.x2) {
-		disp_xend = dispWin.x2;
+	if (disp_xend > tft_dispWin.x2) {
+		disp_xend = tft_dispWin.x2;
 		img_xlen = disp_xend - disp_xstart + 1;
 	}
-	if (disp_yend > dispWin.y2) {
-		disp_yend = dispWin.y2;
+	if (disp_yend > tft_dispWin.y2) {
+		disp_yend = tft_dispWin.y2;
 		img_ylen = disp_yend - disp_ystart + 1;
 	}
 
@@ -2652,7 +2652,7 @@ int TFT_bmp_image(int x, int y, uint8_t scale, char *fname, uint8_t *imgbuf, int
 		}
 	}
 
-	if (image_debug) printf("BMP: image size: (%d,%d) scale: %d disp size: (%d,%d) img xofs: %d img yofs: %d at: %d,%d; line buf: 2* %d scale buf: %d\r\n",
+	if (tft_image_debug) printf("BMP: image size: (%d,%d) scale: %d disp size: (%d,%d) img xofs: %d img yofs: %d at: %d,%d; line buf: 2* %d scale buf: %d\r\n",
 			img_xsize, img_ysize, scale_pix, img_xlen, img_ylen, img_xstart, img_ystart, disp_xstart, disp_ystart, img_xsize*3, ((scale) ? (rd_len*scale_pix) : 0));
 
 	// * Select the display
@@ -2743,7 +2743,7 @@ exit:
 	if (line_buf[0]) free(line_buf[0]);
 	if (line_buf[1]) free(line_buf[1]);
 	if (fhndl) fclose(fhndl);
-	if ((err) && (image_debug)) printf("Error: %d [%s]\r\n", err, err_buf);
+	if ((err) && (tft_image_debug)) printf("Error: %d [%s]\r\n", err, err_buf);
 
 	return err;
 }
@@ -2755,7 +2755,7 @@ exit:
 //-------------------------------------------------------
 static int tp_get_data_xpt2046(uint8_t type, int samples)
 {
-	if (ts_spi == NULL) return 0;
+	if (tft_ts_spi == NULL) return 0;
 
 	int n, result, val = 0;
 	uint32_t i = 0;
@@ -2817,7 +2817,7 @@ static int tp_get_data_xpt2046(uint8_t type, int samples)
 static int TFT_read_touch_xpt2046(int *x, int* y)
 {
 	int res = 0, result = -1;
-	if (spi_lobo_device_select(ts_spi, 0) != ESP_OK) return 0;
+	if (spi_lobo_device_select(tft_ts_spi, 0) != ESP_OK) return 0;
 
     result = tp_get_data_xpt2046(0xB0, 3);  // Z; pressure; touch detect
 	if (result <= 50) goto exit;
@@ -2834,7 +2834,7 @@ static int TFT_read_touch_xpt2046(int *x, int* y)
 	*y = result;
 	res = 1;
 exit:
-	spi_lobo_device_deselect(ts_spi);
+	spi_lobo_device_deselect(tft_ts_spi);
 	return res;
 }
 #endif
@@ -2844,7 +2844,7 @@ int TFT_read_touch(int *x, int* y, uint8_t raw)
 {
     *x = 0;
     *y = 0;
-	if (ts_spi == NULL) return 0;
+	if (tft_ts_spi == NULL) return 0;
     #if USE_TOUCH == TOUCH_TYPE_NONE
 	return 0;
     #else
@@ -2852,13 +2852,13 @@ int TFT_read_touch(int *x, int* y, uint8_t raw)
     int X=0, Y=0;
 
     #if USE_TOUCH == TOUCH_TYPE_XPT2046
-    uint32_t tp_calx = TP_CALX_XPT2046;
-    uint32_t tp_caly = TP_CALY_XPT2046;
+    uint32_t tft_tp_calx = TP_CALX_XPT2046;
+    uint32_t tft_tp_caly = TP_CALY_XPT2046;
    	result = TFT_read_touch_xpt2046(&X, &Y);
    	if (result == 0) return 0;
     #elif USE_TOUCH == TOUCH_TYPE_STMPE610
-    uint32_t tp_calx = TP_CALX_STMPE610;
-    uint32_t tp_caly = TP_CALY_STMPE610;
+    uint32_t tft_tp_calx = TP_CALX_STMPE610;
+    uint32_t tft_tp_caly = TP_CALY_STMPE610;
     uint16_t Xx, Yy, Z=0;
     result = stmpe610_get_touch(&Xx, &Yy, &Z);
     if (result == 0) return 0;
@@ -2876,16 +2876,16 @@ int TFT_read_touch(int *x, int* y, uint8_t raw)
 
     // Calibrate the result
 	int tmp;
-	int xleft   = (tp_calx >> 16) & 0x3FFF;
-	int xright  = tp_calx & 0x3FFF;
-	int ytop    = (tp_caly >> 16) & 0x3FFF;
-	int ybottom = tp_caly & 0x3FFF;
+	int xleft   = (tft_tp_calx >> 16) & 0x3FFF;
+	int xright  = tft_tp_calx & 0x3FFF;
+	int ytop    = (tft_tp_caly >> 16) & 0x3FFF;
+	int ybottom = tft_tp_caly & 0x3FFF;
 
 	if (((xright - xleft) <= 0) || ((ybottom - ytop) <= 0)) return 0;
 
     #if USE_TOUCH == TOUCH_TYPE_XPT2046
-        int width = _width;
-        int height = _height;
+        int width = tft_width;
+        int height = tft_height;
         X = ((X - xleft) * height) / (xright - xleft);
         Y = ((Y - ytop) * width) / (ybottom - ytop);
 
@@ -2894,7 +2894,7 @@ int TFT_read_touch(int *x, int* y, uint8_t raw)
         if (Y < 0) Y = 0;
         if (Y > width-1) Y = width-1;
 
-        switch (orientation) {
+        switch (tft_orientation) {
             case PORTRAIT:
                 tmp = X;
                 X = width - Y - 1;
@@ -2911,11 +2911,11 @@ int TFT_read_touch(int *x, int* y, uint8_t raw)
                 break;
         }
     #elif USE_TOUCH == TOUCH_TYPE_STMPE610
-        int width = _width;
-        int height = _height;
-        if (_width > _height) {
-            width = _height;
-            height = _width;
+        int width = tft_width;
+        int height = tft_height;
+        if (tft_width > tft_height) {
+            width = tft_height;
+            height = tft_width;
         }
 		X = ((X - xleft) * width) / (xright - xleft);
 		Y = ((Y - ytop) * height) / (ybottom - ytop);
@@ -2925,7 +2925,7 @@ int TFT_read_touch(int *x, int* y, uint8_t raw)
 		if (Y < 0) Y = 0;
 		if (Y > height-1) Y = height-1;
 
-		switch (orientation) {
+		switch (tft_orientation) {
 			case PORTRAIT_FLIP:
 				X = width - X - 1;
 				Y = height - Y - 1;

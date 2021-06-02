@@ -2,7 +2,7 @@
  *  Author: LoBo (loboris@gmail.com, loboris.github)
  *
  *  Module supporting SPI TFT displays based on ILI9341 & ILI9488 controllers
- * 
+ *
  * HIGH SPEED LOW LEVEL DISPLAY FUNCTIONS
  * USING DIRECT or DMA SPI TRANSFER MODEs
  *
@@ -10,30 +10,29 @@
 
 #include <string.h>
 #include "tftspi.h"
-#include "esp_system.h"
 #include "freertos/task.h"
-#include "esp_heap_caps.h"
 #include "soc/spi_reg.h"
+#include "driver/gpio.h"
 
 
 // ====================================================
 // ==== Global variables, default values ==============
 
 // Converts colors to grayscale if set to 1
-uint8_t gray_scale = 0;
+uint8_t tft_gray_scale = 0;
 // Spi clock for reading data from display memory in Hz
-uint32_t max_rdclock = 8000000;
+uint32_t tft_max_rdclock = 8000000;
 
 // Default display dimensions
-int _width = DEFAULT_TFT_DISPLAY_WIDTH;
-int _height = DEFAULT_TFT_DISPLAY_HEIGHT;
+int tft_width = DEFAULT_TFT_DISPLAY_WIDTH;
+int tft_height = DEFAULT_TFT_DISPLAY_HEIGHT;
 
 // Display type, DISP_TYPE_ILI9488 or DISP_TYPE_ILI9341
 uint8_t tft_disp_type = DEFAULT_DISP_TYPE;
 
 // Spi device handles for display and touch screen
-spi_lobo_device_handle_t disp_spi = NULL;
-spi_lobo_device_handle_t ts_spi = NULL;
+spi_lobo_device_handle_t tft_disp_spi = NULL;
+spi_lobo_device_handle_t tft_ts_spi = NULL;
 
 // ====================================================
 
@@ -55,21 +54,21 @@ static uint8_t _dma_sending = 0;
 esp_err_t IRAM_ATTR wait_trans_finish(uint8_t free_line)
 {
 	// Wait for SPI bus ready
-	while (disp_spi->host->hw->cmd.usr);
+	while (tft_disp_spi->host->hw->cmd.usr);
 	if ((free_line) && (trans_cline)) {
 		free(trans_cline);
 		trans_cline = NULL;
 	}
 	if (_dma_sending) {
 	    //Tell common code DMA workaround that our DMA channel is idle. If needed, the code will do a DMA reset.
-	    if (disp_spi->host->dma_chan) spi_lobo_dmaworkaround_idle(disp_spi->host->dma_chan);
+	    if (tft_disp_spi->host->dma_chan) spi_lobo_dmaworkaround_idle(tft_disp_spi->host->dma_chan);
 
 	    // Reset DMA
-		disp_spi->host->hw->dma_conf.val |= SPI_OUT_RST|SPI_IN_RST|SPI_AHBM_RST|SPI_AHBM_FIFO_RST;
-		disp_spi->host->hw->dma_out_link.start=0;
-		disp_spi->host->hw->dma_in_link.start=0;
-		disp_spi->host->hw->dma_conf.val &= ~(SPI_OUT_RST|SPI_IN_RST|SPI_AHBM_RST|SPI_AHBM_FIFO_RST);
-		disp_spi->host->hw->dma_conf.out_data_burst_en=1;
+		tft_disp_spi->host->hw->dma_conf.val |= SPI_OUT_RST|SPI_IN_RST|SPI_AHBM_RST|SPI_AHBM_FIFO_RST;
+		tft_disp_spi->host->hw->dma_out_link.start=0;
+		tft_disp_spi->host->hw->dma_in_link.start=0;
+		tft_disp_spi->host->hw->dma_conf.val &= ~(SPI_OUT_RST|SPI_IN_RST|SPI_AHBM_RST|SPI_AHBM_FIFO_RST);
+		tft_disp_spi->host->hw->dma_conf.out_data_burst_en=1;
 		_dma_sending = 0;
 	}
     return ESP_OK;
@@ -79,14 +78,14 @@ esp_err_t IRAM_ATTR wait_trans_finish(uint8_t free_line)
 esp_err_t IRAM_ATTR disp_select()
 {
 	wait_trans_finish(1);
-	return spi_lobo_device_select(disp_spi, 0);
+	return spi_lobo_device_select(tft_disp_spi, 0);
 }
 
 //---------------------------------
 esp_err_t IRAM_ATTR disp_deselect()
 {
 	wait_trans_finish(1);
-	return spi_lobo_device_deselect(disp_spi);
+	return spi_lobo_device_deselect(tft_disp_spi);
 }
 
 //---------------------------------------------------------------------------------------------------
@@ -113,26 +112,26 @@ static void IRAM_ATTR _spi_transfer_start(spi_lobo_device_handle_t spi_dev, int 
 //------------------------------------------------
 void IRAM_ATTR disp_spi_transfer_cmd(int8_t cmd) {
 	// Wait for SPI bus ready
-	while (disp_spi->host->hw->cmd.usr);
+	while (tft_disp_spi->host->hw->cmd.usr);
 
 	// Set DC to 0 (command mode);
     gpio_set_level(PIN_NUM_DC, 0);
 
-    disp_spi->host->hw->data_buf[0] = (uint32_t)cmd;
-    _spi_transfer_start(disp_spi, 8, 0);
+    tft_disp_spi->host->hw->data_buf[0] = (uint32_t)cmd;
+    _spi_transfer_start(tft_disp_spi, 8, 0);
 }
 
 // Send command with data to display, display must be selected
 //----------------------------------------------------------------------------------
 void IRAM_ATTR disp_spi_transfer_cmd_data(int8_t cmd, uint8_t *data, uint32_t len) {
 	// Wait for SPI bus ready
-	while (disp_spi->host->hw->cmd.usr);
+	while (tft_disp_spi->host->hw->cmd.usr);
 
     // Set DC to 0 (command mode);
     gpio_set_level(PIN_NUM_DC, 0);
 
-    disp_spi->host->hw->data_buf[0] = (uint32_t)cmd;
-    _spi_transfer_start(disp_spi, 8, 0);
+    tft_disp_spi->host->hw->data_buf[0] = (uint32_t)cmd;
+    _spi_transfer_start(tft_disp_spi, 8, 0);
 
 	if ((len == 0) || (data == NULL)) return;
 
@@ -150,25 +149,25 @@ void IRAM_ATTR disp_spi_transfer_cmd_data(int8_t cmd, uint8_t *data, uint32_t le
     	bits += 8;
 		bidx += 8;
     	if (count == len) {
-    		disp_spi->host->hw->data_buf[idx] = wd;
+    		tft_disp_spi->host->hw->data_buf[idx] = wd;
     		break;
     	}
 		if (bidx == 32) {
-			disp_spi->host->hw->data_buf[idx] = wd;
+			tft_disp_spi->host->hw->data_buf[idx] = wd;
 			idx++;
 			bidx = 0;
 			wd = 0;
 		}
     	if (idx == 16) {
     		// SPI buffer full, send data
-			_spi_transfer_start(disp_spi, bits, 0);
-    		
+			_spi_transfer_start(tft_disp_spi, bits, 0);
+
 			bits = 0;
     		idx = 0;
 			bidx = 0;
     	}
     }
-    if (bits > 0) _spi_transfer_start(disp_spi, bits, 0);
+    if (bits > 0) _spi_transfer_start(tft_disp_spi, bits, 0);
 }
 
 // Set the address window for display write & read commands, display must be selected
@@ -178,47 +177,47 @@ static void IRAM_ATTR disp_spi_transfer_addrwin(uint16_t x1, uint16_t x2, uint16
 
     taskDISABLE_INTERRUPTS();
 	// Wait for SPI bus ready
-	while (disp_spi->host->hw->cmd.usr);
+	while (tft_disp_spi->host->hw->cmd.usr);
     gpio_set_level(PIN_NUM_DC, 0);
 
-	disp_spi->host->hw->data_buf[0] = (uint32_t)TFT_CASET;
-	disp_spi->host->hw->user.usr_mosi_highpart = 0;
-	disp_spi->host->hw->mosi_dlen.usr_mosi_dbitlen = 7;
-	disp_spi->host->hw->user.usr_mosi = 1;
-	disp_spi->host->hw->miso_dlen.usr_miso_dbitlen = 0;
-	disp_spi->host->hw->user.usr_miso = 0;
+	tft_disp_spi->host->hw->data_buf[0] = (uint32_t)TFT_CASET;
+	tft_disp_spi->host->hw->user.usr_mosi_highpart = 0;
+	tft_disp_spi->host->hw->mosi_dlen.usr_mosi_dbitlen = 7;
+	tft_disp_spi->host->hw->user.usr_mosi = 1;
+	tft_disp_spi->host->hw->miso_dlen.usr_miso_dbitlen = 0;
+	tft_disp_spi->host->hw->user.usr_miso = 0;
 
-	disp_spi->host->hw->cmd.usr = 1; // Start transfer
+	tft_disp_spi->host->hw->cmd.usr = 1; // Start transfer
 
 	wd = (uint32_t)(x1>>8);
 	wd |= (uint32_t)(x1&0xff) << 8;
 	wd |= (uint32_t)(x2>>8) << 16;
 	wd |= (uint32_t)(x2&0xff) << 24;
 
-	while (disp_spi->host->hw->cmd.usr); // wait transfer end
+	while (tft_disp_spi->host->hw->cmd.usr); // wait transfer end
 	gpio_set_level(PIN_NUM_DC, 1);
-	disp_spi->host->hw->data_buf[0] = wd;
-	disp_spi->host->hw->mosi_dlen.usr_mosi_dbitlen = 31;
-	disp_spi->host->hw->cmd.usr = 1; // Start transfer
+	tft_disp_spi->host->hw->data_buf[0] = wd;
+	tft_disp_spi->host->hw->mosi_dlen.usr_mosi_dbitlen = 31;
+	tft_disp_spi->host->hw->cmd.usr = 1; // Start transfer
 
-    while (disp_spi->host->hw->cmd.usr);
+    while (tft_disp_spi->host->hw->cmd.usr);
     gpio_set_level(PIN_NUM_DC, 0);
-    disp_spi->host->hw->data_buf[0] = (uint32_t)TFT_PASET;
-	disp_spi->host->hw->mosi_dlen.usr_mosi_dbitlen = 7;
-	disp_spi->host->hw->cmd.usr = 1; // Start transfer
+    tft_disp_spi->host->hw->data_buf[0] = (uint32_t)TFT_PASET;
+	tft_disp_spi->host->hw->mosi_dlen.usr_mosi_dbitlen = 7;
+	tft_disp_spi->host->hw->cmd.usr = 1; // Start transfer
 
 	wd = (uint32_t)(y1>>8);
 	wd |= (uint32_t)(y1&0xff) << 8;
 	wd |= (uint32_t)(y2>>8) << 16;
 	wd |= (uint32_t)(y2&0xff) << 24;
 
-	while (disp_spi->host->hw->cmd.usr);
+	while (tft_disp_spi->host->hw->cmd.usr);
 	gpio_set_level(PIN_NUM_DC, 1);
 
-	disp_spi->host->hw->data_buf[0] = wd;
-	disp_spi->host->hw->mosi_dlen.usr_mosi_dbitlen = 31;
-	disp_spi->host->hw->cmd.usr = 1; // Start transfer
-	while (disp_spi->host->hw->cmd.usr);
+	tft_disp_spi->host->hw->data_buf[0] = wd;
+	tft_disp_spi->host->hw->mosi_dlen.usr_mosi_dbitlen = 31;
+	tft_disp_spi->host->hw->cmd.usr = 1; // Start transfer
+	while (tft_disp_spi->host->hw->cmd.usr);
     taskENABLE_INTERRUPTS();
 }
 
@@ -241,7 +240,7 @@ static color_t IRAM_ATTR color2gs(color_t color)
 //------------------------------------------------------------------------
 void IRAM_ATTR drawPixel(int16_t x, int16_t y, color_t color, uint8_t sel)
 {
-	if (!(disp_spi->cfg.flags & LB_SPI_DEVICE_HALFDUPLEX)) return;
+	if (!(tft_disp_spi->cfg.flags & LB_SPI_DEVICE_HALFDUPLEX)) return;
 
 	if (sel) {
 		if (disp_select()) return;
@@ -250,17 +249,17 @@ void IRAM_ATTR drawPixel(int16_t x, int16_t y, color_t color, uint8_t sel)
 
 	uint32_t wd = 0;
     color_t _color = color;
-	if (gray_scale) _color = color2gs(color);
+	if (tft_gray_scale) _color = color2gs(color);
 
     taskDISABLE_INTERRUPTS();
 	disp_spi_transfer_addrwin(x, x+1, y, y+1);
 
 	// Send RAM WRITE command
     gpio_set_level(PIN_NUM_DC, 0);
-    disp_spi->host->hw->data_buf[0] = (uint32_t)TFT_RAMWR;
-	disp_spi->host->hw->mosi_dlen.usr_mosi_dbitlen = 7;
-	disp_spi->host->hw->cmd.usr = 1;		// Start transfer
-	while (disp_spi->host->hw->cmd.usr);	// Wait for SPI bus ready
+    tft_disp_spi->host->hw->data_buf[0] = (uint32_t)TFT_RAMWR;
+	tft_disp_spi->host->hw->mosi_dlen.usr_mosi_dbitlen = 7;
+	tft_disp_spi->host->hw->cmd.usr = 1;		// Start transfer
+	while (tft_disp_spi->host->hw->cmd.usr);	// Wait for SPI bus ready
 
 	wd = (uint32_t)_color.r;
 	wd |= (uint32_t)_color.g << 8;
@@ -269,10 +268,10 @@ void IRAM_ATTR drawPixel(int16_t x, int16_t y, color_t color, uint8_t sel)
     // Set DC to 1 (data mode);
 	gpio_set_level(PIN_NUM_DC, 1);
 
-	disp_spi->host->hw->data_buf[0] = wd;
-	disp_spi->host->hw->mosi_dlen.usr_mosi_dbitlen = 23;
-	disp_spi->host->hw->cmd.usr = 1;		// Start transfer
-	while (disp_spi->host->hw->cmd.usr);	// Wait for SPI bus ready
+	tft_disp_spi->host->hw->data_buf[0] = wd;
+	tft_disp_spi->host->hw->mosi_dlen.usr_mosi_dbitlen = 23;
+	tft_disp_spi->host->hw->cmd.usr = 1;		// Start transfer
+	while (tft_disp_spi->host->hw->cmd.usr);	// Wait for SPI bus ready
 
     taskENABLE_INTERRUPTS();
    if (sel) disp_deselect();
@@ -282,18 +281,18 @@ void IRAM_ATTR drawPixel(int16_t x, int16_t y, color_t color, uint8_t sel)
 static void IRAM_ATTR _dma_send(uint8_t *data, uint32_t size)
 {
     //Fill DMA descriptors
-    spi_lobo_dmaworkaround_transfer_active(disp_spi->host->dma_chan); //mark channel as active
-    spi_lobo_setup_dma_desc_links(disp_spi->host->dmadesc_tx, size, data, false);
-    disp_spi->host->hw->user.usr_mosi_highpart=0;
-    disp_spi->host->hw->dma_out_link.addr=(int)(&disp_spi->host->dmadesc_tx[0]) & 0xFFFFF;
-    disp_spi->host->hw->dma_out_link.start=1;
-    disp_spi->host->hw->user.usr_mosi_highpart=0;
+    spi_lobo_dmaworkaround_transfer_active(tft_disp_spi->host->dma_chan); //mark channel as active
+    spi_lobo_setup_dma_desc_links(tft_disp_spi->host->dmadesc_tx, size, data, false);
+    tft_disp_spi->host->hw->user.usr_mosi_highpart=0;
+    tft_disp_spi->host->hw->dma_out_link.addr=(int)(&tft_disp_spi->host->dmadesc_tx[0]) & 0xFFFFF;
+    tft_disp_spi->host->hw->dma_out_link.start=1;
+    tft_disp_spi->host->hw->user.usr_mosi_highpart=0;
 
-	disp_spi->host->hw->mosi_dlen.usr_mosi_dbitlen = (size * 8) - 1;
+	tft_disp_spi->host->hw->mosi_dlen.usr_mosi_dbitlen = (size * 8) - 1;
 
 	_dma_sending = 1;
 	// Start transfer
-	disp_spi->host->hw->cmd.usr = 1;
+	tft_disp_spi->host->hw->cmd.usr = 1;
 }
 
 //---------------------------------------------------------------------------
@@ -307,12 +306,12 @@ static void IRAM_ATTR _direct_send(color_t *color, uint32_t len, uint8_t rep)
 
     taskDISABLE_INTERRUPTS();
 	color_t _color = color[0];
-	if ((rep) && (gray_scale)) _color = color2gs(color[0]);
+	if ((rep) && (tft_gray_scale)) _color = color2gs(color[0]);
 
 	while (len) {
 		// ** Get color data from color buffer **
 		if (rep == 0) {
-			if (gray_scale) _color = color2gs(color[cidx]);
+			if (tft_gray_scale) _color = color2gs(color[cidx]);
 			else _color = color[cidx];
 		}
 
@@ -321,7 +320,7 @@ static void IRAM_ATTR _direct_send(color_t *color, uint32_t len, uint8_t rep)
 		if (wbits == 32) {
 			bits += wbits;
 			wbits = 0;
-			disp_spi->host->hw->data_buf[idx++] = wd;
+			tft_disp_spi->host->hw->data_buf[idx++] = wd;
 			wd = 0;
 		}
 		wd |= (uint32_t)_color.g << wbits;
@@ -329,7 +328,7 @@ static void IRAM_ATTR _direct_send(color_t *color, uint32_t len, uint8_t rep)
 		if (wbits == 32) {
 			bits += wbits;
 			wbits = 0;
-			disp_spi->host->hw->data_buf[idx++] = wd;
+			tft_disp_spi->host->hw->data_buf[idx++] = wd;
 			wd = 0;
 		}
 		wd |= (uint32_t)_color.b << wbits;
@@ -337,16 +336,16 @@ static void IRAM_ATTR _direct_send(color_t *color, uint32_t len, uint8_t rep)
 		if (wbits == 32) {
 			bits += wbits;
 			wbits = 0;
-			disp_spi->host->hw->data_buf[idx++] = wd;
+			tft_disp_spi->host->hw->data_buf[idx++] = wd;
 			wd = 0;
 		}
     	len--;					// Decrement colors counter
         if (rep == 0) cidx++;	// if not repeating color, increment color buffer index
     }
 	if (bits) {
-		while (disp_spi->host->hw->cmd.usr);						// Wait for SPI bus ready
-		disp_spi->host->hw->mosi_dlen.usr_mosi_dbitlen = bits-1;	// set number of bits to be sent
-        disp_spi->host->hw->cmd.usr = 1;							// Start transfer
+		while (tft_disp_spi->host->hw->cmd.usr);						// Wait for SPI bus ready
+		tft_disp_spi->host->hw->mosi_dlen.usr_mosi_dbitlen = bits-1;	// set number of bits to be sent
+        tft_disp_spi->host->hw->cmd.usr = 1;							// Start transfer
 	}
     taskENABLE_INTERRUPTS();
 }
@@ -361,14 +360,14 @@ static void IRAM_ATTR _direct_send(color_t *color, uint32_t len, uint8_t rep)
 static void IRAM_ATTR _TFT_pushColorRep(color_t *color, uint32_t len, uint8_t rep, uint8_t wait)
 {
 	if (len == 0) return;
-	if (!(disp_spi->cfg.flags & LB_SPI_DEVICE_HALFDUPLEX)) return;
+	if (!(tft_disp_spi->cfg.flags & LB_SPI_DEVICE_HALFDUPLEX)) return;
 
 	// Send RAM WRITE command
     gpio_set_level(PIN_NUM_DC, 0);
-    disp_spi->host->hw->data_buf[0] = (uint32_t)TFT_RAMWR;
-	disp_spi->host->hw->mosi_dlen.usr_mosi_dbitlen = 7;
-	disp_spi->host->hw->cmd.usr = 1;		// Start transfer
-	while (disp_spi->host->hw->cmd.usr);	// Wait for SPI bus ready
+    tft_disp_spi->host->hw->data_buf[0] = (uint32_t)TFT_RAMWR;
+	tft_disp_spi->host->hw->mosi_dlen.usr_mosi_dbitlen = 7;
+	tft_disp_spi->host->hw->cmd.usr = 1;		// Start transfer
+	while (tft_disp_spi->host->hw->cmd.usr);	// Wait for SPI bus ready
 
 	gpio_set_level(PIN_NUM_DC, 1);								// Set DC to 1 (data mode);
 
@@ -380,7 +379,7 @@ static void IRAM_ATTR _TFT_pushColorRep(color_t *color, uint32_t len, uint8_t re
 	else if (rep == 0)  {
 		// ==== use DMA transfer ====
 		// ** Prepare data
-		if (gray_scale) {
+		if (tft_gray_scale) {
 			for (int n=0; n<len; n++) {
 				color[n] = color2gs(color[n]);
 			}
@@ -404,7 +403,7 @@ static void IRAM_ATTR _TFT_pushColorRep(color_t *color, uint32_t len, uint8_t re
 		}
 		*/
 
-		buf_colors = ((len > (_width*2)) ? (_width*2) : len);
+		buf_colors = ((len > (tft_width*2)) ? (tft_width*2) : len);
 		buf_bytes = buf_colors * 3;
 
 		// Prepare color buffer of maximum 2 color lines
@@ -412,7 +411,7 @@ static void IRAM_ATTR _TFT_pushColorRep(color_t *color, uint32_t len, uint8_t re
 		if (trans_cline == NULL) return;
 
 		// Prepare fill color
-		if (gray_scale) _color = color2gs(color[0]);
+		if (tft_gray_scale) _color = color2gs(color[0]);
 		else _color = color[0];
 
 		// Fill color buffer with fill color
@@ -471,8 +470,8 @@ int IRAM_ATTR read_data(int x1, int y1, int x2, int y2, int len, uint8_t *buf, u
 	if (set_sp) {
 		if (disp_deselect() != ESP_OK) return -1;
 		// Change spi clock if needed
-		current_clock = spi_lobo_get_speed(disp_spi);
-		if (max_rdclock < current_clock) spi_lobo_set_speed(disp_spi, max_rdclock);
+		current_clock = spi_lobo_get_speed(tft_disp_spi);
+		if (tft_max_rdclock < current_clock) spi_lobo_set_speed(tft_disp_spi, tft_max_rdclock);
 	}
 
 	if (disp_select() != ESP_OK) return -2;
@@ -489,13 +488,13 @@ int IRAM_ATTR read_data(int x1, int y1, int x2, int y2, int len, uint8_t *buf, u
     t.rx_buffer=buf;
     //t.user = (void*)1;
 
-	esp_err_t res = spi_lobo_transfer_data(disp_spi, &t); // Receive using direct mode
+	esp_err_t res = spi_lobo_transfer_data(tft_disp_spi, &t); // Receive using direct mode
 
 	disp_deselect();
 
 	if (set_sp) {
 		// Restore spi clock if needed
-		if (max_rdclock < current_clock) spi_lobo_set_speed(disp_spi, current_clock);
+		if (tft_max_rdclock < current_clock) spi_lobo_set_speed(tft_disp_spi, current_clock);
 	}
 
     return res;
@@ -532,18 +531,18 @@ int IRAM_ATTR touch_get_data(uint8_t type)
     t.rx_buffer=&rxdata;
     t.command = type;
 
-    ret = spi_lobo_transfer_data(ts_spi, &t);    // Transmit using direct mode
+    ret = spi_lobo_transfer_data(tft_ts_spi, &t);    // Transmit using direct mode
 
     if (ret != ESP_OK) return -1;
     return (((int)(rxdata[0] << 8) | (int)(rxdata[1])) >> 4);
     */
-    spi_lobo_device_select(ts_spi, 0);
+    spi_lobo_device_select(tft_ts_spi, 0);
 
-    ts_spi->host->hw->data_buf[0] = type;
-    _spi_transfer_start(ts_spi, 24, 24);
-    uint16_t res = (uint16_t)(ts_spi->host->hw->data_buf[0] >> 8);
+    tft_ts_spi->host->hw->data_buf[0] = type;
+    _spi_transfer_start(tft_ts_spi, 24, 24);
+    uint16_t res = (uint16_t)(tft_ts_spi->host->hw->data_buf[0] >> 8);
 
-    spi_lobo_device_deselect(ts_spi);
+    spi_lobo_device_deselect(tft_ts_spi);
 
     return res;
 }
@@ -557,36 +556,36 @@ int IRAM_ATTR touch_get_data(uint8_t type)
 //---------------------------------------------------------
 static void IRAM_ATTR stmpe610_write_reg(uint8_t reg, uint8_t val) {
 
-    spi_lobo_device_select(ts_spi, 0);
+    spi_lobo_device_select(tft_ts_spi, 0);
 
-    ts_spi->host->hw->data_buf[0] = (val << 8) | reg;
-    _spi_transfer_start(ts_spi, 16, 0);
+    tft_ts_spi->host->hw->data_buf[0] = (val << 8) | reg;
+    _spi_transfer_start(tft_ts_spi, 16, 0);
 
-    spi_lobo_device_deselect(ts_spi);
+    spi_lobo_device_deselect(tft_ts_spi);
 }
 
 //-----------------------------------------------
 static uint8_t IRAM_ATTR stmpe610_read_byte(uint8_t reg) {
-    spi_lobo_device_select(ts_spi, 0);
+    spi_lobo_device_select(tft_ts_spi, 0);
 
-    ts_spi->host->hw->data_buf[0] = (reg << 8) | (reg | 0x80);
-    _spi_transfer_start(ts_spi, 16, 16);
-    uint8_t res = ts_spi->host->hw->data_buf[0] >> 8;
+    tft_ts_spi->host->hw->data_buf[0] = (reg << 8) | (reg | 0x80);
+    _spi_transfer_start(tft_ts_spi, 16, 16);
+    uint8_t res = tft_ts_spi->host->hw->data_buf[0] >> 8;
 
-    spi_lobo_device_deselect(ts_spi);
+    spi_lobo_device_deselect(tft_ts_spi);
     return res;
 }
 
 //-----------------------------------------
 static uint16_t IRAM_ATTR stmpe610_read_word(uint8_t reg) {
-    spi_lobo_device_select(ts_spi, 0);
+    spi_lobo_device_select(tft_ts_spi, 0);
 
-    ts_spi->host->hw->data_buf[0] = ((((reg+1) << 8) | ((reg+1) | 0x80)) << 16) | (reg << 8) | (reg | 0x80);
-    _spi_transfer_start(ts_spi, 32, 32);
-    uint16_t res = (uint16_t)(ts_spi->host->hw->data_buf[0] & 0xFF00);
-    res |= (uint16_t)(ts_spi->host->hw->data_buf[0] >> 24);
+    tft_ts_spi->host->hw->data_buf[0] = ((((reg+1) << 8) | ((reg+1) | 0x80)) << 16) | (reg << 8) | (reg | 0x80);
+    _spi_transfer_start(tft_ts_spi, 32, 32);
+    uint16_t res = (uint16_t)(tft_ts_spi->host->hw->data_buf[0] & 0xFF00);
+    res |= (uint16_t)(tft_ts_spi->host->hw->data_buf[0] >> 24);
 
-    spi_lobo_device_deselect(ts_spi);
+    spi_lobo_device_deselect(tft_ts_spi);
     return res;
 }
 
@@ -674,44 +673,44 @@ uint32_t find_rd_speed()
     int line_check;
     color_t *color_line = NULL;
     uint8_t *line_rdbuf = NULL;
-    uint8_t gs = gray_scale;
+    uint8_t gs = tft_gray_scale;
 
-    gray_scale = 0;
-    cur_speed = spi_lobo_get_speed(disp_spi);
+    tft_gray_scale = 0;
+    cur_speed = spi_lobo_get_speed(tft_disp_spi);
 
-	color_line = malloc(_width*3);
+	color_line = malloc(tft_width*3);
     if (color_line == NULL) goto exit;
 
-    line_rdbuf = malloc((_width*3)+1);
+    line_rdbuf = malloc((tft_width*3)+1);
 	if (line_rdbuf == NULL) goto exit;
 
 	color_t *rdline = (color_t *)(line_rdbuf+1);
 
 	// Fill test line with colors
 	color = (color_t){0xEC,0xA8,0x74};
-	for (int x=0; x<_width; x++) {
+	for (int x=0; x<tft_width; x++) {
 		color_line[x] = color;
 	}
 
 	// Find maximum read spi clock
 	for (uint32_t speed=2000000; speed<=cur_speed; speed += 1000000) {
-		change_speed = spi_lobo_set_speed(disp_spi, speed);
+		change_speed = spi_lobo_set_speed(tft_disp_spi, speed);
 		if (change_speed == 0) goto exit;
 
-		memset(line_rdbuf, 0, _width*sizeof(color_t)+1);
+		memset(line_rdbuf, 0, tft_width*sizeof(color_t)+1);
 
 		if (disp_select()) goto exit;
 		// Write color line
-		send_data(0, _height/2, _width-1, _height/2, _width, color_line);
+		send_data(0, tft_height/2, tft_width-1, tft_height/2, tft_width, color_line);
 		if (disp_deselect()) goto exit;
 
 		// Read color line
-		ret = read_data(0, _height/2, _width-1, _height/2, _width, line_rdbuf, 0);
+		ret = read_data(0, tft_height/2, tft_width-1, tft_height/2, tft_width, line_rdbuf, 0);
 
 		// Compare
 		line_check = 0;
 		if (ret == ESP_OK) {
-			for (int y=0; y<_width; y++) {
+			for (int y=0; y<tft_width; y++) {
 				if ((color_line[y].r & 0xFC) != (rdline[y].r & 0xFC)) line_check = 1;
 				else if ((color_line[y].g & 0xFC) != (rdline[y].g & 0xFC)) line_check = 1;
 				else if ((color_line[y].b & 0xFC) != (rdline[y].b & 0xFC)) line_check =  1;
@@ -725,12 +724,12 @@ uint32_t find_rd_speed()
 	}
 
 exit:
-    gray_scale = gs;
+    tft_gray_scale = gs;
 	if (line_rdbuf) free(line_rdbuf);
 	if (color_line) free(color_line);
 
 	// restore spi clk
-	change_speed = spi_lobo_set_speed(disp_spi, cur_speed);
+	change_speed = spi_lobo_set_speed(tft_disp_spi, cur_speed);
 
 	return max_speed;
 }
@@ -771,18 +770,18 @@ void _tft_setRotation(uint8_t rot) {
 
     if ((rotation & 1)) {
         // in landscape modes must be width > height
-        if (_width < _height) {
-            tmp = _width;
-            _width  = _height;
-            _height = tmp;
+        if (tft_width < tft_height) {
+            tmp = tft_width;
+            tft_width  = tft_height;
+            tft_height = tmp;
         }
     }
     else {
         // in portrait modes must be width < height
-        if (_width > _height) {
-            tmp = _width;
-            _width  = _height;
-            _height = tmp;
+        if (tft_width > tft_height) {
+            tmp = tft_width;
+            tft_width  = tft_height;
+            tft_height = tmp;
         }
     }
     #if TFT_INVERT_ROTATION
@@ -875,7 +874,7 @@ void TFT_PinsInit()
 #if USE_TOUCH
     gpio_pad_select_gpio(PIN_NUM_TCS);
     gpio_set_direction(PIN_NUM_TCS, GPIO_MODE_OUTPUT);
-#endif    
+#endif
 #if PIN_NUM_BCKL
     gpio_pad_select_gpio(PIN_NUM_BCKL);
     gpio_set_direction(PIN_NUM_BCKL, GPIO_MODE_OUTPUT);
@@ -907,26 +906,26 @@ void TFT_display_init()
     assert(ret==ESP_OK);
     //Send all the initialization commands
 	if (tft_disp_type == DISP_TYPE_ILI9341) {
-		commandList(disp_spi, ILI9341_init);
+		commandList(tft_disp_spi, ILI9341_init);
 	}
 	else if (tft_disp_type == DISP_TYPE_ILI9488) {
-		commandList(disp_spi, ILI9488_init);
+		commandList(tft_disp_spi, ILI9488_init);
 	}
 	else if (tft_disp_type == DISP_TYPE_ST7789V) {
-		commandList(disp_spi, ST7789V_init);
+		commandList(tft_disp_spi, ST7789V_init);
 	}
 	else if (tft_disp_type == DISP_TYPE_ST7735) {
-		commandList(disp_spi, STP7735_init);
+		commandList(tft_disp_spi, STP7735_init);
 	}
 	else if (tft_disp_type == DISP_TYPE_ST7735R) {
-		commandList(disp_spi, STP7735R_init);
-		commandList(disp_spi, Rcmd2green);
-		commandList(disp_spi, Rcmd3);
+		commandList(tft_disp_spi, STP7735R_init);
+		commandList(tft_disp_spi, Rcmd2green);
+		commandList(tft_disp_spi, Rcmd3);
 	}
 	else if (tft_disp_type == DISP_TYPE_ST7735B) {
-		commandList(disp_spi, STP7735R_init);
-		commandList(disp_spi, Rcmd2red);
-		commandList(disp_spi, Rcmd3);
+		commandList(tft_disp_spi, STP7735R_init);
+		commandList(tft_disp_spi, Rcmd2red);
+		commandList(tft_disp_spi, Rcmd3);
 	    uint8_t dt = 0xC0;
 		disp_spi_transfer_cmd_data(TFT_MADCTL, &dt, 1);
 	}
@@ -937,7 +936,7 @@ void TFT_display_init()
 
 	// Clear screen
     _tft_setRotation(PORTRAIT);
-	TFT_pushColorRep(0, 0, _width-1, _height-1, (color_t){0,0,0}, (uint32_t)(_height*_width));
+	TFT_pushColorRep(TFT_STATIC_WIDTH_OFFSET, TFT_STATIC_HEIGHT_OFFSET, tft_width + TFT_STATIC_WIDTH_OFFSET -1, tft_height + TFT_STATIC_HEIGHT_OFFSET -1, (color_t){0,0,0}, (uint32_t)(tft_height*tft_width));
 
 	///Enable backlight
 #if PIN_NUM_BCKL

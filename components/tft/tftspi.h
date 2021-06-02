@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * HIGH SPEED LOW LEVEL DISPLAY FUNCTIONS USING DIRECT TRANSFER MODE
  *
 */
@@ -7,7 +7,6 @@
 #ifndef _TFTSPI_H_
 #define _TFTSPI_H_
 
-#include "tftspi.h"
 #include "spi_master_lobo.h"
 #include "sdkconfig.h"
 #include "stmpe610.h"
@@ -22,7 +21,7 @@
 #define TP_CALX_STMPE610	21368532
 #define TP_CALY_STMPE610	11800144
 
-// === Screen orientation constants ===
+// === Screen tft_orientation constants ===
 #define PORTRAIT	0
 #define LANDSCAPE	1
 #define PORTRAIT_FLIP	2
@@ -34,11 +33,12 @@
 #define DISP_TYPE_ST7735	3
 #define DISP_TYPE_ST7735R	4
 #define DISP_TYPE_ST7735B	5
-#define DISP_TYPE_MAX		6
 
-#if CONFIG_EXAMPLE_DISPLAY_TYPE == 1
 
-// ** Set the correct configuration for ESP32-WROVER-KIT v3
+
+#if CONFIG_TFT_PREDEFINED_DISPLAY_TYPE == 1
+
+// ** Set the correct configuration for ESP-WROVER-KIT v3
 // --------------------------------------------------------
 #define DEFAULT_DISP_TYPE           DISP_TYPE_ST7789V
 #define DEFAULT_TFT_DISPLAY_WIDTH   240
@@ -65,7 +65,7 @@
 #define PIN_BCKL_OFF  1     // GPIO value for backlight OFF
 // --------------------------------------------------------
 
-#elif CONFIG_EXAMPLE_DISPLAY_TYPE == 2
+#elif CONFIG_TFT_PREDEFINED_DISPLAY_TYPE == 2
 
 // ** Set the correct configuration for Adafruit TFT Feather
 // ---------------------------------------------------------
@@ -94,7 +94,7 @@
 #define PIN_BCKL_OFF 1  	// GPIO value for backlight OFF
 // ---------------------------------------------------------
 
-#elif CONFIG_EXAMPLE_DISPLAY_TYPE == 3
+#elif CONFIG_TFT_PREDEFINED_DISPLAY_TYPE == 3
 
 // ** Set the correct configuration for M5Stack TFT
 // ---------------------------------------------------------
@@ -124,6 +124,102 @@
 #define PIN_BCKL_OFF 0  	// GPIO value for backlight OFF
 // ---------------------------------------------------------
 
+#elif CONFIG_TFT_PREDEFINED_DISPLAY_TYPE == 4
+
+// ** Set the correct configuration for ESP-WROVER-KIT v4.1
+// --------------------------------------------------------
+#define DEFAULT_DISP_TYPE           DISP_TYPE_ILI9341
+#define DEFAULT_TFT_DISPLAY_WIDTH   240
+#define DEFAULT_TFT_DISPLAY_HEIGHT  320
+#define DISP_COLOR_BITS_24          0x66
+#define DEFAULT_GAMMA_CURVE         0
+#define DEFAULT_SPI_CLOCK           26000000
+#define TFT_INVERT_ROTATION         0
+#define TFT_INVERT_ROTATION1        0
+#define TFT_INVERT_ROTATION2        0
+#define TFT_RGB_BGR                 0x08
+
+#define USE_TOUCH   TOUCH_TYPE_NONE
+
+#define PIN_NUM_MISO 25     // SPI MISO
+#define PIN_NUM_MOSI 23     // SPI MOSI
+#define PIN_NUM_CLK  19     // SPI CLOCK pin
+#define PIN_NUM_CS   22     // Display CS pin
+#define PIN_NUM_DC   21     // Display command/data pin
+#define PIN_NUM_TCS   0     // Touch screen CS pin
+
+#define PIN_NUM_RST  18     // GPIO used for RESET control
+#define PIN_NUM_BCKL  5     // GPIO used for backlight control
+#define PIN_BCKL_ON   0     // GPIO value for backlight ON
+#define PIN_BCKL_OFF  1     // GPIO value for backlight OFF
+// --------------------------------------------------------
+#elif CONFIG_TFT_PREDEFINED_DISPLAY_TYPE == 5
+//CONFIG FOR TTGO T-DISPLAY
+#define DEFAULT_DISP_TYPE           DISP_TYPE_ST7789V
+#define DEFAULT_TFT_DISPLAY_WIDTH   135
+#define DEFAULT_TFT_DISPLAY_HEIGHT  240
+
+//Need to be defined together so they can be swapped for x;y when rotating
+#define TFT_STATIC_WIDTH_OFFSET 53
+#define TFT_STATIC_HEIGHT_OFFSET 40
+
+#define DISP_COLOR_BITS_24          0x66
+#define DEFAULT_GAMMA_CURVE         0
+#define DEFAULT_SPI_CLOCK           20000000
+#define TFT_INVERT_ROTATION         0
+#define TFT_INVERT_ROTATION1        1
+#define TFT_RGB_BGR                 0x00
+//To be used by user application for initialization
+#define TFT_START_COLORS_INVERTED
+
+#define USE_TOUCH	TOUCH_TYPE_NONE
+
+#define PIN_NUM_MISO 0		// SPI MISO
+#define PIN_NUM_MOSI 19		// SPI MOSI
+#define PIN_NUM_CLK  18		// SPI CLOCK pin
+#define PIN_NUM_CS   5		// Display CS pin
+#define PIN_NUM_DC   16		// Display command/data pin
+#define PIN_NUM_TCS   0		// Touch screen CS pin
+
+#define PIN_NUM_RST  23  	// GPIO used for RESET control
+#define PIN_NUM_BCKL  4     // GPIO used for backlight control
+#define PIN_BCKL_ON   1     // GPIO value for backlight ON
+#define PIN_BCKL_OFF  0     // GPIO value for backlight OFF
+//END TTGO T_DISPLAY
+
+#elif CONFIG_TFT_PREDEFINED_DISPLAY_TYPE == 6
+//CONFIG FOR TTGO T-WRISTBAND
+#define DEFAULT_DISP_TYPE           DISP_TYPE_ST7735R
+#define DEFAULT_TFT_DISPLAY_WIDTH   80
+#define DEFAULT_TFT_DISPLAY_HEIGHT  160
+
+//Need to be defined together so they can be swapped for x;y when rotating
+#define TFT_STATIC_WIDTH_OFFSET 26
+#define TFT_STATIC_HEIGHT_OFFSET 1
+
+#define DISP_COLOR_BITS_24          0x66
+#define DEFAULT_GAMMA_CURVE         0
+#define DEFAULT_SPI_CLOCK           27000000
+#define TFT_INVERT_ROTATION         0
+#define TFT_INVERT_ROTATION1        1
+#define TFT_RGB_BGR                 0x00
+//To be used by user application for initialization
+#define TFT_START_COLORS_INVERTED
+
+#define USE_TOUCH       TOUCH_TYPE_NONE
+
+#define PIN_NUM_MISO 0          // SPI MISO
+#define PIN_NUM_MOSI 19         // SPI MOSI
+#define PIN_NUM_CLK  18         // SPI CLOCK pin
+#define PIN_NUM_CS   5          // Display CS pin
+#define PIN_NUM_DC   23         // Display command/data pin
+#define PIN_NUM_TCS   0         // Touch screen CS pin
+
+#define PIN_NUM_RST  26         // GPIO used for RESET control
+#define PIN_NUM_BCKL 27         // GPIO used for backlight control
+#define PIN_BCKL_ON   1     // GPIO value for backlight ON
+#define PIN_BCKL_OFF  0     // GPIO value for backlight OFF
+//END TTGO T_DISPLAY
 #else
 
 // Configuration for other boards, set the correct values for the display used
@@ -131,19 +227,20 @@
 #define DISP_COLOR_BITS_24	0x66
 //#define DISP_COLOR_BITS_16	0x55  // Do not use!
 
-// #############################################
-// ### Set to 1 for some displays,           ###
-//     for example the one on ESP-WROWER-KIT ###
-// #############################################
 #define TFT_INVERT_ROTATION 0
-#define TFT_INVERT_ROTATION1 0
+#define TFT_INVERT_ROTATION1 CONFIG_TFT_INVERT_ROTATION1
 
 // ################################################
 // ### SET TO 0X00 FOR DISPLAYS WITH RGB MATRIX ###
 // ### SET TO 0X08 FOR DISPLAYS WITH BGR MATRIX ###
 // ### For ESP-WROWER-KIT set to 0x00           ###
 // ################################################
+
+#if CONFIG_TFT_RGB_BGR
+#define TFT_RGB_BGR 0x00
+#else
 #define TFT_RGB_BGR 0x08
+#endif
 
 // ##############################################################
 // ### Define ESP32 SPI pins to which the display is attached ###
@@ -151,42 +248,51 @@
 
 // The pins configured here are the native spi pins for HSPI interface
 // Any other valid pin combination can be used
-#define PIN_NUM_MISO 19		// SPI MISO
-#define PIN_NUM_MOSI 23		// SPI MOSI
-#define PIN_NUM_CLK  18		// SPI CLOCK pin
-#define PIN_NUM_CS   5		// Display CS pin
-#define PIN_NUM_DC   26		// Display command/data pin
-#define PIN_NUM_TCS  25		// Touch screen CS pin (NOT used if USE_TOUCH=0)
 
-// --------------------------------------------------------------
-// ** Set Reset and Backlight pins to 0 if not used !
-// ** If you want to use them, set them to some valid GPIO number
-#define PIN_NUM_RST  0  	// GPIO used for RESET control
+#define PIN_NUM_MISO CONFIG_TFT_PIN_NUM_MISO
+#define PIN_NUM_MOSI CONFIG_TFT_PIN_NUM_MOSI
+#define PIN_NUM_CLK CONFIG_TFT_PIN_NUM_CLK
+#define PIN_NUM_CS CONFIG_TFT_PIN_NUM_CS
+#define PIN_NUM_DC CONFIG_TFT_PIN_NUM_DC
+#define PIN_NUM_TCS CONFIG_TFT_PIN_NUM_TCS
+#define PIN_NUM_RST CONFIG_TFT_PIN_NUM_RST
+#define PIN_NUM_BCKL CONFIG_TFT_PIN_NUM_BCKL
 
-#define PIN_NUM_BCKL 0  	// GPIO used for backlight control
 #define PIN_BCKL_ON  0  	// GPIO value for backlight ON
 #define PIN_BCKL_OFF 1  	// GPIO value for backlight OFF
 // --------------------------------------------------------------
 
-// #######################################################
-// Set this to 1 if you want to use touch screen functions
-// #######################################################
-#define USE_TOUCH	TOUCH_TYPE_NONE
-// #######################################################
+#define USE_TOUCH CONFIG_TFT_TOUCH_CONTROLLER
 
 // #######################################################################
 // Default display width (smaller dimension) and height (larger dimension)
 // #######################################################################
-#define DEFAULT_TFT_DISPLAY_WIDTH  240
-#define DEFAULT_TFT_DISPLAY_HEIGHT 320
+#define DEFAULT_TFT_DISPLAY_WIDTH  CONFIG_TFT_DISPLAY_WIDTH
+#define DEFAULT_TFT_DISPLAY_HEIGHT CONFIG_TFT_DISPLAY_HEIGHT
 // #######################################################################
 
 #define DEFAULT_GAMMA_CURVE 0
 #define DEFAULT_SPI_CLOCK   26000000
+
+#if defined(CONFIG_TFT_DISPLAY_CONTROLLER_MODEL)
+#define DEFAULT_DISP_TYPE CONFIG_TFT_DISPLAY_CONTROLLER_MODEL
+#else
 #define DEFAULT_DISP_TYPE   DISP_TYPE_ILI9341
+#endif
 //----------------------------------------------------------------------------
 
-#endif  // CONFIG_EXAMPLE_ESP_WROVER_KIT
+#endif  // CONFIG_PREDEFINED_DISPLAY_TYPE
+
+// Define offset generation, or ignore offsets if none are needed
+#ifdef TFT_STATIC_WIDTH_OFFSET
+#define TFT_STATIC_X_OFFSET (tft_orientation & 1 ? TFT_STATIC_HEIGHT_OFFSET : TFT_STATIC_WIDTH_OFFSET)
+#define TFT_STATIC_Y_OFFSET (tft_orientation & 1 ? TFT_STATIC_WIDTH_OFFSET : TFT_STATIC_HEIGHT_OFFSET)
+#else
+#define TFT_STATIC_WIDTH_OFFSET 0
+#define TFT_STATIC_X_OFFSET 0
+#define TFT_STATIC_HEIGHT_OFFSET 0
+#define TFT_STATIC_Y_OFFSET 0
+#endif
 
 
 // ##############################################################
@@ -194,21 +300,21 @@
 // ##############################################################
 
 // ==== Converts colors to grayscale if 1 =======================
-extern uint8_t gray_scale;
+extern uint8_t tft_gray_scale;
 
 // ==== Spi clock for reading data from display memory in Hz ====
-extern uint32_t max_rdclock;
+extern uint32_t tft_max_rdclock;
 
 // ==== Display dimensions in pixels ============================
-extern int _width;
-extern int _height;
+extern int tft_width;
+extern int tft_height;
 
 // ==== Display type, DISP_TYPE_ILI9488 or DISP_TYPE_ILI9341 ====
 extern uint8_t tft_disp_type;
 
 // ==== Spi device handles for display and touch screen =========
-extern spi_lobo_device_handle_t disp_spi;
-extern spi_lobo_device_handle_t ts_spi;
+extern spi_lobo_device_handle_t tft_disp_spi;
+extern spi_lobo_device_handle_t tft_ts_spi;
 
 // ##############################################################
 
@@ -347,7 +453,7 @@ static const uint8_t ST7789V_init[] = {
   ST_CMD_PWCTR1, 2, 0xA4, 0xA1,
   TFT_CMD_GMCTRP1, 14, 0xD0, 0x00, 0x05, 0x0E, 0x15, 0x0D, 0x37, 0x43, 0x47, 0x09, 0x15, 0x12, 0x16, 0x19,
   TFT_CMD_GMCTRN1, 14, 0xD0, 0x00, 0x05, 0x0D, 0x0C, 0x06, 0x2D, 0x44, 0x40, 0x0E, 0x1C, 0x18, 0x16, 0x19,
-  TFT_MADCTL, 1, (MADCTL_MX | TFT_RGB_BGR),			// Memory Access Control (orientation)
+  TFT_MADCTL, 1, (MADCTL_MX | TFT_RGB_BGR),			// Memory Access Control (tft_orientation)
   TFT_CMD_PIXFMT, 1, DISP_COLOR_BITS_24,            // *** INTERFACE PIXEL FORMAT: 0x66 -> 18 bit; 0x55 -> 16 bit
   TFT_CMD_SLPOUT, TFT_CMD_DELAY, 120,				//  Sleep out,	//  120 ms delay
   TFT_DISPON, TFT_CMD_DELAY, 120,
@@ -374,7 +480,7 @@ static const uint8_t ILI9341_init[] = {
   TFT_CMD_PWCTR2, 1, 0x10,							//Power control SAP[2:0];BT[3:0]
   TFT_CMD_VMCTR1, 2, 0x3e, 0x28,					//VCM control
   TFT_CMD_VMCTR2, 1, 0x86,							//VCM control2
-  TFT_MADCTL, 1,									// Memory Access Control (orientation)
+  TFT_MADCTL, 1,									// Memory Access Control (tft_orientation)
   (MADCTL_MX | TFT_RGB_BGR),
   // *** INTERFACE PIXEL FORMAT: 0x66 -> 18 bit; 0x55 -> 16 bit
   TFT_CMD_PIXFMT, 1, DISP_COLOR_BITS_24,
@@ -418,9 +524,9 @@ static const uint8_t ILI9488_init[] = {
 	0x80,
 
 #if TFT_INVERT_ROTATION
-  TFT_MADCTL, 1, (MADCTL_MV | TFT_RGB_BGR),			// Memory Access Control (orientation), set to portrait
+  TFT_MADCTL, 1, (MADCTL_MV | TFT_RGB_BGR),			// Memory Access Control (tft_orientation), set to portrait
 #else
-  TFT_MADCTL, 1, (MADCTL_MX | TFT_RGB_BGR),			// Memory Access Control (orientation), set to portrait
+  TFT_MADCTL, 1, (MADCTL_MX | TFT_RGB_BGR),			// Memory Access Control (tft_orientation), set to portrait
 #endif
 
   // *** INTERFACE PIXEL FORMAT: 0x66 -> 18 bit;
@@ -656,10 +762,10 @@ void _tft_setRotation(uint8_t rot);
 void TFT_PinsInit();
 
 // Perform display initialization sequence
-// Sets orientation to landscape; clears the screen
+// Sets tft_orientation to landscape; clears the screen
 // * All pins must be configured
 // * SPI interface must already be setup
-// * 'tft_disp_type', 'COLOR_BITS', '_width', '_height' variables must be set
+// * 'tft_disp_type', 'COLOR_BITS', 'tft_width', 'tft_height' variables must be set
 //======================
 void TFT_display_init();
 

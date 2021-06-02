@@ -8,6 +8,11 @@
 #define _TFT_H_
 
 #include <stdlib.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "tftspi.h"
 
 typedef struct {
@@ -33,26 +38,26 @@ typedef struct {
 //==========================================================================================
 // ==== Global variables ===================================================================
 //==========================================================================================
-extern uint8_t   orientation;		// current screen orientation
-extern uint16_t  font_rotate;   	// current font font_rotate angle (0~395)
-extern uint8_t   font_transparent;	// if not 0 draw fonts transparent
-extern uint8_t   font_forceFixed;   // if not zero force drawing proportional fonts with fixed width
-extern uint8_t   font_buffered_char;
-extern uint8_t   font_line_space;	// additional spacing between text lines; added to font height
-extern uint8_t   text_wrap;         // if not 0 wrap long text to the new line, else clip
-extern color_t   _fg;            	// current foreground color for fonts
-extern color_t   _bg;            	// current background for non transparent fonts
-extern dispWin_t dispWin;			// display clip window
-extern float	  _angleOffset;		// angle offset for arc, polygon and line by angle functions
-extern uint8_t	  image_debug;		// print debug messages during image decode if set to 1
+extern uint8_t   tft_orientation;		// current screen tft_orientation
+extern uint16_t  tft_font_rotate;   	// current font tft_font_rotate angle (0~395)
+extern uint8_t   tft_font_transparent;	// if not 0 draw fonts transparent
+extern uint8_t   tft_font_forceFixed;   // if not zero force drawing proportional fonts with fixed width
+extern uint8_t   tft_font_buffered_char;
+extern uint8_t   tft_font_line_space;	// additional spacing between text lines; added to font height
+extern uint8_t   tft_text_wrap;         // if not 0 wrap long text to the new line, else clip
+extern color_t   tft_fg;            	// current foreground color for fonts
+extern color_t   tft_bg;            	// current background for non transparent fonts
+extern dispWin_t tft_dispWin;			// display clip window
+extern float	  tft_angleOffset;		// angle offset for arc, polygon and line by angle functions
+extern uint8_t	  tft_image_debug;		// print debug messages during image decode if set to 1
 
-extern Font cfont;					// Current font structure
+extern Font tft_cfont;					// Current font structure
 
-extern int	TFT_X;					// X position of the next character after TFT_print() function
-extern int	TFT_Y;					// Y position of the next character after TFT_print() function
+extern int	tft_x;					// X position of the next character after TFT_print() function
+extern int	tft_y;					// Y position of the next character after TFT_print() function
 
-extern uint32_t tp_calx;			// touch screen X calibration constant
-extern uint32_t tp_caly;			// touch screen Y calibration constant
+extern uint32_t tft_tp_calx;			// touch screen X calibration constant
+extern uint32_t tft_tp_caly;			// touch screen Y calibration constant
 // =========================================================================================
 
 
@@ -199,7 +204,7 @@ void TFT_drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, color_t color)
 /*
  * Draw line on screen from (x,y) point at given angle
  * Line drawing angle starts at lower right quadrant of the screen and is offseted by
- * '_angleOffset' global variable (default: -90 degrees)
+ * 'tft_angleOffset' global variable (default: -90 degrees)
  *
  * Params:
  *       x: horizontal start position
@@ -382,7 +387,7 @@ void TFT_fillEllipse(uint16_t x0, uint16_t y0, uint16_t rx, uint16_t ry, color_t
 /*
  * Draw circle arc on screen
  * Arc drawing angle starts at lower right quadrant of the screen and is offseted by
- * '_angleOffset' global variable (default: -90 degrees)
+ * 'tft_angleOffset' global variable (default: -90 degrees)
  *
  * Params:
  *        cx: arc center X position
@@ -442,7 +447,7 @@ void TFT_setFont(uint8_t font, const char *font_file);
  *		height: pointer to returned font height
  */
 //-------------------------------------------
-int TFT_getfontsize(int *width, int* height);
+int TFT_getfontsize(int *width, int *height);
 
 
 /*
@@ -455,11 +460,11 @@ int TFT_getfontheight();
 /*
  * Write text to display.
  *
- * Rotation of the displayed text depends on 'font_rotate' variable (0~360)
- * if 'font_transparent' variable is set to 1, no background pixels will be printed
+ * Rotation of the displayed text depends on 'tft_font_rotate' variable (0~360)
+ * if 'tft_font_transparent' variable is set to 1, no background pixels will be printed
  *
- * If the text does not fit the screen width it will be clipped (if text_wrap=0),
- * or continued on next line (if text_wrap=1)
+ * If the text does not fit the screen width it will be clipped (if tft_text_wrap=0),
+ * or continued on next line (if tft_text_wrap=1)
  *
  * Two special characters are allowed in strings:
  * 		‘\r’ CR (0x0D), clears the display to EOL
@@ -479,11 +484,11 @@ int TFT_getfontheight();
  *					LASTY, continues from last Y position; offset can be used: LASTY+n
  *
  */
-//-------------------------------------
-void TFT_print(char *st, int x, int y);
+//-------------------------------------------
+void TFT_print(const char *st, int x, int y);
 
 /*
- * Set atributes for 7 segment vector font
+ * Set attributes for 7 segment vector font
  * == 7 segment font must be the current font to this function to have effect ==
  *
  * Params:
@@ -510,7 +515,7 @@ void set_7seg_font_atrib(uint8_t l, uint8_t w, int outline, color_t color);
 void TFT_setclipwin(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2);
 
 /*
- * Resets the clipping area to full screen (0,0),(_wodth,_height)
+ * Resets the clipping area to full screen (0,0),(_wodth,tft_height)
  *
  */
 //----------------------
@@ -574,14 +579,15 @@ int TFT_compare_colors(color_t c1, color_t c2);
  * returns the string width in pixels.
  * Useful for positions strings on the screen.
  */
-//--------------------------------
-int TFT_getStringWidth(char* str);
+//--------------------------------------
+int TFT_getStringWidth(const char *str);
 
 
 /*
  * Fills the rectangle occupied by string with current background color
  */
-void TFT_clearStringRect(int x, int y, char *str);
+//------------------------------------------------------
+void TFT_clearStringRect(int x, int y, const char *str);
 
 /*
  * Converts the components of a color, as specified by the HSB model,
@@ -617,8 +623,8 @@ color_t HSBtoRGB(float _hue, float _sat, float _brightness);
  *    size: size of the memory buffer from which the image will be read; used if fname=NULL & buf!=NULL
  *
  */
-//-----------------------------------------------------------------------------------
-void TFT_jpg_image(int x, int y, uint8_t scale, char *fname, uint8_t *buf, int size);
+//-----------------------------------------------------------------------------------------
+void TFT_jpg_image(int x, int y, uint8_t scale, const char *fname, uint8_t *buf, int size);
 
 /*
  * Decodes and displays BMP image
@@ -634,12 +640,12 @@ void TFT_jpg_image(int x, int y, uint8_t scale, char *fname, uint8_t *buf, int s
  *    size: size of the memory buffer from which the image will be read; used if fname=NULL & imgbuf!=NULL
  *
  */
-//-------------------------------------------------------------------------------------
-int TFT_bmp_image(int x, int y, uint8_t scale, char *fname, uint8_t *imgbuf, int size);
+//-------------------------------------------------------------------------------------------
+int TFT_bmp_image(int x, int y, uint8_t scale, const char *fname, uint8_t *imgbuf, int size);
 
 /*
  * Get the touch panel coordinates.
- * The coordinates are adjusted to screen orientation if raw=0
+ * The coordinates are adjusted to screen tft_orientation if raw=0
  *
  * Params:
  * 		x: pointer to X coordinate
@@ -668,12 +674,16 @@ int TFT_read_touch(int *x, int* y, uint8_t raw);
  * 		err no on error
  *
  */
-//------------------------------------------------
-int compile_font_file(char *fontfile, uint8_t dbg);
+//-------------------------------------------------------
+int compile_font_file(const char *fontfile, uint8_t dbg);
 
 /*
  * Get all font's characters to buffer
  */
 void getFontCharacters(uint8_t *buf);
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif
