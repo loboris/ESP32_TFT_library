@@ -131,7 +131,7 @@ static int obtain_time(void)
         //ESP_LOGI(tag, "Waiting for system time to be set... (%d/%d)", retry, retry_count);
 		sprintf(tmp_buff, "Wait %0d/%d", retry, retry_count);
     	TFT_print(tmp_buff, CENTER, LASTY);
-		vTaskDelay(500 / portTICK_RATE_MS);
+		vTaskDelay(500 / portTICK_PERIOD_MS);
         time(&time_now);
     	tm_info = localtime(&time_now);
     }
@@ -189,7 +189,7 @@ static int _checkTouch()
 	int tx, ty;
 	if (TFT_read_touch(&tx, &ty, 0)) {
 		while (TFT_read_touch(&tx, &ty, 1)) {
-			vTaskDelay(20 / portTICK_RATE_MS);
+			vTaskDelay(20 / portTICK_PERIOD_MS);
 		}
 		return 1;
 	}
@@ -206,12 +206,12 @@ static int Wait(int ms)
 		ms *= -1;
 	}
 	if (ms <= 50) {
-		vTaskDelay(ms / portTICK_RATE_MS);
+		vTaskDelay(ms / portTICK_PERIOD_MS);
 		//if (_checkTouch()) return 0;
 	}
 	else {
 		for (int n=0; n<ms; n += 50) {
-			vTaskDelay(50 / portTICK_RATE_MS);
+			vTaskDelay(50 / portTICK_PERIOD_MS);
 			if (tm) _checkTime();
 			//if (_checkTouch()) return 0;
 		}
@@ -978,14 +978,14 @@ static void touch_demo()
 				doexit++;
 				if (doexit == 2) update_header(NULL, "---");
 				if (doexit > 50) return;
-				vTaskDelay(100 / portTICK_RATE_MS);
+				vTaskDelay(100 / portTICK_PERIOD_MS);
 			}
 		}
 		else {
 			doexit++;
 			if (doexit == 2) update_header(NULL, "---");
 			if (doexit > 50) return;
-			vTaskDelay(100 / portTICK_RATE_MS);
+			vTaskDelay(100 / portTICK_PERIOD_MS);
 		}
 	}
 #endif
@@ -1294,7 +1294,7 @@ void app_main()
     // ====================================================================================================================
 
 
-    vTaskDelay(500 / portTICK_RATE_MS);
+    vTaskDelay(500 / portTICK_PERIOD_MS);
 	printf("\r\n==============================\r\n");
     printf("TFT display DEMO, LoBo 11/2017\r\n");
 	printf("==============================\r\n");
@@ -1350,7 +1350,7 @@ void app_main()
     printf("OK\r\n");
     #if USE_TOUCH == TOUCH_TYPE_STMPE610
 	stmpe610_Init();
-	vTaskDelay(10 / portTICK_RATE_MS);
+	vTaskDelay(10 / portTICK_PERIOD_MS);
     uint32_t tver = stmpe610_getID();
     printf("STMPE touch initialized, ver: %04x - %02x\r\n", tver >> 8, tver & 0xFF);
     #endif
