@@ -13,6 +13,7 @@
 #include "freertos/task.h"
 #include "soc/spi_reg.h"
 #include "driver/gpio.h"
+#include "rom/gpio.h"
 
 
 // ====================================================
@@ -601,14 +602,14 @@ uint32_t stmpe610_getID()
 void stmpe610_Init()
 {
     stmpe610_write_reg(STMPE610_REG_SYS_CTRL1, 0x02);        // Software chip reset
-    vTaskDelay(10 / portTICK_RATE_MS);
+    vTaskDelay(10 / portTICK_PERIOD_MS);
 
     stmpe610_write_reg(STMPE610_REG_SYS_CTRL2, 0x04);        // Temperature sensor clock off, GPIO clock off, touch clock on, ADC clock on
 
     stmpe610_write_reg(STMPE610_REG_INT_EN, 0x00);           // Don't Interrupt on INT pin
 
     stmpe610_write_reg(STMPE610_REG_ADC_CTRL1, 0x48);        // ADC conversion time = 80 clock ticks, 12-bit ADC, internal voltage refernce
-    vTaskDelay(2 / portTICK_RATE_MS);
+    vTaskDelay(2 / portTICK_PERIOD_MS);
     stmpe610_write_reg(STMPE610_REG_ADC_CTRL2, 0x01);        // ADC speed 3.25MHz
     stmpe610_write_reg(STMPE610_REG_GPIO_AF, 0x00);          // GPIO alternate function - OFF
     stmpe610_write_reg(STMPE610_REG_TSC_CFG, 0xE3);          // Averaging 8, touch detect delay 1ms, panel driver settling time 1ms
@@ -756,7 +757,7 @@ static void commandList(spi_lobo_device_handle_t spi, const uint8_t *addr) {
     if(ms) {
       ms = *addr++;              // Read post-command delay time (ms)
       if(ms == 255) ms = 500;    // If 255, delay for 500 ms
-	  vTaskDelay(ms / portTICK_RATE_MS);
+	  vTaskDelay(ms / portTICK_PERIOD_MS);
     }
   }
 }
@@ -897,9 +898,9 @@ void TFT_display_init()
 #if PIN_NUM_RST
     //Reset the display
     gpio_set_level(PIN_NUM_RST, 0);
-    vTaskDelay(20 / portTICK_RATE_MS);
+    vTaskDelay(20 / portTICK_PERIOD_MS);
     gpio_set_level(PIN_NUM_RST, 1);
-    vTaskDelay(150 / portTICK_RATE_MS);
+    vTaskDelay(150 / portTICK_PERIOD_MS);
 #endif
 
     ret = disp_select();

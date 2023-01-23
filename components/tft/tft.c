@@ -2363,7 +2363,7 @@ static UINT tjd_output (
 	}
 	else {
 		wait_trans_finish(1);
-		printf("Data size error: %d jpg: (%d,%d,%d,%d) disp: (%d,%d,%d,%d)\r\n", len, left,top,right,bottom, dleft,dtop,dright,dbottom);
+		printf("Data size error: %lu jpg: (%d,%d,%d,%d) disp: (%d,%d,%d,%d)\r\n", (long unsigned)len, left,top,right,bottom, dleft,dtop,dright,dbottom);
 		return 0;  // stop decompression
 	}
 
