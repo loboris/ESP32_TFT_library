@@ -1,3 +1,3 @@
 FILE(GLOB SOURCES *.c)
 idf_component_register(SRCS ${SOURCES} INCLUDE_DIRS "."
-                       REQUIRES spi_flash)
+                       REQUIRES vfs spi_flash)
