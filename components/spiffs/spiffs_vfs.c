@@ -47,12 +47,12 @@ int spiffs_is_mounted = 0;
 
 QueueHandle_t spiffs_mutex = NULL;
 
-static int IRAM_ATTR vfs_spiffs_open(const char *path, int flags, int mode);
-static ssize_t IRAM_ATTR vfs_spiffs_write(int fd, const void *data, size_t size);
-static ssize_t IRAM_ATTR vfs_spiffs_read(int fd, void * dst, size_t size);
-static int IRAM_ATTR vfs_spiffs_fstat(int fd, struct stat * st);
-static int IRAM_ATTR vfs_spiffs_close(int fd);
-static off_t IRAM_ATTR vfs_spiffs_lseek(int fd, off_t size, int mode);
+static int vfs_spiffs_open(const char *path, int flags, int mode);
+static ssize_t vfs_spiffs_write(int fd, const void *data, size_t size);
+static ssize_t vfs_spiffs_read(int fd, void * dst, size_t size);
+static int vfs_spiffs_fstat(int fd, struct stat * st);
+static int vfs_spiffs_close(int fd);
+static off_t vfs_spiffs_lseek(int fd, off_t size, int mode);
 
 typedef struct {
 	DIR dir;
@@ -92,7 +92,7 @@ static u8_t *my_spiffs_cache;
 
 //----------------------------------------------------
 void spiffs_fs_stat(uint32_t *total, uint32_t *used) {
-	if (SPIFFS_info(&fs, total, used) != SPIFFS_OK) {
+	if (SPIFFS_info(&fs, (u32_t *)total, (u32_t *)used) != SPIFFS_OK) {
 		*total = 0;
 		*used = 0;
 	}

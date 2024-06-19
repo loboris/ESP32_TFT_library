@@ -34,7 +34,12 @@
 
 #include "spiffs.h"
 
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+#include <esp_flash.h>
+#include <spi_flash_mmap.h>
+#else
 #include <esp_spi_flash.h>
+#endif
 
 s32_t esp32_spi_flash_read(u32_t addr, u32_t size, u8_t *dst) {
 	u32_t aaddr;
@@ -63,7 +68,11 @@ s32_t esp32_spi_flash_read(u32_t addr, u32_t size, u8_t *dst) {
 
 		abuff = (u8_t *)(((ptrdiff_t)buff + (4 - 1)) & (u32_t)-4);
 
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+		if (esp_flash_read(NULL, (void *)abuff, aaddr, asize) != ESP_OK) {
+#else
 		if (spi_flash_read(aaddr, (void *)abuff, asize) != 0) {
+#endif
 			free(buff);
 			return SPIFFS_ERR_INTERNAL;
 		}
@@ -72,7 +81,11 @@ s32_t esp32_spi_flash_read(u32_t addr, u32_t size, u8_t *dst) {
 
 		free(buff);
 	} else {
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+		if (esp_flash_read(NULL, (void *)dst, addr, size) != ESP_OK) {
+#else
 		if (spi_flash_read(addr, (void *)dst, size) != 0) {
+#endif
 			return SPIFFS_ERR_INTERNAL;
 		}
 	}
@@ -87,7 +100,7 @@ s32_t esp32_spi_flash_write(u32_t addr, u32_t size, const u8_t *src) {
 	u32_t asize;
 
 	asize = size;
-	
+
 	// Align address to 4 byte
 	aaddr = (addr + (4 - 1)) & -4;
 	if (aaddr != addr) {
@@ -107,21 +120,33 @@ s32_t esp32_spi_flash_write(u32_t addr, u32_t size, const u8_t *src) {
 
 		abuff = (u8_t *)(((ptrdiff_t)buff + (4 - 1)) & -4);
 
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+		if (esp_flash_read(NULL, (void *)abuff, aaddr, asize) != ESP_OK) {
+#else
 		if (spi_flash_read(aaddr, (void *)abuff, asize) != 0) {
+#endif
 			free(buff);
 			return SPIFFS_ERR_INTERNAL;
 		}
 
 		memcpy(abuff + (addr - aaddr), src, size);
 
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+		if (esp_flash_write(NULL, (uint32_t *)abuff, aaddr, asize) != ESP_OK) {
+#else
 		if (spi_flash_write(aaddr, (uint32_t *)abuff, asize) != 0) {
+#endif
 			free(buff);
 			return SPIFFS_ERR_INTERNAL;
 		}
 
 		free(buff);
 	} else {
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+		if (esp_flash_write(NULL, (uint32_t *)src, addr, size) != ESP_OK) {
+#else
 		if (spi_flash_write(addr, (uint32_t *)src, size) != 0) {
+#endif
 			return SPIFFS_ERR_INTERNAL;
 		}
 	}
@@ -130,7 +155,11 @@ s32_t esp32_spi_flash_write(u32_t addr, u32_t size, const u8_t *src) {
 }
 
 s32_t IRAM_ATTR esp32_spi_flash_erase(u32_t addr, u32_t size) {
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+	if (esp_flash_erase_region(NULL, addr, size) != ESP_OK) {
+#else
 	if (spi_flash_erase_sector(addr >> 12) != 0) {
+#endif
 		return SPIFFS_ERR_INTERNAL;
 	}
 	
